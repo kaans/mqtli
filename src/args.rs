@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::time::Duration;
 
 use clap::Args;
 use derive_getters::Getters;
@@ -16,13 +17,13 @@ pub struct MqttBrokerConnectArgs {
     #[arg(short = 'c', long = "client-id", default_value = "mqtli", env = "CLIENT_ID")]
     client_id: String,
 
-    #[arg(long = "keep-alive", default_value_t = 5, env = "KEEP_ALIVE")]
-    keep_alive: u64,
+    #[arg(long = "keep-alive", default_value = "5", env = "KEEP_ALIVE", value_parser = parse_keep_alive)]
+    keep_alive: Duration,
 
-    #[arg(short = 'u', long = "username", env = "USERNAME", requires = "password")]
+    #[arg(short = 'u', long = "username", env = "USERNAME")]
     username: Option<String>,
 
-    #[arg(short = 'w', long = "password", env = "PASSWORD", requires = "username")]
+    #[arg(short = 'w', long = "password", env = "PASSWORD")]
     password: Option<String>,
 
     //#[arg(long = "use-tls", default_value_t = false, env = "USE_TLS")]
@@ -46,4 +47,11 @@ pub struct MqttBrokerConnectArgs {
 pub struct LoggingArgs {
     #[arg(short = 'l', long = "log-level", default_value_t = LevelFilter::Info, env = "LOG_LEVEL")]
     level: LevelFilter,
+}
+
+fn parse_keep_alive(input: &str) -> Result<Duration, String> {
+    let duraton_in_seconds: u64 = input.parse()
+        .map_err(|_| format!("{input} is not a valid duration in seconds"))?;
+
+    Ok(Duration::from_secs(duraton_in_seconds))
 }
