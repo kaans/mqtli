@@ -1,2 +1,11 @@
+host: "localhost",
+port: 1883,
+client_id: "mqtcli",
+keep_alive: 5,
+#username: "",
+#password: "",
+
+log_level: "info",
+
 subscribe_topics:
-  - mqtcli/test
+  - "mqtcli/test"
