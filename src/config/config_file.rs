@@ -2,7 +2,6 @@ use std::fs::read_to_string;
 use std::path::PathBuf;
 use std::time::Duration;
 use derive_getters::Getters;
-use log::LevelFilter;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Getters)]
