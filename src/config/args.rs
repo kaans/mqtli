@@ -1,24 +1,41 @@
 use std::fmt::Debug;
+use std::path::PathBuf;
 use std::time::Duration;
 
-use clap::Args;
+use clap::{Args, Parser};
 use derive_getters::Getters;
 use log::LevelFilter;
+
+
+#[derive(Parser, Debug, Getters)]
+#[command(author, version, about, long_about = None)]
+pub struct MqtliArgs {
+    #[command(flatten)]
+    broker: MqttBrokerConnectArgs,
+
+    #[command(flatten)]
+    logger: LoggingArgs,
+
+    #[arg(long = "config-file", default_value = "config.yaml", env = "CONFIG_FILE_PATH")]
+    config_file: PathBuf,
+
+    subscribe_topics: Vec<String>
+}
 
 #[derive(Args, Debug, Default, Getters)]
 #[group(required = false, multiple = true)]
 pub struct MqttBrokerConnectArgs {
-    #[arg(short = 'o', long = "host", default_value = "localhost", env = "HOST")]
-    host: String,
+    #[arg(short = 'o', long = "host", env = "HOST")]
+    host: Option<String>,
 
-    #[arg(short = 'p', long = "port", default_value_t = 1883, env = "PORT")]
-    port: u16,
+    #[arg(short = 'p', long = "port", env = "PORT")]
+    port: Option<u16>,
 
-    #[arg(short = 'c', long = "client-id", default_value = "mqtli", env = "CLIENT_ID")]
-    client_id: String,
+    #[arg(short = 'c', long = "client-id",  env = "CLIENT_ID")]
+    client_id: Option<String>,
 
-    #[arg(long = "keep-alive", default_value = "5", env = "KEEP_ALIVE", value_parser = parse_keep_alive)]
-    keep_alive: Duration,
+    #[arg(long = "keep-alive", env = "KEEP_ALIVE", value_parser = parse_keep_alive)]
+    keep_alive: Option<Duration>,
 
     #[arg(short = 'u', long = "username", env = "USERNAME")]
     username: Option<String>,
@@ -45,13 +62,13 @@ pub struct MqttBrokerConnectArgs {
 #[derive(Args, Debug, Getters)]
 #[group(required = false, multiple = true)]
 pub struct LoggingArgs {
-    #[arg(short = 'l', long = "log-level", default_value_t = LevelFilter::Info, env = "LOG_LEVEL")]
-    level: LevelFilter,
+    #[arg(short = 'l', long = "log-level", env = "LOG_LEVEL")]
+    level: Option<LevelFilter>,
 }
 
 fn parse_keep_alive(input: &str) -> Result<Duration, String> {
-    let duraton_in_seconds: u64 = input.parse()
+    let duration_in_seconds: u64 = input.parse()
         .map_err(|_| format!("{input} is not a valid duration in seconds"))?;
 
-    Ok(Duration::from_secs(duraton_in_seconds))
+    Ok(Duration::from_secs(duration_in_seconds))
 }
