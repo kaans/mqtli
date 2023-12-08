@@ -1,44 +1,25 @@
-use std::fs::read_to_string;
 use std::future::Future;
-use std::path::PathBuf;
 
 use clap::Parser;
-use derive_getters::Getters;
 use log::{debug, error, info, LevelFilter};
 use rumqttc::v5::{AsyncClient, MqttOptions};
 use rumqttc::v5::mqttbytes::QoS::AtLeastOnce;
 use simplelog::{Config, SimpleLogger};
 
-use crate::args::{LoggingArgs, MqttBrokerConnectArgs};
-use crate::config_file::ConfigFile;
+use crate::config::main_config::{MqtliConfig, parse_config};
 
-mod args;
-mod config_file;
+mod config;
 
-#[derive(Parser, Debug, Getters)]
-#[command(author, version, about, long_about = None)]
-struct MqtliArgs {
-    #[command(flatten)]
-    broker: MqttBrokerConnectArgs,
-
-    #[command(flatten)]
-    logger: LoggingArgs,
-
-    #[arg(long = "config-file", default_value = "config.yaml", env = "CONFIG_FILE_PATH")]
-    config_file: PathBuf,
-}
 
 #[tokio::main]
 async fn main() {
-    let args = MqtliArgs::parse();
+    let config = parse_config();
 
-    init_logger(args.logger.level());
+    init_logger(config.logger().level());
 
     info!("MQTli starting");
 
-    let config = read_config(&args.config_file);
-
-    let client = start_mqtt(args).await;
+    let client = start_mqtt(&config).await;
 
     for topic in config.subscribe_topics() {
         subscribe_to_topic(&client, topic.to_string()).await;
@@ -48,27 +29,22 @@ async fn main() {
     std::future::pending::<()>().await;
 }
 
+
 async fn subscribe_to_topic(client: &AsyncClient, topic: String) {
     info!("Subscribing to topic {topic}");
 
     client.subscribe(topic, AtLeastOnce).await.expect("Could not subscribe to topic {topic}");
 }
 
-fn read_config(buf: &PathBuf) -> ConfigFile {
-    let content = read_to_string(buf).expect("Could not read config file");
+async fn start_mqtt(config: &MqtliConfig) -> AsyncClient {
+    debug!("Connection to {}:{} with client id {}", config.broker().host(),
+                config.broker().port(), config.broker().client_id());
+    let mut options = MqttOptions::new(config.broker().client_id(),
+                                       config.broker().host(),
+                                       *config.broker().port());
 
-    let config = serde_yaml::from_str(content.as_str()).expect("Invalid config file");
-
-    config
-}
-
-async fn start_mqtt(args: MqtliArgs) -> AsyncClient {
-    let mut options = MqttOptions::new(args.broker.client_id(),
-                                       args.broker.host(),
-                                       *args.broker.port());
-
-    debug!("Setting keep alive to {} seconds", args.broker.keep_alive().as_secs());
-    options.set_keep_alive(*args.broker.keep_alive());
+    debug!("Setting keep alive to {} seconds", config.broker().keep_alive().as_secs());
+    options.set_keep_alive(*config.broker().keep_alive());
 
     let (mut client, mut connection) = AsyncClient::new(options, 10);
 
