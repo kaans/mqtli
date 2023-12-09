@@ -1,3 +1,4 @@
+use std::str::from_utf8;
 use std::sync::Arc;
 
 use log::{debug, error, info};
@@ -82,7 +83,7 @@ impl MqttService<'_> {
             loop {
                 match event_loop.poll().await {
                     Ok(event) => {
-                        info!("Received {:?}", event);
+                        debug!("Received {:?}", event);
 
                         match event {
                             Event::Incoming(event) => {
@@ -95,6 +96,12 @@ impl MqttService<'_> {
                                         for topic in subscribe_topics.lock().await.iter() {
                                             client.subscribe(topic.topic(), *topic.qos()).await.expect("could not subscribe");
                                         }
+                                    }
+                                    Incoming::Publish(v) => {
+                                        info!("{} ({:?})-> {}",
+                                            from_utf8(v.topic.as_ref()).unwrap(),
+                                            v.qos,
+                                            from_utf8(v.payload.as_ref()).unwrap())
                                     }
                                     _ => {}
                                 }
