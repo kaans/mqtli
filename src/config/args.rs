@@ -25,22 +25,22 @@ pub struct MqtliArgs {
 #[derive(Args, Debug, Default, Getters)]
 #[group(required = false, multiple = true)]
 pub struct MqttBrokerConnectArgs {
-    #[arg(short = 'o', long = "host", env = "HOST")]
+    #[arg(short = 'o', long = "host", env = "BROKER_HOST")]
     host: Option<String>,
 
-    #[arg(short = 'p', long = "port", env = "PORT")]
+    #[arg(short = 'p', long = "port", env = "BROKER_PORT")]
     port: Option<u16>,
 
-    #[arg(short = 'c', long = "client-id",  env = "CLIENT_ID")]
+    #[arg(short = 'c', long = "client-id",  env = "BROKER_CLIENT_ID")]
     client_id: Option<String>,
 
     #[arg(long = "keep-alive", env = "KEEP_ALIVE", value_parser = parse_keep_alive)]
     keep_alive: Option<Duration>,
 
-    #[arg(short = 'u', long = "username", env = "USERNAME")]
+    #[arg(short = 'u', long = "username", env = "BROKER_USERNAME")]
     username: Option<String>,
 
-    #[arg(short = 'w', long = "password", env = "PASSWORD")]
+    #[arg(short = 'w', long = "password", env = "BROKER_PASSWORD")]
     password: Option<String>,
 
     //#[arg(long = "use-tls", default_value_t = false, env = "USE_TLS")]

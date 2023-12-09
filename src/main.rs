@@ -1,19 +1,19 @@
 use std::process::exit;
-use anyhow::anyhow;
 
-use log::{debug, error, info, LevelFilter};
-use rumqttc::v5::{AsyncClient, MqttOptions};
-use rumqttc::v5::mqttbytes::QoS::AtLeastOnce;
+use anyhow::anyhow;
+use log::LevelFilter;
 use simplelog::{Config, SimpleLogger};
 
-use crate::config::mqtl_config::{MqtliConfig, parse_config};
+use crate::config::mqtl_config::parse_config;
+use crate::mqtt_service::MqttService;
 
 mod config;
+mod mqtt_service;
 
 
 #[tokio::main]
 async fn main() {
-    let config= match parse_config() {
+    let config = match parse_config() {
         Ok(config) => config,
         Err(e) => {
             println!("Error while parsing configuration:\n\n{:#}", anyhow!(e));
@@ -23,49 +23,17 @@ async fn main() {
 
     init_logger(config.logger().level());
 
-    let client = start_mqtt(&config).await;
+    let mut mqtt_service = MqttService::new(config.broker());
 
     for topic in config.subscribe_topics() {
-        subscribe_to_topic(&client, topic.to_string()).await;
+        mqtt_service.subscribe((*topic).clone()).await;
     }
+    mqtt_service.connect().await.unwrap();
+
+    mqtt_service.await_task().await;
 
     // wait forever
-    std::future::pending::<()>().await;
-}
-
-
-async fn subscribe_to_topic(client: &AsyncClient, topic: String) {
-    info!("Subscribing to topic {topic}");
-
-    client.subscribe(topic, AtLeastOnce).await.expect("Could not subscribe to topic {topic}");
-}
-
-async fn start_mqtt(config: &MqtliConfig) -> AsyncClient {
-    debug!("Connection to {}:{} with client id {}", config.broker().host(),
-                config.broker().port(), config.broker().client_id());
-    let mut options = MqttOptions::new(config.broker().client_id(),
-                                       config.broker().host(),
-                                       *config.broker().port());
-
-    debug!("Setting keep alive to {} seconds", config.broker().keep_alive().as_secs());
-    options.set_keep_alive(*config.broker().keep_alive());
-
-    let (client, mut connection) = AsyncClient::new(options, 10);
-
-    tokio::task::spawn(async move {
-        loop {
-            match connection.poll().await {
-                Ok(value) => {
-                    info!("Received {:?}", value);
-                }
-                Err(e) => {
-                    error!("Error while processing mqtt loop: {:?}", e);
-                }
-            }
-        }
-    });
-
-    client
+    //std::future::pending::<()>().await;
 }
 
 fn init_logger(filter: &LevelFilter) {
