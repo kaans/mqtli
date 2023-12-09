@@ -7,10 +7,11 @@ use std::time::Duration;
 use clap::Parser;
 use derive_getters::Getters;
 use log::LevelFilter;
+use rumqttc::v5::mqttbytes::QoS;
 use validator::{Validate, ValidationError};
 
 use crate::config::args::MqtliArgs;
-use crate::config::config_file::read_config;
+use crate::config::config_file::{read_config, Topic as ConfigFileTopic};
 use crate::config::ConfigError;
 
 #[derive(Debug, Default, Getters, Validate)]
@@ -22,7 +23,23 @@ pub struct MqtliConfig {
 
     _config_file: PathBuf,
 
-    subscribe_topics: Vec<String>,
+    subscribe_topics: Vec<Topic>,
+}
+
+#[derive(Clone, Debug, Default, Getters, Validate)]
+pub struct Topic {
+    #[validate(length(min = 1, message = "Topic must be given"))]
+    topic: String,
+    qos: QoS
+}
+
+impl From<&ConfigFileTopic> for Topic {
+    fn from(value: &ConfigFileTopic) -> Self {
+        Topic {
+            topic: String::from(value.topic()),
+            qos: *value.qos(),
+        }
+    }
 }
 
 #[derive(Debug, Default, Getters, Validate)]
@@ -72,7 +89,7 @@ pub fn parse_config() -> Result<MqtliConfig, ConfigError> {
         .or(Option::from(LevelFilter::Info)).unwrap();
 
     for topic in config_file.subscribe_topics() {
-        config.subscribe_topics.push(topic.clone());
+        config.subscribe_topics.push(Topic::from(topic));
     }
 
     return match config.validate() {
