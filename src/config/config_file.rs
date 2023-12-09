@@ -4,6 +4,7 @@ use std::time::Duration;
 use derive_getters::Getters;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde::de::{Error, Unexpected};
+use crate::config::ConfigError;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Getters)]
 pub struct ConfigFile {
@@ -21,12 +22,22 @@ pub struct ConfigFile {
     subscribe_topics: Vec<String>
 }
 
-pub fn read_config(buf: &PathBuf) -> ConfigFile {
-    let content = read_to_string(buf).expect("Could not read config file");
+pub fn read_config(buf: &PathBuf) -> Result<ConfigFile, ConfigError> {
+    let content = match read_to_string(buf)  {
+        Ok(content) => content,
+        Err(e) => {
+            return Err(ConfigError::CouldNotReadConfigFile(e));
+        }
+    };
 
-    let config = serde_yaml::from_str(content.as_str()).expect("Invalid config file");
+    let config = match serde_yaml::from_str(content.as_str()) {
+        Ok(config) => config,
+        Err(e) => {
+            return Err(ConfigError::CouldNotParseConfigFile(e));
+        }
+    };
 
-    config
+    Ok(config)
 }
 
 fn serialize_keep_alive<S>(value: &Option<Duration>, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {

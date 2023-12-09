@@ -1,4 +1,5 @@
 use std::process::exit;
+use anyhow::anyhow;
 
 use log::{debug, error, info, LevelFilter};
 use rumqttc::v5::{AsyncClient, MqttOptions};
@@ -12,14 +13,15 @@ mod config;
 
 #[tokio::main]
 async fn main() {
-    let Ok(config) = parse_config() else {
-        error!("Configuration is not valid, exiting");
-        exit(1);
+    let config= match parse_config() {
+        Ok(config) => config,
+        Err(e) => {
+            println!("Error while parsing configuration:\n\n{:#}", anyhow!(e));
+            exit(1);
+        }
     };
 
     init_logger(config.logger().level());
-
-    info!("MQTli starting");
 
     let client = start_mqtt(&config).await;
 
