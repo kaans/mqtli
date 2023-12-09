@@ -11,6 +11,7 @@ use validator::{Validate, ValidationError};
 
 use crate::config::args::MqtliArgs;
 use crate::config::config_file::read_config;
+use crate::config::ConfigError;
 
 #[derive(Debug, Default, Getters, Validate)]
 pub struct MqtliConfig {
@@ -51,9 +52,9 @@ impl Default for LoggingArgs {
     }
 }
 
-pub fn parse_config() -> Result<MqtliConfig, ()> {
+pub fn parse_config() -> Result<MqtliConfig, ConfigError> {
     let args = MqtliArgs::parse();
-    let config_file = read_config(&args.config_file());
+    let config_file = read_config(&args.config_file())?;
 
     let mut config = MqtliConfig {
         ..Default::default()
@@ -76,7 +77,7 @@ pub fn parse_config() -> Result<MqtliConfig, ()> {
 
     return match config.validate() {
         Ok(_) => Ok(config),
-        Err(_) => Err(())
+        Err(e) => Err(ConfigError::InvalidConfiguration(e))
     };
 }
 
