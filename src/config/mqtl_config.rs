@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fmt::Debug;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -6,26 +7,32 @@ use std::time::Duration;
 use clap::Parser;
 use derive_getters::Getters;
 use log::LevelFilter;
+use validator::{Validate, ValidationError};
 
 use crate::config::args::MqtliArgs;
 use crate::config::config_file::read_config;
 
-#[derive(Debug, Default, Getters)]
+#[derive(Debug, Default, Getters, Validate)]
 pub struct MqtliConfig {
+    #[validate]
     broker: MqttBrokerConnectArgs,
 
     logger: LoggingArgs,
 
-    config_file: PathBuf,
+    _config_file: PathBuf,
 
-    subscribe_topics: Vec<String>
+    subscribe_topics: Vec<String>,
 }
 
-#[derive(Debug, Default, Getters)]
+#[derive(Debug, Default, Getters, Validate)]
+#[validate(schema(function = "validate_credentials", skip_on_field_errors = false))]
 pub struct MqttBrokerConnectArgs {
+    #[validate(length(min = 1, message = "Hostname must be given"))]
     host: String,
     port: u16,
+    #[validate(length(min = 1, message = "Client id must be given"))]
     client_id: String,
+    #[validate(custom (function = "validate_keep_alive", message = "Keep alive must be a number and at least 5 seconds"))]
     keep_alive: Duration,
     username: Option<String>,
     password: Option<String>,
@@ -44,8 +51,8 @@ impl Default for LoggingArgs {
     }
 }
 
-pub fn parse_config() -> MqtliConfig {
-    let mut args = MqtliArgs::parse();
+pub fn parse_config() -> Result<MqtliConfig, ()> {
+    let args = MqtliArgs::parse();
     let config_file = read_config(&args.config_file());
 
     let mut config = MqtliConfig {
@@ -67,5 +74,33 @@ pub fn parse_config() -> MqtliConfig {
         config.subscribe_topics.push(topic.clone());
     }
 
-    config
+    return match config.validate() {
+        Ok(_) => Ok(config),
+        Err(_) => Err(())
+    };
+}
+
+fn validate_keep_alive(value: &Duration) -> Result<(), ValidationError> {
+    if value.as_secs() >= 5 {
+        return Ok(());
+    }
+
+    let mut err = ValidationError::new("wrong_keep_alive");
+    err.message = Some(Cow::from("Keep alive must be at least 5 seconds"));
+
+    Err(err)
+}
+
+fn validate_credentials(value: &MqttBrokerConnectArgs) -> Result<(), ValidationError> {
+    let mut err = ValidationError::new("wrong_credentials");
+
+    if value.username.is_none() && value.password.is_some() {
+        err.message = Some(Cow::from("Password is given but no username"));
+        return Err(err);
+    } else if value.username.is_some() && value.password.is_none() {
+        err.message = Some(Cow::from("Username is given but no password"));
+        return Err(err);
+    }
+
+    Ok(())
 }
