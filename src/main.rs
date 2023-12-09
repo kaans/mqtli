@@ -1,19 +1,21 @@
-use std::future::Future;
+use std::process::exit;
 
-use clap::Parser;
 use log::{debug, error, info, LevelFilter};
 use rumqttc::v5::{AsyncClient, MqttOptions};
 use rumqttc::v5::mqttbytes::QoS::AtLeastOnce;
 use simplelog::{Config, SimpleLogger};
 
-use crate::config::main_config::{MqtliConfig, parse_config};
+use crate::config::mqtl_config::{MqtliConfig, parse_config};
 
 mod config;
 
 
 #[tokio::main]
 async fn main() {
-    let config = parse_config();
+    let Ok(config) = parse_config() else {
+        error!("Configuration is not valid, exiting");
+        exit(1);
+    };
 
     init_logger(config.logger().level());
 
@@ -46,7 +48,7 @@ async fn start_mqtt(config: &MqtliConfig) -> AsyncClient {
     debug!("Setting keep alive to {} seconds", config.broker().keep_alive().as_secs());
     options.set_keep_alive(*config.broker().keep_alive());
 
-    let (mut client, mut connection) = AsyncClient::new(options, 10);
+    let (client, mut connection) = AsyncClient::new(options, 10);
 
     tokio::task::spawn(async move {
         loop {
