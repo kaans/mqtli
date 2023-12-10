@@ -1,6 +1,7 @@
 /target
 
-/config.yaml
+/config*.yaml
+/tmp
 
 .idea
 .vscode
