@@ -11,8 +11,12 @@ use rumqttc::v5::mqttbytes::QoS;
 use validator::{Validate, ValidationError};
 
 use crate::config::args::MqtliArgs;
-use crate::config::config_file::{read_config, Topic as ConfigFileTopic};
+use crate::config::config_file::{read_config, Topic as ConfigFileTopic,
+                                 PayloadType as ConfigFilePayloadType,
+                                 PayloadText as ConfigFilePayloadText,
+                                 PayloadProtobuf as ConfigFilePayloadProtobuf};
 use crate::config::ConfigError;
+use crate::config::mqtli_config::PayloadType::Text;
 
 #[derive(Debug, Default, Getters, Validate)]
 pub struct MqtliConfig {
@@ -31,6 +35,7 @@ pub struct Topic {
     #[validate(length(min = 1, message = "Topic must be given"))]
     topic: String,
     qos: QoS,
+    payload: PayloadType,
 }
 
 impl From<&ConfigFileTopic> for Topic {
@@ -38,6 +43,58 @@ impl From<&ConfigFileTopic> for Topic {
         Topic {
             topic: String::from(value.topic()),
             qos: *value.qos(),
+            payload: match value.payload() {
+                None => PayloadType::default(),
+                Some(value) => {
+                    PayloadType::from(value)
+                }
+            },
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum PayloadType {
+    Text(PayloadText),
+    Protobuf(PayloadProtobuf),
+}
+
+impl Default for PayloadType {
+    fn default() -> Self {
+        Text(PayloadText::default())
+    }
+}
+
+impl From<&ConfigFilePayloadType> for PayloadType {
+    fn from(value: &ConfigFilePayloadType) -> Self {
+        match value {
+            ConfigFilePayloadType::Text(v) => PayloadType::Text(PayloadText::from(v)),
+            ConfigFilePayloadType::Protobuf(v) => PayloadType::Protobuf(PayloadProtobuf::from(v))
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Getters, PartialEq)]
+pub struct PayloadText {}
+
+impl From<&ConfigFilePayloadText> for PayloadText {
+    fn from(_value: &ConfigFilePayloadText) -> Self {
+        PayloadText {}
+    }
+}
+
+#[derive(Clone, Debug, Default, Getters, PartialEq, Validate)]
+pub struct PayloadProtobuf {
+    definition: PathBuf,
+    #[validate(length(min = 1, message = "Message must be given"))]
+    message: String,
+}
+
+impl From<&ConfigFilePayloadProtobuf> for PayloadProtobuf {
+    fn from(value: &ConfigFilePayloadProtobuf) -> Self {
+        PayloadProtobuf {
+            definition: PathBuf::from(value.definition()),
+            message: String::from(value.message()),
         }
     }
 }
