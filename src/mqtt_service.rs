@@ -11,12 +11,7 @@ use tokio::task::JoinHandle;
 use crate::config::mqtl_config::{MqttBrokerConnectArgs, Topic};
 
 #[derive(Error, Debug)]
-pub enum MqttServiceError {
-    #[error("Not authorized, provide valid credentials")]
-    NotAuthorized(#[source] ConnectionError)
-}
-
-type OnConnectCallback = fn();
+pub enum MqttServiceError {}
 
 pub struct MqttService<'a> {
     client: Option<AsyncClient>,
@@ -24,7 +19,6 @@ pub struct MqttService<'a> {
 
     subscribe_topics: Arc<Mutex<Vec<Topic>>>,
 
-    on_connect_callback: Option<OnConnectCallback>,
     task_handle: Option<JoinHandle<()>>,
 }
 
@@ -35,7 +29,6 @@ impl MqttService<'_> {
             config: mqtt_connect_args,
 
             subscribe_topics: Arc::new(Mutex::new(vec![])),
-            on_connect_callback: None,
             task_handle: None,
         }
     }
@@ -58,16 +51,14 @@ impl MqttService<'_> {
                                     self.config.password().clone().unwrap());
         }
 
-        let (client, mut event_loop) = AsyncClient::new(options, 10);
+        let (client, event_loop) = AsyncClient::new(options, 10);
         self.client = Option::from(client.clone());
 
         let subscribe_topics = self.subscribe_topics.clone();
-        let on_connect_callback = self.on_connect_callback.clone();
 
         let task_handle: JoinHandle<()> = MqttService::start_connection_task(event_loop,
                                                                              client,
-                                                                             subscribe_topics,
-                                                                             on_connect_callback)
+                                                                             subscribe_topics)
             .await;
 
         self.task_handle = Some(task_handle);
@@ -77,8 +68,7 @@ impl MqttService<'_> {
 
     async fn start_connection_task(mut event_loop: EventLoop,
                                    client: AsyncClient,
-                                   subscribe_topics: Arc<Mutex<Vec<Topic>>>,
-                                   on_connect_callback: Option<OnConnectCallback>) -> JoinHandle<()> {
+                                   subscribe_topics: Arc<Mutex<Vec<Topic>>>) -> JoinHandle<()> {
         tokio::task::spawn(async move {
             loop {
                 match event_loop.poll().await {
@@ -90,8 +80,6 @@ impl MqttService<'_> {
                                 match event {
                                     Incoming::ConnAck(_) => {
                                         info!("Connected to broker");
-
-                                        if on_connect_callback.is_some() { on_connect_callback.unwrap()() }
 
                                         for topic in subscribe_topics.lock().await.iter() {
                                             client.subscribe(topic.topic(), *topic.qos()).await.expect("could not subscribe");
@@ -129,10 +117,6 @@ impl MqttService<'_> {
         info!("Subscribing to topic {} with QoS {:?}", topic.topic(), topic.qos());
 
         self.subscribe_topics.lock().await.push(topic);
-    }
-
-    pub fn set_on_connect_callback(&mut self, fun: Option<OnConnectCallback>) {
-        self.on_connect_callback = fun;
     }
 
     pub async fn await_task(self) {
