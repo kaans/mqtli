@@ -23,6 +23,8 @@ pub struct ConfigFile {
 
     use_tls: Option<bool>,
     tls_ca_file: Option<PathBuf>,
+    tls_client_certificate: Option<PathBuf>,
+    tls_client_key: Option<PathBuf>,
 
     log_level: Option<String>,
 

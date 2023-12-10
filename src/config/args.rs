@@ -46,14 +46,14 @@ pub struct MqttBrokerConnectArgs {
     #[arg(long = "use-tls", env = "BROKER_USE_TLS")]
     use_tls: Option<bool>,
 
-    #[arg(long = "ca-file", env = "BROKER_TLS_CA_FILE", requires = "use_tls")]
+    #[arg(long = "ca-file", env = "BROKER_TLS_CA_FILE")]
     tls_ca_file: Option<PathBuf>,
 
-    //#[arg(long = "client-cert", env = "TLS_CLIENT_CERTIFICATE_FILE", requires = "tls_client_key")]
-    //tls_client_certificate: Option<PathBuf>,
-//
-    //#[arg(long = "client-key", env = "TLS_CLIENT_KEY_FILE", requires = "tls_client_certificate")]
-    //tls_client_key: Option<PathBuf>,
+    #[arg(long = "client-cert", env = "BROKER_TLS_CLIENT_CERTIFICATE_FILE")]
+    tls_client_certificate: Option<PathBuf>,
+
+    #[arg(long = "client-key", env = "BROKER_TLS_CLIENT_KEY_FILE")]
+    tls_client_key: Option<PathBuf>,
 }
 
 #[derive(Args, Debug, Getters)]
