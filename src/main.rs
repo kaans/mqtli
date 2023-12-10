@@ -1,10 +1,10 @@
 use std::process::exit;
 
 use anyhow::anyhow;
-use log::LevelFilter;
+use log::{error, LevelFilter};
 use simplelog::{Config, SimpleLogger};
 
-use crate::config::mqtl_config::parse_config;
+use crate::config::mqtli_config::parse_config;
 use crate::mqtt_service::MqttService;
 
 mod config;
@@ -28,12 +28,13 @@ async fn main() {
     for topic in config.subscribe_topics() {
         mqtt_service.subscribe((*topic).clone()).await;
     }
-    mqtt_service.connect().await.unwrap();
+
+    if let Err(e) = mqtt_service.connect().await {
+        error!("Error while connecting to mqtt broker: {}", e);
+        exit(2);
+    }
 
     mqtt_service.await_task().await;
-
-    // wait forever
-    //std::future::pending::<()>().await;
 }
 
 fn init_logger(filter: &LevelFilter) {

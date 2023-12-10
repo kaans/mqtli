@@ -1,17 +1,26 @@
+use std::fs::read_to_string;
+use std::io;
+use std::path::PathBuf;
 use std::str::from_utf8;
 use std::sync::Arc;
 
 use log::{debug, error, info};
+use rumqttc::{TlsConfiguration, Transport};
 use rumqttc::v5::{AsyncClient, ConnectionError, Event, EventLoop, Incoming, MqttOptions};
 use rumqttc::v5::mqttbytes::v5::ConnectReturnCode;
 use thiserror::Error;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
-use crate::config::mqtl_config::{MqttBrokerConnectArgs, Topic};
+use crate::config::mqtli_config::{MqttBrokerConnectArgs, Topic};
 
 #[derive(Error, Debug)]
-pub enum MqttServiceError {}
+pub enum MqttServiceError {
+    #[error("CA certificate must be present when using TLS")]
+    CaCertificateMustBePresent(),
+    #[error("Could not read CA certificate from file \"{1}\"")]
+    CaCertificateNotReadable(#[source] io::Error, PathBuf),
+}
 
 pub struct MqttService<'a> {
     client: Option<AsyncClient>,
@@ -40,15 +49,38 @@ impl MqttService<'_> {
                                            self.config.host(),
                                            *self.config.port());
 
+        if *self.config.use_tls() {
+            info!("Using TLS");
+
+            let ca: Vec<u8> = match &self.config.tls_ca_file() {
+                Some(ca_file) => match read_to_string(ca_file) {
+                    Ok(ca) => ca.into_bytes(),
+                    Err(e) => return Err(MqttServiceError::CaCertificateNotReadable(
+                        e, PathBuf::from(ca_file))),
+                },
+                None => {
+                    return Err(MqttServiceError::CaCertificateMustBePresent());
+                }
+            };
+
+            let tls_config = TlsConfiguration::Simple {
+                ca,
+                alpn: None,
+                client_auth: None,
+            };
+
+            options.set_transport(Transport::Tls(tls_config));
+        }
+
         debug!("Setting keep alive to {} seconds", self.config.keep_alive().as_secs());
         options.set_keep_alive(*self.config.keep_alive());
 
         if self.config.username().is_some() && self.config.password().is_some() {
-            info!("Using username/password for authentication {} {}",
-                self.config.username().clone().unwrap(),
-                self.config.password().clone().unwrap());
+            info!("Using username/password for authentication");
             options.set_credentials(self.config.username().clone().unwrap(),
                                     self.config.password().clone().unwrap());
+        } else {
+            info!("Using anonymous access");
         }
 
         let (client, event_loop) = AsyncClient::new(options, 10);
@@ -105,6 +137,7 @@ impl MqttService<'_> {
                             }
                             _ => {
                                 error!("Error while processing mqtt loop: {:?}", e);
+                                return;
                             }
                         }
                     }
