@@ -31,12 +31,31 @@ pub struct ConfigFile {
     subscribe_topics: Vec<Topic>
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Getters, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Getters, PartialEq)]
 pub struct Topic {
     topic: String,
     #[serde(serialize_with = "serialize_qos")]
     #[serde(deserialize_with = "deserialize_qos")]
-    qos: QoS
+    qos: QoS,
+    payload: Option<PayloadType>
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "type")]
+pub enum PayloadType {
+    #[serde(rename = "text")]
+    Text(PayloadText),
+    #[serde(rename = "protobuf")]
+    Protobuf(PayloadProtobuf)
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, Getters, PartialEq)]
+pub struct PayloadText {}
+
+#[derive(Debug, Default, Serialize, Deserialize, Getters, PartialEq)]
+pub struct PayloadProtobuf {
+    definition: PathBuf,
+    message: String
 }
 
 pub fn read_config(buf: &PathBuf) -> Result<ConfigFile, ConfigError> {
@@ -47,7 +66,7 @@ pub fn read_config(buf: &PathBuf) -> Result<ConfigFile, ConfigError> {
         }
     };
 
-    let config = match serde_yaml::from_str(content.as_str()) {
+    let config: ConfigFile = match serde_yaml::from_str(content.as_str()) {
         Ok(config) => config,
         Err(e) => {
             return Err(ConfigError::CouldNotParseConfigFile(e, PathBuf::from(buf)));
