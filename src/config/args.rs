@@ -34,7 +34,7 @@ pub struct MqttBrokerConnectArgs {
     #[arg(short = 'c', long = "client-id",  env = "BROKER_CLIENT_ID")]
     client_id: Option<String>,
 
-    #[arg(long = "keep-alive", env = "KEEP_ALIVE", value_parser = parse_keep_alive)]
+    #[arg(long = "keep-alive", env = "BROKER_KEEP_ALIVE", value_parser = parse_keep_alive)]
     keep_alive: Option<Duration>,
 
     #[arg(short = 'u', long = "username", env = "BROKER_USERNAME")]
@@ -43,15 +43,12 @@ pub struct MqttBrokerConnectArgs {
     #[arg(short = 'w', long = "password", env = "BROKER_PASSWORD")]
     password: Option<String>,
 
-    //#[arg(long = "use-tls", default_value_t = false, env = "USE_TLS")]
-    //use_tls: bool,
-//
-    //#[arg(long = "verify-ca", default_value_t = true, env = "TLS_VERIFY_CA", requires = "use_tls")]
-    //tls_verify_ca: bool,
-//
-    //#[arg(long = "ca-file", env = "TLS_CA_FILE", requires = "tls_verify_ca")]
-    //tls_ca_file: Option<PathBuf>,
-//
+    #[arg(long = "use-tls", env = "BROKER_USE_TLS")]
+    use_tls: Option<bool>,
+
+    #[arg(long = "ca-file", env = "BROKER_TLS_CA_FILE", requires = "use_tls")]
+    tls_ca_file: Option<PathBuf>,
+
     //#[arg(long = "client-cert", env = "TLS_CLIENT_CERTIFICATE_FILE", requires = "tls_client_key")]
     //tls_client_certificate: Option<PathBuf>,
 //

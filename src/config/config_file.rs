@@ -12,11 +12,17 @@ pub struct ConfigFile {
     host: Option<String>,
     port: Option<u16>,
     client_id: Option<String>,
+
+    #[serde(default)]
     #[serde(serialize_with = "serialize_keep_alive")]
     #[serde(deserialize_with = "deserialize_keep_alive")]
     keep_alive: Option<Duration>,
+
     username: Option<String>,
     password: Option<String>,
+
+    use_tls: Option<bool>,
+    tls_ca_file: Option<PathBuf>,
 
     log_level: Option<String>,
 
@@ -35,14 +41,14 @@ pub fn read_config(buf: &PathBuf) -> Result<ConfigFile, ConfigError> {
     let content = match read_to_string(buf)  {
         Ok(content) => content,
         Err(e) => {
-            return Err(ConfigError::CouldNotReadConfigFile(e));
+            return Err(ConfigError::CouldNotReadConfigFile(e, PathBuf::from(buf)));
         }
     };
 
     let config = match serde_yaml::from_str(content.as_str()) {
         Ok(config) => config,
         Err(e) => {
-            return Err(ConfigError::CouldNotParseConfigFile(e));
+            return Err(ConfigError::CouldNotParseConfigFile(e, PathBuf::from(buf)));
         }
     };
 
@@ -79,8 +85,8 @@ fn deserialize_qos<'a, D>(deserializer: D) -> Result<QoS, D::Error> where D: Des
     if let Ok(int_value) = value.parse::<u8>() {
         return Ok(match int_value {
             0 => QoS::AtMostOnce,
-            1 => QoS::AtMostOnce,
-            2 => QoS::AtMostOnce,
+            1 => QoS::AtLeastOnce,
+            2 => QoS::ExactlyOnce,
             _ => return Err(Error::invalid_value(Unexpected::Unsigned(int_value as u64),
                                                     &"unsigned integer between 0 and 2")),
         });

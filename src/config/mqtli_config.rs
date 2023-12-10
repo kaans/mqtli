@@ -30,7 +30,7 @@ pub struct MqtliConfig {
 pub struct Topic {
     #[validate(length(min = 1, message = "Topic must be given"))]
     topic: String,
-    qos: QoS
+    qos: QoS,
 }
 
 impl From<&ConfigFileTopic> for Topic {
@@ -50,10 +50,13 @@ pub struct MqttBrokerConnectArgs {
     port: u16,
     #[validate(length(min = 1, message = "Client id must be given"))]
     client_id: String,
-    #[validate(custom (function = "validate_keep_alive", message = "Keep alive must be a number and at least 5 seconds"))]
+    #[validate(custom(function = "validate_keep_alive", message = "Keep alive must be a number and at least 5 seconds"))]
     keep_alive: Duration,
     username: Option<String>,
     password: Option<String>,
+
+    use_tls: bool,
+    tls_ca_file: Option<PathBuf>,
 }
 
 #[derive(Debug, Getters)]
@@ -83,6 +86,9 @@ pub fn parse_config() -> Result<MqtliConfig, ConfigError> {
     config.broker.keep_alive = args.broker().keep_alive().or(config_file.keep_alive().clone()).or(Some(Duration::from_secs(5))).unwrap();
     config.broker.username = args.broker().username().clone().or(config_file.username().clone()).or(None);
     config.broker.password = args.broker().password().clone().or(config_file.password().clone()).or(None);
+
+    config.broker.use_tls = args.broker().use_tls().clone().or(config_file.use_tls().clone()).or(Some(false)).unwrap();
+    config.broker.tls_ca_file = args.broker().tls_ca_file().clone().or(config_file.tls_ca_file().clone()).or(None);
 
     config.logger.level = args.logger().level().or(config_file.log_level().clone()
         .map(|v| LevelFilter::from_str(v.as_str()).expect("Invalid log level {v}")))
