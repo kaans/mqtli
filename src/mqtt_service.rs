@@ -1,11 +1,11 @@
 use std::fs::read_to_string;
 use std::io;
 use std::path::PathBuf;
-use std::str::from_utf8;
+use std::str::{from_utf8, Utf8Error};
 use std::sync::Arc;
 
 use log::{debug, error, info};
-use rumqttc::{TlsConfiguration, Transport};
+use rumqttc::{Key, TlsConfiguration, Transport};
 use rumqttc::v5::{AsyncClient, ConnectionError, Event, EventLoop, Incoming, MqttOptions};
 use rumqttc::v5::mqttbytes::v5::ConnectReturnCode;
 use thiserror::Error;
@@ -20,6 +20,14 @@ pub enum MqttServiceError {
     CaCertificateMustBePresent(),
     #[error("Could not read CA certificate from file \"{1}\"")]
     CaCertificateNotReadable(#[source] io::Error, PathBuf),
+    #[error("Could not read client certificate from file \"{1}\"")]
+    ClientCertificateNotReadable(#[source] io::Error, PathBuf),
+    #[error("Could not read client key from file \"{1}\"")]
+    ClientKeyNotReadable(#[source] io::Error, PathBuf),
+    #[error("Invalid client key in file \"{1}\"")]
+    InvalidClientKey(#[source] Utf8Error, PathBuf),
+    #[error("The client key must be either RSA or ECC in file \"{0}\"")]
+    UnsupportedClientKey(PathBuf),
 }
 
 pub struct MqttService<'a> {
@@ -43,7 +51,7 @@ impl MqttService<'_> {
     }
 
     pub async fn connect(&mut self) -> Result<(), MqttServiceError> {
-        debug!("Connection to {}:{} with client id {}", self.config.host(),
+        info!("Connection to {}:{} with client id {}", self.config.host(),
             self.config.port(), self.config.client_id());
         let mut options = MqttOptions::new(self.config.client_id(),
                                            self.config.host(),
@@ -63,10 +71,47 @@ impl MqttService<'_> {
                 }
             };
 
+            let client_auth: Option<(Vec<u8>, Key)> = match self.config.tls_client_certificate() {
+                None => None,
+                Some(cert_file) => {
+                    info!("Using TLS client certificate authentication");
+
+                    let cert = match read_to_string(cert_file) {
+                        Ok(ca) => ca.into_bytes(),
+                        Err(e) => return Err(MqttServiceError::ClientCertificateNotReadable(
+                            e, PathBuf::from(cert_file))),
+                    };
+
+                    let client_key_file = self.config.tls_client_key().as_ref().unwrap();
+                    let key = match read_to_string(client_key_file) {
+                        Ok(ca) => ca.into_bytes(),
+                        Err(e) => return Err(MqttServiceError::ClientKeyNotReadable(
+                            e, PathBuf::from(client_key_file))),
+                    };
+
+                    let key: Key = match from_utf8(key.as_slice()) {
+                        Ok(content) => {
+                            if content.contains("-----BEGIN RSA PRIVATE KEY-----") {
+                                Key::RSA(key)
+                            } else if content.contains("-----BEGIN EC PRIVATE KEY-----") {
+                                Key::ECC(key)
+                            } else {
+                                return Err(MqttServiceError::UnsupportedClientKey(
+                                    PathBuf::from(client_key_file)));
+                            }
+                        }
+                        Err(e) => return Err(MqttServiceError::InvalidClientKey(
+                            e, PathBuf::from(client_key_file))),
+                    };
+
+                    Some((cert, key))
+                }
+            };
+
             let tls_config = TlsConfiguration::Simple {
                 ca,
                 alpn: None,
-                client_auth: None,
+                client_auth,
             };
 
             options.set_transport(Transport::Tls(tls_config));

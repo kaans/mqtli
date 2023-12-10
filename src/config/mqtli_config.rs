@@ -44,6 +44,7 @@ impl From<&ConfigFileTopic> for Topic {
 
 #[derive(Debug, Default, Getters, Validate)]
 #[validate(schema(function = "validate_credentials", skip_on_field_errors = false))]
+#[validate(schema(function = "validate_tls_client", skip_on_field_errors = false))]
 pub struct MqttBrokerConnectArgs {
     #[validate(length(min = 1, message = "Hostname must be given"))]
     host: String,
@@ -57,6 +58,8 @@ pub struct MqttBrokerConnectArgs {
 
     use_tls: bool,
     tls_ca_file: Option<PathBuf>,
+    tls_client_certificate: Option<PathBuf>,
+    tls_client_key: Option<PathBuf>,
 }
 
 #[derive(Debug, Getters)]
@@ -89,6 +92,8 @@ pub fn parse_config() -> Result<MqtliConfig, ConfigError> {
 
     config.broker.use_tls = args.broker().use_tls().clone().or(config_file.use_tls().clone()).or(Some(false)).unwrap();
     config.broker.tls_ca_file = args.broker().tls_ca_file().clone().or(config_file.tls_ca_file().clone()).or(None);
+    config.broker.tls_client_certificate = args.broker().tls_client_certificate().clone().or(config_file.tls_client_certificate().clone()).or(None);
+    config.broker.tls_client_key = args.broker().tls_client_key().clone().or(config_file.tls_client_key().clone()).or(None);
 
     config.logger.level = args.logger().level().or(config_file.log_level().clone()
         .map(|v| LevelFilter::from_str(v.as_str()).expect("Invalid log level {v}")))
@@ -123,6 +128,20 @@ fn validate_credentials(value: &MqttBrokerConnectArgs) -> Result<(), ValidationE
         return Err(err);
     } else if value.username.is_some() && value.password.is_none() {
         err.message = Some(Cow::from("Username is given but no password"));
+        return Err(err);
+    }
+
+    Ok(())
+}
+
+fn validate_tls_client(value: &MqttBrokerConnectArgs) -> Result<(), ValidationError> {
+    let mut err = ValidationError::new("wrong_tls_client");
+
+    if value.tls_client_key.is_none() && value.tls_client_certificate.is_some() {
+        err.message = Some(Cow::from("TLS client certificate is given but no key"));
+        return Err(err);
+    } else if value.tls_client_key.is_some() && value.tls_client_certificate.is_none() {
+        err.message = Some(Cow::from("TLS client key is given but no certificate"));
         return Err(err);
     }
 
