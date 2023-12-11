@@ -19,7 +19,7 @@ pub struct MqtliArgs {
     #[arg(long = "config-file", default_value = "config.yaml", env = "CONFIG_FILE_PATH")]
     config_file: PathBuf,
 
-    subscribe_topics: Vec<String>
+    topics: Vec<String>
 }
 
 #[derive(Args, Debug, Default, Getters)]

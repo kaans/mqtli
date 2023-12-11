@@ -28,16 +28,24 @@ pub struct ConfigFile {
 
     log_level: Option<String>,
 
-    subscribe_topics: Vec<Topic>
+    topics: Vec<Topic>
 }
 
 #[derive(Debug, Serialize, Deserialize, Getters, PartialEq)]
 pub struct Topic {
     topic: String,
+    subscription: Option<Subscription>,
+    payload: Option<PayloadType>
+}
+
+#[derive(Debug, Serialize, Deserialize, Getters, PartialEq)]
+pub struct Subscription {
+    enabled: bool,
+
+    #[serde(default)]
     #[serde(serialize_with = "serialize_qos")]
     #[serde(deserialize_with = "deserialize_qos")]
     qos: QoS,
-    payload: Option<PayloadType>
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -108,8 +116,7 @@ fn deserialize_qos<'a, D>(deserializer: D) -> Result<QoS, D::Error> where D: Des
             0 => QoS::AtMostOnce,
             1 => QoS::AtLeastOnce,
             2 => QoS::ExactlyOnce,
-            _ => return Err(Error::invalid_value(Unexpected::Unsigned(int_value as u64),
-                                                    &"unsigned integer between 0 and 2")),
+            _ => QoS::AtMostOnce,
         });
     }
 

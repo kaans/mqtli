@@ -12,25 +12,25 @@ use crate::payload::text::PayloadTextHandler;
 
 pub struct MqttHandler {
     task_handle: Option<JoinHandle<()>>,
-    subscribe_topics: Vec<Topic>,
+    topics: Vec<Topic>,
 }
 
 impl MqttHandler {
-    pub fn new(subscribe_topics: &Vec<Topic>) -> MqttHandler {
+    pub fn new(topics: &Vec<Topic>) -> MqttHandler {
         MqttHandler {
             task_handle: None,
-            subscribe_topics: subscribe_topics.clone(),
+            topics: topics.clone(),
         }
     }
 
     pub(crate) fn start_task(&mut self, mut receiver: Receiver<Event>) {
-        let subscribe_topics = self.subscribe_topics.clone();
+        let topics = self.topics.clone();
 
         self.task_handle = Some(task::spawn(async move {
             loop {
                 match receiver.recv().await {
                     Ok(event) => {
-                        MqttHandler::handle_event(event, &subscribe_topics);
+                        MqttHandler::handle_event(event, &topics);
                     }
                     Err(_) => {
                         break;
@@ -46,7 +46,7 @@ impl MqttHandler {
         }
     }
 
-    pub fn handle_event(event: Event, subscribe_topics: &Vec<Topic>) {
+    pub fn handle_event(event: Event, topics: &Vec<Topic>) {
         match event {
             Event::Incoming(event) => {
                 match event {
@@ -57,7 +57,7 @@ impl MqttHandler {
                                             incoming_topic,
                                             value.qos);
 
-                        for topic in subscribe_topics {
+                        for topic in topics {
                             if topic.topic() == incoming_topic {
                                 debug!("Handling topic {}", incoming_topic);
 
