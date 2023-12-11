@@ -3,12 +3,15 @@ use std::process::exit;
 use anyhow::anyhow;
 use log::{error, LevelFilter};
 use simplelog::{Config, SimpleLogger};
+use tokio::sync::broadcast;
 
 use crate::config::mqtli_config::parse_config;
+use crate::mqtt_handler::MqttHandler;
 use crate::mqtt_service::MqttService;
 
 mod config;
 mod mqtt_service;
+mod mqtt_handler;
 
 
 #[tokio::main]
@@ -29,12 +32,18 @@ async fn main() {
         mqtt_service.subscribe((*topic).clone()).await;
     }
 
-    if let Err(e) = mqtt_service.connect().await {
+    let (sender, receiver) = broadcast::channel(32);
+
+    let mut handler = MqttHandler::new();
+    handler.start_task(receiver);
+
+    if let Err(e) = mqtt_service.connect(Some(sender)).await {
         error!("Error while connecting to mqtt broker: {}", e);
         exit(2);
     }
 
     mqtt_service.await_task().await;
+    handler.await_task().await;
 }
 
 fn init_logger(filter: &LevelFilter) {
