@@ -1,11 +1,23 @@
-host: "localhost",
-port: 1883,
-client_id: "mqtcli",
-keep_alive: 5,
-#username: "",
-#password: "",
+host: "localhost"
+port: 8883
+client_id: "mqtcli"
+#keep_alive: "5"
+#username: ""
+#password: ""
 
-log_level: "info",
+use_tls: false
+#tls_ca_file: "ca.crt"
+#tls_client_certificate: "client.crt"
+#tls_client_key: "client.key"
 
-subscribe_topics:
-  - "mqtcli/test"
+log_level: "info"
+
+topics:
+  - topic: mqtli/test
+    subscription:
+      enabled: true
+      qos: 1
+    payload:
+      type: protobuf
+      definition: "messages.proto"
+      message: "Proto.Response"
