@@ -5,6 +5,8 @@ use std::str::{from_utf8, Utf8Error};
 use std::sync::Arc;
 
 use log::{debug, error, info};
+use protofish::context::{Context, MessageInfo, TypeRef};
+use protofish::decode::{FieldValue, Value};
 use rumqttc::{Key, TlsConfiguration, Transport};
 use rumqttc::v5::{AsyncClient, ConnectionError, Event, EventLoop, Incoming, MqttOptions};
 use rumqttc::v5::mqttbytes::v5::ConnectReturnCode;
@@ -166,7 +168,49 @@ impl MqttService<'_> {
                                         info!("{} ({:?})-> {}",
                                             from_utf8(v.topic.as_ref()).unwrap(),
                                             v.qos,
-                                            from_utf8(v.payload.as_ref()).unwrap())
+                                            from_utf8(v.payload.as_ref()).unwrap());
+
+                                        let context = match Context::parse(&[r#"
+  syntax = "proto3";
+  package Proto;
+
+  message Inner { string kind = 1; }
+  message Response { int32 distance = 1; Inner inner_type = 2; }
+"#]) {
+                                            Ok(context) => context,
+                                            Err(e) => {
+                                                error!("Could not parse proto file: {e:?}");
+                                                continue;
+                                            }
+                                        };
+
+                                        let Some(message_response) = context.get_message("Proto.Response") else {
+                                            error!("Message \"Proto.Response\" not found in proto file, cannot decode payload");
+                                            continue;
+                                        };
+
+                                        let dec = message_response.decode(v.payload.as_ref(), &context);
+
+                                        //println!("Message: {:?}", message_response);
+
+                                        for inner_type in &message_response.inner_types {
+                                            match inner_type {
+                                                TypeRef::Message(value) => {
+                                                    let v = context.resolve_message(*value);
+                                                    //println!("Message {:?}", v.full_name);
+                                                }
+                                                TypeRef::Enum(value) => {
+                                                    let v = context.resolve_enum(*value);
+                                                    //println!("Enum {:?}", v.full_name);
+                                                }
+                                            }
+                                        }
+
+                                        for field in dec.fields {
+                                            let ret= Self::get_field_value(&context, &message_response, &field, 0);
+
+                                            println!("{}", ret);
+                                        }
                                     }
                                     _ => {}
                                 }
@@ -189,6 +233,77 @@ impl MqttService<'_> {
                 }
             }
         })
+    }
+
+    fn get_field_value(context: &Context, message_response: &MessageInfo, field: &FieldValue, indent_level: u16) -> String {
+        let indent_spaces = (0..indent_level).map(|_| "  ").collect::<String>();
+
+        let type_name = &message_response.get_field(field.number).unwrap().name;
+
+        let ret = match &field.value {
+            Value::Double(value) => {
+                format!("{indent_spaces}[{}] {type_name} = {} (Double)", field.number, value.to_string())
+            }
+            Value::Float(value) => {
+                format!("{indent_spaces}[{}] {type_name} = {} (Float)", field.number, value.to_string())
+            }
+            Value::Int32(value) => {
+                format!("{indent_spaces}[{}] {type_name} = {} (Int32)", field.number, value.to_string())
+            }
+            Value::Int64(value) => {
+                format!("{indent_spaces}[{}] {type_name} = {} (Int64)", field.number, value.to_string())
+            }
+            Value::UInt32(value) => {
+                format!("{indent_spaces}[{}] {type_name} = {} (UInt32)", field.number, value.to_string())
+            }
+            Value::UInt64(value) => {
+                format!("{indent_spaces}[{}] {type_name} = {} (UInt64)", field.number, value.to_string())
+            }
+            Value::SInt32(value) => {
+                format!("{indent_spaces}[{}] {type_name} = {} (SInt32)", field.number, value.to_string())
+            }
+            Value::SInt64(value) => {
+                format!("{indent_spaces}[{}] {type_name} = {} (SInt64)", field.number, value.to_string())
+            }
+            Value::Fixed32(value) => {
+                format!("{indent_spaces}[{}] {type_name} = {} (Fixed32)", field.number, value.to_string())
+            }
+            Value::Fixed64(value) => {
+                format!("{indent_spaces}[{}] {type_name} = {} (Fixed64)", field.number, value.to_string())
+            }
+            Value::SFixed32(value) => {
+                format!("{indent_spaces}[{}] {type_name} = {} (SFixed32)", field.number, value.to_string())
+            }
+            Value::SFixed64(value) => {
+                format!("{indent_spaces}[{}] {type_name} = {} (SFixed64)", field.number, value.to_string())
+            }
+            Value::Bool(value) => {
+                format!("{indent_spaces}[{}] {type_name} = {} (Bool)", field.number, value.to_string())
+            }
+            Value::String(value) => {
+                format!("{indent_spaces}[{}] {type_name} = {} (String)", field.number, value)
+            }
+            Value::Bytes(value) => {
+                format!("{indent_spaces}[{}] {type_name} = {:?} (Bytes)", field.number, value)
+            }
+            Value::Message(value) => {
+                let message_inner = context.resolve_message(value.msg_ref);
+                let mut ret = format!("[{}] {}", field.number, &message_inner.full_name);
+
+                for field in &value.fields {
+                    let ret_inner = Self::get_field_value(context, message_inner, &field, indent_level + 1);
+
+                    ret.push_str(format!("\n{}", ret_inner).as_str());
+                }
+
+                ret
+            },
+            value => {
+                "Unknown".to_string()
+            }
+        };
+
+        ret
     }
 
     pub async fn subscribe(&mut self, topic: Topic) {
