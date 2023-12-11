@@ -11,10 +11,12 @@ use rumqttc::v5::mqttbytes::QoS;
 use validator::{Validate, ValidationError};
 
 use crate::config::args::MqtliArgs;
-use crate::config::config_file::{read_config, Topic as ConfigFileTopic,
+use crate::config::config_file::{PayloadProtobuf as ConfigFilePayloadProtobuf, PayloadText as ConfigFilePayloadText,
                                  PayloadType as ConfigFilePayloadType,
-                                 PayloadText as ConfigFilePayloadText,
-                                 PayloadProtobuf as ConfigFilePayloadProtobuf};
+                                 read_config,
+                                 Topic as ConfigFileTopic,
+                Subscription as ConfigFileSubscription
+};
 use crate::config::ConfigError;
 use crate::config::mqtli_config::PayloadType::Text;
 
@@ -27,22 +29,42 @@ pub struct MqtliConfig {
 
     _config_file: PathBuf,
 
-    subscribe_topics: Vec<Topic>,
+    topics: Vec<Topic>,
 }
 
 #[derive(Clone, Debug, Default, Getters, Validate)]
 pub struct Topic {
     #[validate(length(min = 1, message = "Topic must be given"))]
     topic: String,
-    qos: QoS,
+    subscription: Subscription,
     payload: PayloadType,
+}
+
+#[derive(Clone, Debug, Default, Getters, Validate)]
+pub struct Subscription {
+    enabled: bool,
+    qos: QoS,
+}
+
+impl From<&ConfigFileSubscription> for Subscription {
+    fn from(value: &ConfigFileSubscription) -> Self {
+        Subscription {
+            enabled: *value.enabled(),
+            qos: *value.qos(),
+        }
+    }
 }
 
 impl From<&ConfigFileTopic> for Topic {
     fn from(value: &ConfigFileTopic) -> Self {
         Topic {
             topic: String::from(value.topic()),
-            qos: *value.qos(),
+            subscription: match value.subscription() {
+                None => {Subscription::default()}
+                Some(value) => {
+                    Subscription::from(value)
+                }
+            },
             payload: match value.payload() {
                 None => PayloadType::default(),
                 Some(value) => {
@@ -156,8 +178,8 @@ pub fn parse_config() -> Result<MqtliConfig, ConfigError> {
         .map(|v| LevelFilter::from_str(v.as_str()).expect("Invalid log level {v}")))
         .or(Option::from(LevelFilter::Info)).unwrap();
 
-    for topic in config_file.subscribe_topics() {
-        config.subscribe_topics.push(Topic::from(topic));
+    for topic in config_file.topics() {
+        config.topics.push(Topic::from(topic));
     }
 
     return match config.validate() {

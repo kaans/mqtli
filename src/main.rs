@@ -29,13 +29,13 @@ async fn main() {
 
     let mut mqtt_service = MqttService::new(config.broker());
 
-    for topic in config.subscribe_topics() {
+    for topic in config.topics() {
         mqtt_service.subscribe((*topic).clone()).await;
     }
 
     let (sender, receiver) = broadcast::channel(32);
 
-    let mut handler = MqttHandler::new(config.subscribe_topics());
+    let mut handler = MqttHandler::new(config.topics());
     handler.start_task(receiver);
 
     if let Err(e) = mqtt_service.connect(Some(sender)).await {
