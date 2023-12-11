@@ -34,7 +34,7 @@ async fn main() {
 
     let (sender, receiver) = broadcast::channel(32);
 
-    let mut handler = MqttHandler::new();
+    let mut handler = MqttHandler::new(config.subscribe_topics());
     handler.start_task(receiver);
 
     if let Err(e) = mqtt_service.connect(Some(sender)).await {
