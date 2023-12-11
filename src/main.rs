@@ -12,6 +12,7 @@ use crate::mqtt_service::MqttService;
 mod config;
 mod mqtt_service;
 mod mqtt_handler;
+mod payload;
 
 
 #[tokio::main]
