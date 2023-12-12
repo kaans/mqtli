@@ -98,7 +98,7 @@ impl Default for OutputFormat {
 #[derive(Clone, Debug)]
 pub enum OutputTarget {
     Console(OutputTargetConsole),
-    File(OutputTargetFile)
+    File(OutputTargetFile),
 }
 
 impl Default for OutputTarget {
@@ -117,24 +117,29 @@ impl From<&ConfigFileOutputTargetConsole> for OutputTargetConsole {
 #[derive(Clone, Debug, Getters, Validate)]
 pub struct OutputTargetFile {
     path: PathBuf,
-    append: bool,
-    newline: bool
+    overwrite: bool,
+    prepend: Option<String>,
+    append: Option<String>,
 }
 
 impl Default for OutputTargetFile {
-    fn default() -> Self { OutputTargetFile {
-        path: Default::default(),
-        append: true,
-        newline: true,
-    } }
+    fn default() -> Self {
+        OutputTargetFile {
+            path: Default::default(),
+            overwrite: false,
+            prepend: None,
+            append: Some("\n".to_string()),
+        }
+    }
 }
 
 impl From<&ConfigFileOutputTargetFile> for OutputTargetFile {
     fn from(value: &ConfigFileOutputTargetFile) -> Self {
         OutputTargetFile {
             path: PathBuf::from(value.path()),
-            append: *value.append(),
-            newline: *value.newline(),
+            overwrite: *value.overwrite(),
+            prepend: value.prepend().clone(),
+            append: value.append().clone(),
         }
     }
 }

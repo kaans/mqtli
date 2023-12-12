@@ -31,4 +31,6 @@ topics:
         target:
           type: file
           path: "log.txt"
-          append: true # false only saves the latest message
+          overwrite: false # true only saves the latest message, false appends to the end
+          prepend: "BEGIN " # prepends a string to the beginning of the message
+          append: " END\n" # appends a string to the end of the message
