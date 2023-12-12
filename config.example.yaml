@@ -24,5 +24,11 @@ topics:
     # payload:
       # type: text
     outputs:
-      - format: plain #json, yaml, hex, base64
-        target: console
+      - format: yaml
+        target:
+          type: console
+      - format: json
+        target:
+          type: file
+          path: "log.txt"
+          append: true # false only saves the latest message
