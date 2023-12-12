@@ -8,7 +8,7 @@ use tokio::task::JoinHandle;
 
 use crate::config::mqtli_config::{PayloadType, Topic};
 use crate::payload::OutputFormat;
-use crate::payload::protobuf::PayloadProtobufHandler;
+use crate::payload::protobuf::protobuf::PayloadProtobufHandler;
 use crate::payload::text::PayloadTextHandler;
 
 pub struct MqttHandler {
@@ -63,19 +63,21 @@ impl MqttHandler {
                                 let result = match topic.payload() {
                                     PayloadType::Text(_) => {
                                         debug!("Handling text payload of topic {}", incoming_topic);
-                                        PayloadTextHandler::handle_publish(&value, OutputFormat::PLAIN)
+                                        PayloadTextHandler::handle_publish(&value, OutputFormat::JSON)
                                     }
                                     PayloadType::Protobuf(payload) => {
                                         debug!("Handling protobuf payload of topic {}", incoming_topic);
-                                        PayloadProtobufHandler::handle_publish(&value, payload.definition(), payload.message(), OutputFormat::PLAIN)
+                                        PayloadProtobufHandler::handle_publish(&value, payload.definition(), payload.message(), OutputFormat::JSON)
                                     }
                                 };
 
                                 match result {
                                     Ok(content) => {
-                                        println!("{}", String::from_utf8(content).unwrap_or("invalid".to_string()));
+                                        println!("{}", String::from_utf8(content).unwrap_or("invalid content".to_string()));
                                     }
-                                    Err(_) => {}
+                                    Err(e) => {
+                                        println!("{:?}", e);
+                                    }
                                 }
                             }
                         }
