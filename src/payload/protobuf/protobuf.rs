@@ -1,5 +1,8 @@
 use std::fs::read_to_string;
 use std::path::PathBuf;
+use base64::Engine;
+use base64::engine::general_purpose;
+use bytes::Bytes;
 
 use log::error;
 use protofish::context::Context;
@@ -9,6 +12,7 @@ use crate::config::mqtli_config::OutputFormat;
 use crate::payload::PayloadError;
 use crate::payload::protobuf::json_converter::JsonConverter;
 use crate::payload::protobuf::plain_converter::PlainConverter;
+use crate::payload::protobuf::yaml_converter::YamlConverter;
 
 pub struct PayloadProtobufHandler {}
 
@@ -40,14 +44,24 @@ impl PayloadProtobufHandler {
                 JsonConverter::convert(&context, message_value)
             }
             OutputFormat::Yaml => {
-                PlainConverter::convert(&context, message_value)
+                YamlConverter::convert(&context, message_value)
             }
             OutputFormat::Hex => {
-                PlainConverter::convert(&context, message_value)
+                Self::convert_to_hex(&value.payload)
             }
             OutputFormat::Base64 => {
-                PlainConverter::convert(&context, message_value)
+                Self::convert_to_base64(&value.payload)
             }
         }
+    }
+
+    fn convert_to_hex(content: &Bytes) -> Result<Vec<u8>, PayloadError> {
+        let hex = hex::encode_upper(content.to_vec());
+        Ok(hex.into_bytes())
+    }
+
+    fn convert_to_base64(content: &Bytes) -> Result<Vec<u8>, PayloadError> {
+        let base64 = general_purpose::STANDARD_NO_PAD.encode(content);
+        Ok(base64.into_bytes())
     }
 }
