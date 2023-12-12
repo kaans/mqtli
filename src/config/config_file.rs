@@ -75,6 +75,8 @@ pub struct OutputTargetConsole {
 #[derive(Debug, Serialize, Deserialize, Getters, PartialEq)]
 pub struct OutputTargetFile {
     path: PathBuf,
+
+    #[serde(default)]
     overwrite: bool,
     prepend: Option<String>,
     append: Option<String>

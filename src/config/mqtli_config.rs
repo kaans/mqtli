@@ -14,8 +14,8 @@ use crate::config::args::MqtliArgs;
 use crate::config::config_file::{Output as ConfigFileOutput,
                                  OutputFormat as ConfigFileOutputFormat,
                                  OutputTarget as ConfigFileOutputTarget,
-                                 OutputTargetFile as ConfigFileOutputTargetFile,
                                  OutputTargetConsole as ConfigFileOutputTargetConsole,
+                                 OutputTargetFile as ConfigFileOutputTargetFile,
                                  PayloadProtobuf as ConfigFilePayloadProtobuf,
                                  PayloadText as ConfigFilePayloadText,
                                  PayloadType as ConfigFilePayloadType,
@@ -139,7 +139,7 @@ impl From<&ConfigFileOutputTargetFile> for OutputTargetFile {
             path: PathBuf::from(value.path()),
             overwrite: *value.overwrite(),
             prepend: value.prepend().clone(),
-            append: value.append().clone(),
+            append: value.append().clone().or(OutputTargetFile::default().append),
         }
     }
 }
