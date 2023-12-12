@@ -35,7 +35,21 @@ pub struct ConfigFile {
 pub struct Topic {
     topic: String,
     subscription: Option<Subscription>,
-    payload: Option<PayloadType>
+    payload: Option<PayloadType>,
+    output: Option<Output>
+}
+
+#[derive(Debug, Serialize, Deserialize, Getters, PartialEq)]
+pub struct Output {
+    format: Option<OutputFormat>
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub enum OutputFormat {
+    #[serde(rename = "plain")]
+    Plain,
+    #[serde(rename = "json")]
+    Json
 }
 
 #[derive(Debug, Serialize, Deserialize, Getters, PartialEq)]

@@ -11,12 +11,7 @@ use rumqttc::v5::mqttbytes::QoS;
 use validator::{Validate, ValidationError};
 
 use crate::config::args::MqtliArgs;
-use crate::config::config_file::{PayloadProtobuf as ConfigFilePayloadProtobuf, PayloadText as ConfigFilePayloadText,
-                                 PayloadType as ConfigFilePayloadType,
-                                 read_config,
-                                 Topic as ConfigFileTopic,
-                Subscription as ConfigFileSubscription
-};
+use crate::config::config_file::{Output as ConfigFileOutput, PayloadProtobuf as ConfigFilePayloadProtobuf, PayloadText as ConfigFilePayloadText, PayloadType as ConfigFilePayloadType, read_config, Subscription as ConfigFileSubscription, Topic as ConfigFileTopic, OutputFormat as ConfigFileOutputFormat};
 use crate::config::ConfigError;
 use crate::config::mqtli_config::PayloadType::Text;
 
@@ -38,6 +33,38 @@ pub struct Topic {
     topic: String,
     subscription: Subscription,
     payload: PayloadType,
+    output: Output,
+}
+
+#[derive(Clone, Debug, Default, Getters, Validate)]
+pub struct Output {
+    format: OutputFormat
+}
+
+impl From<&ConfigFileOutput> for Output {
+    fn from(value: &ConfigFileOutput) -> Self {
+        Output {
+            format: match value.format() {
+                None => OutputFormat::Plain,
+                Some(value) => {
+                    match value {
+                        ConfigFileOutputFormat::Plain => OutputFormat::Plain,
+                        ConfigFileOutputFormat::Json => OutputFormat::Json
+                    }
+                }
+            },
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum OutputFormat {
+    Plain,
+    Json,
+}
+
+impl Default for OutputFormat {
+    fn default() -> Self { OutputFormat::Plain }
 }
 
 #[derive(Clone, Debug, Default, Getters, Validate)]
@@ -60,7 +87,7 @@ impl From<&ConfigFileTopic> for Topic {
         Topic {
             topic: String::from(value.topic()),
             subscription: match value.subscription() {
-                None => {Subscription::default()}
+                None => { Subscription::default() }
                 Some(value) => {
                     Subscription::from(value)
                 }
@@ -71,6 +98,12 @@ impl From<&ConfigFileTopic> for Topic {
                     PayloadType::from(value)
                 }
             },
+            output: match value.output() {
+                None => Output::default(),
+                Some(value) => {
+                    Output::from(value)
+                }
+            }
         }
     }
 }
