@@ -13,6 +13,7 @@ mod config;
 mod mqtt_service;
 mod mqtt_handler;
 mod payload;
+mod output;
 
 
 #[tokio::main]
