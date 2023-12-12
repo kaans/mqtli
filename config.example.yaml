@@ -21,5 +21,8 @@ topics:
       type: protobuf
       definition: "messages.proto"
       message: "Proto.Response"
-    output:
-      format: json #plain, yaml, hex, base64
+    # payload:
+      # type: text
+    outputs:
+      - format: plain #json, yaml, hex, base64
+        target: console
