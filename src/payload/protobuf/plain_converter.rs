@@ -1,52 +1,25 @@
-use std::fs::read_to_string;
-use std::path::PathBuf;
-
-use log::{error, warn};
 use protofish::context::{Context, MessageInfo};
 use protofish::decode::{FieldValue, MessageValue, Value};
-use rumqttc::v5::mqttbytes::v5::Publish;
 
-use crate::payload::{OutputFormat, PayloadError};
+use crate::payload::PayloadError;
 
-pub struct PayloadProtobufHandler {}
+pub struct PlainConverter {}
 
-impl PayloadProtobufHandler {
-    pub fn handle_publish(value: &Publish, definition_file: &PathBuf, message_name: &String, output_format: OutputFormat) -> Result<Vec<u8>, PayloadError> {
-        let Ok(content) = read_to_string(definition_file) else {
-            error!("Could not open definition file {definition_file:?}");
-            return Err(PayloadError::CouldNotOpenDefinitionFile(definition_file.to_str().unwrap_or("invalid path").to_string()));
-        };
+impl PlainConverter {
+    pub fn convert(context: &Context,
+                   message_value: MessageValue)
+                   -> Result<Vec<u8>, PayloadError> {
 
-        let context = match Context::parse(vec![content]) {
-            Ok(context) => context,
-            Err(e) => {
-                return Err(PayloadError::CouldNotParseProtoFile(e));
-            }
-        };
+        let result = Self::get_message_value(context, &Box::new(message_value), 0, None)?;
 
-        let Some(message_info) = context.get_message(message_name) else {
-            return Err(PayloadError::MessageNotFoundInProtoFile(message_name.clone()));
-        };
-
-        let message_value = message_info.decode(value.payload.as_ref(), &context);
-
-        let result = match output_format {
-            OutputFormat::PLAIN => {
-                Self::get_message_value(&context, &Box::new(message_value), 0, None)
-            }
-            _ => {
-                Err(PayloadError::OutputFormatNotSupported(output_format))
-            }
-        };
-
-        Ok(result?.into_bytes())
+        Ok(result.into_bytes())
     }
 
     fn get_message_value(context: &Context,
-                         message_value: &Box<MessageValue>,
-                         indent_level: u16,
-                         parent_field: Option<u64>)
-                         -> Result<String, PayloadError> {
+                             message_value: &Box<MessageValue>,
+                             indent_level: u16,
+                             parent_field: Option<u64>)
+                             -> Result<String, PayloadError> {
         let mut result = String::new();
 
         let message_info = context.resolve_message(message_value.msg_ref);

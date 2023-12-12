@@ -1,6 +1,7 @@
 use std::str::from_utf8;
 
 use rumqttc::v5::mqttbytes::v5::Publish;
+use serde_json::json;
 
 use crate::payload::{OutputFormat, PayloadError};
 
@@ -23,9 +24,20 @@ impl PayloadTextHandler {
             OutputFormat::PLAIN => {
                 Ok(content.to_string().into_bytes())
             }
+            OutputFormat::JSON => {
+                Self::convert_to_json(content)
+            }
             _ => {
                 Err(PayloadError::OutputFormatNotSupported(output_format))
             }
         }
+    }
+
+    fn convert_to_json(content: &str) -> Result<Vec<u8>, PayloadError> {
+        let json = json!({
+         "text": content
+     });
+
+        Ok(json.to_string().into_bytes())
     }
 }

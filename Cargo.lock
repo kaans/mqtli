@@ -470,6 +470,7 @@ dependencies = [
  "protofish",
  "rumqttc",
  "serde",
+ "serde_json",
  "serde_yaml",
  "simplelog",
  "thiserror",
