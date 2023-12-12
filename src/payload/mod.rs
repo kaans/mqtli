@@ -7,18 +7,8 @@ use thiserror::Error;
 pub mod protobuf;
 pub mod text;
 
-#[derive(Debug)]
-pub enum OutputFormat {
-    PLAIN,
-    JSON,
-    YAML,
-    CSV,
-}
-
 #[derive(Debug, Error)]
 pub enum PayloadError {
-    #[error("Output format {0:?} not supported")]
-    OutputFormatNotSupported(OutputFormat),
     #[error("Could not convert payload to UTF 8 string")]
     CouldNotConvertToUtf8(Utf8Error),
     #[error("Could not open definition file {0}")]

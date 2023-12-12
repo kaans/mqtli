@@ -4,15 +4,16 @@ use std::path::PathBuf;
 use log::error;
 use protofish::context::Context;
 use rumqttc::v5::mqttbytes::v5::Publish;
+use crate::config::mqtli_config::OutputFormat;
 
-use crate::payload::{OutputFormat, PayloadError};
+use crate::payload::PayloadError;
 use crate::payload::protobuf::json_converter::JsonConverter;
 use crate::payload::protobuf::plain_converter::PlainConverter;
 
 pub struct PayloadProtobufHandler {}
 
 impl PayloadProtobufHandler {
-    pub fn handle_publish(value: &Publish, definition_file: &PathBuf, message_name: &String, output_format: OutputFormat) -> Result<Vec<u8>, PayloadError> {
+    pub fn handle_publish(value: &Publish, definition_file: &PathBuf, message_name: &String, output_format: &OutputFormat) -> Result<Vec<u8>, PayloadError> {
         let Ok(content) = read_to_string(definition_file) else {
             error!("Could not open definition file {definition_file:?}");
             return Err(PayloadError::CouldNotOpenDefinitionFile(definition_file.to_str().unwrap_or("invalid path").to_string()));
@@ -32,14 +33,11 @@ impl PayloadProtobufHandler {
         let message_value = message_info.decode(value.payload.as_ref(), &context);
 
         match output_format {
-            OutputFormat::PLAIN => {
+            OutputFormat::Plain => {
                 PlainConverter::convert(&context, message_value)
             }
-            OutputFormat::JSON => {
+            OutputFormat::Json => {
                 JsonConverter::convert(&context, message_value)
-            }
-            _ => {
-                Err(PayloadError::OutputFormatNotSupported(output_format))
             }
         }
     }
