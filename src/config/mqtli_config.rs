@@ -14,6 +14,8 @@ use crate::config::args::MqtliArgs;
 use crate::config::config_file::{Output as ConfigFileOutput,
                                  OutputFormat as ConfigFileOutputFormat,
                                  OutputTarget as ConfigFileOutputTarget,
+                                 OutputTargetFile as ConfigFileOutputTargetFile,
+                                 OutputTargetConsole as ConfigFileOutputTargetConsole,
                                  PayloadProtobuf as ConfigFilePayloadProtobuf,
                                  PayloadText as ConfigFilePayloadText,
                                  PayloadType as ConfigFilePayloadType,
@@ -66,10 +68,13 @@ impl From<&ConfigFileOutput> for Output {
                 }
             },
             target: match value.target() {
-                None => OutputTarget::Console,
+                None => OutputTarget::Console(OutputTargetConsole::default()),
                 Some(value) => {
                     match value {
-                        ConfigFileOutputTarget::Console => OutputTarget::Console,
+                        ConfigFileOutputTarget::Console(options)
+                        => OutputTarget::Console(OutputTargetConsole::from(options)),
+                        ConfigFileOutputTarget::File(options)
+                        => OutputTarget::File(OutputTargetFile::from(options))
                     }
                 }
             },
@@ -90,13 +95,48 @@ impl Default for OutputFormat {
     fn default() -> Self { OutputFormat::Plain }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum OutputTarget {
-    Console,
+    Console(OutputTargetConsole),
+    File(OutputTargetFile)
 }
 
 impl Default for OutputTarget {
-    fn default() -> Self { OutputTarget::Console }
+    fn default() -> Self { OutputTarget::Console(OutputTargetConsole::default()) }
+}
+
+#[derive(Clone, Debug, Default, Getters, Validate)]
+pub struct OutputTargetConsole {}
+
+impl From<&ConfigFileOutputTargetConsole> for OutputTargetConsole {
+    fn from(_value: &ConfigFileOutputTargetConsole) -> Self {
+        OutputTargetConsole {}
+    }
+}
+
+#[derive(Clone, Debug, Getters, Validate)]
+pub struct OutputTargetFile {
+    path: PathBuf,
+    append: bool,
+    newline: bool
+}
+
+impl Default for OutputTargetFile {
+    fn default() -> Self { OutputTargetFile {
+        path: Default::default(),
+        append: true,
+        newline: true,
+    } }
+}
+
+impl From<&ConfigFileOutputTargetFile> for OutputTargetFile {
+    fn from(value: &ConfigFileOutputTargetFile) -> Self {
+        OutputTargetFile {
+            path: PathBuf::from(value.path()),
+            append: *value.append(),
+            newline: *value.newline(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, Getters, Validate)]

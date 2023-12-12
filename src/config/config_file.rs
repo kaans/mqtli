@@ -60,9 +60,23 @@ pub enum OutputFormat {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "type")]
 pub enum OutputTarget {
     #[serde(rename = "console")]
-    Console,
+    Console(OutputTargetConsole),
+    #[serde(rename = "file")]
+    File(OutputTargetFile),
+}
+
+#[derive(Debug, Serialize, Deserialize, Getters, PartialEq)]
+pub struct OutputTargetConsole {
+}
+
+#[derive(Debug, Serialize, Deserialize, Getters, PartialEq)]
+pub struct OutputTargetFile {
+    path: PathBuf,
+    append: bool,
+    newline: bool
 }
 
 #[derive(Debug, Serialize, Deserialize, Getters, PartialEq)]

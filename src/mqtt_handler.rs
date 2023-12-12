@@ -6,9 +6,10 @@ use tokio::sync::broadcast::Receiver;
 use tokio::task;
 use tokio::task::JoinHandle;
 
-use crate::config::mqtli_config::{PayloadType, Topic};
+use crate::config::mqtli_config::{OutputTarget, PayloadType, Topic};
 use crate::config::mqtli_config::OutputTarget::Console;
 use crate::output::console::ConsoleOutput;
+use crate::output::file::FileOutput;
 use crate::payload::protobuf::protobuf::PayloadProtobufHandler;
 use crate::payload::text::PayloadTextHandler;
 
@@ -75,16 +76,23 @@ impl MqttHandler {
 
                                     match result {
                                         Ok(content) => {
-                                            match output.target() {
-                                                Console => {
+                                            let result = match output.target() {
+                                                Console(_options) => {
                                                     ConsoleOutput::output(content)
                                                 }
+                                                OutputTarget::File(file) => {
+                                                    FileOutput::output(content, file)
+                                                }
+                                            };
+
+                                            if let Err(e) = result {
+                                                error!("{:?}", e);
                                             }
                                         }
                                         Err(e) => {
                                             error!("{:?}", e);
                                         }
-                                    }
+                                    };
                                 }
                             }
                         }
