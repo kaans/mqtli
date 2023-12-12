@@ -21,3 +21,5 @@ topics:
       type: protobuf
       definition: "messages.proto"
       message: "Proto.Response"
+    output:
+      format: json #plain, yaml, hex, base64

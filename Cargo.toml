@@ -21,3 +21,5 @@ tokio = { version = "1.35.0", features = ["macros", "rt", "rt-multi-thread", "sy
 validator = { version = "0.16.1", features = ["derive"] }
 bytes = "1.5.0"
 serde_json = "1.0.108"
+base64 = "0.21.5"
+hex = "0.4.3"

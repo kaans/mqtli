@@ -49,7 +49,10 @@ impl From<&ConfigFileOutput> for Output {
                 Some(value) => {
                     match value {
                         ConfigFileOutputFormat::Plain => OutputFormat::Plain,
-                        ConfigFileOutputFormat::Json => OutputFormat::Json
+                        ConfigFileOutputFormat::Json => OutputFormat::Json,
+                        ConfigFileOutputFormat::Yaml => OutputFormat::Yaml,
+                        ConfigFileOutputFormat::Hex => OutputFormat::Hex,
+                        ConfigFileOutputFormat::Base64 => OutputFormat::Base64,
                     }
                 }
             },
@@ -61,6 +64,9 @@ impl From<&ConfigFileOutput> for Output {
 pub enum OutputFormat {
     Plain,
     Json,
+    Yaml,
+    Hex,
+    Base64,
 }
 
 impl Default for OutputFormat {

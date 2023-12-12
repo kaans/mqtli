@@ -39,6 +39,15 @@ impl PayloadProtobufHandler {
             OutputFormat::Json => {
                 JsonConverter::convert(&context, message_value)
             }
+            OutputFormat::Yaml => {
+                PlainConverter::convert(&context, message_value)
+            }
+            OutputFormat::Hex => {
+                PlainConverter::convert(&context, message_value)
+            }
+            OutputFormat::Base64 => {
+                PlainConverter::convert(&context, message_value)
+            }
         }
     }
 }

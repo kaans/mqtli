@@ -10,13 +10,15 @@ pub mod text;
 #[derive(Debug, Error)]
 pub enum PayloadError {
     #[error("Could not convert payload to UTF 8 string")]
-    CouldNotConvertToUtf8(Utf8Error),
+    CouldNotConvertToUtf8(#[source] Utf8Error),
     #[error("Could not open definition file {0}")]
     CouldNotOpenDefinitionFile(String),
     #[error("Could not parse proto file {0}")]
-    CouldNotParseProtoFile(ParseError),
+    CouldNotParseProtoFile(#[source] ParseError),
     #[error("Message {0} not found in proto file, cannot decode payload")]
     MessageNotFoundInProtoFile(String),
     #[error("Field with number {0} not found in proto file")]
     FieldNumberNotFoundInProtoFile(u64),
+    #[error("Could not convert payload to yaml")]
+    CouldNotConvertToYaml(#[source] serde_yaml::Error),
 }
