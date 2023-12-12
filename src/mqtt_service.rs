@@ -160,7 +160,12 @@ impl MqttService<'_> {
 
                                         for topic in topics.lock().await.iter() {
                                             if *topic.subscription().enabled() {
-                                                client.subscribe(topic.topic(), *topic.subscription().qos()).await.expect("could not subscribe");
+                                                info!("Subscribing to topic {} with QoS {:?}", topic.topic(), topic.subscription().qos());
+                                                if let Err(e) = client.subscribe(topic.topic(), *topic.subscription().qos()).await {
+                                                    error!("Could not subscribe to topic {}: {}", topic.topic(), e);
+                                                }
+                                            } else {
+                                                warn!("Not subscribing to topic, not enabled :{}", topic.topic());
                                             }
                                         }
                                     }
@@ -193,10 +198,7 @@ impl MqttService<'_> {
 
     pub async fn subscribe(&mut self, topic: Topic) {
         if *topic.subscription().enabled() {
-            info!("Subscribing to topic {} with QoS {:?}", topic.topic(), topic.subscription().qos());
             self.topics.lock().await.push(topic);
-        } else {
-            warn!("Not subscribing to topic, not enabled :{}", topic.topic());
         }
     }
 

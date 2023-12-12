@@ -53,19 +53,19 @@ impl MqttHandler {
                     Incoming::Publish(value) => {
                         let incoming_topic = from_utf8(value.topic.as_ref()).unwrap();
 
-                        info!("Handler {} (QoS: {:?})",
+                        info!("Incoming message on topic {} (QoS: {:?})",
                                             incoming_topic,
                                             value.qos);
 
                         for topic in topics {
                             if topic.topic() == incoming_topic {
-                                debug!("Handling topic {}", incoming_topic);
-
                                 match topic.payload() {
                                     PayloadType::Text(_) => {
+                                        debug!("Handling text payload of topic {}", incoming_topic);
                                         PayloadTextHandler::handle_publish(&value);
                                     }
                                     PayloadType::Protobuf(payload) => {
+                                        debug!("Handling protobuf payload of topic {}", incoming_topic);
                                         PayloadProtobufHandler::handle_publish(&value, payload.definition(), payload.message());
                                     }
                                 }
