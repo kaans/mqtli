@@ -11,7 +11,15 @@ use rumqttc::v5::mqttbytes::QoS;
 use validator::{Validate, ValidationError};
 
 use crate::config::args::MqtliArgs;
-use crate::config::config_file::{Output as ConfigFileOutput, PayloadProtobuf as ConfigFilePayloadProtobuf, PayloadText as ConfigFilePayloadText, PayloadType as ConfigFilePayloadType, read_config, Subscription as ConfigFileSubscription, Topic as ConfigFileTopic, OutputFormat as ConfigFileOutputFormat};
+use crate::config::config_file::{Output as ConfigFileOutput,
+                                 OutputFormat as ConfigFileOutputFormat,
+                                 OutputTarget as ConfigFileOutputTarget,
+                                 PayloadProtobuf as ConfigFilePayloadProtobuf,
+                                 PayloadText as ConfigFilePayloadText,
+                                 PayloadType as ConfigFilePayloadType,
+                                 read_config,
+                                 Subscription as ConfigFileSubscription,
+                                 Topic as ConfigFileTopic};
 use crate::config::ConfigError;
 use crate::config::mqtli_config::PayloadType::Text;
 
@@ -33,12 +41,13 @@ pub struct Topic {
     topic: String,
     subscription: Subscription,
     payload: PayloadType,
-    output: Output,
+    outputs: Vec<Output>,
 }
 
 #[derive(Clone, Debug, Default, Getters, Validate)]
 pub struct Output {
-    format: OutputFormat
+    format: OutputFormat,
+    target: OutputTarget,
 }
 
 impl From<&ConfigFileOutput> for Output {
@@ -53,6 +62,14 @@ impl From<&ConfigFileOutput> for Output {
                         ConfigFileOutputFormat::Yaml => OutputFormat::Yaml,
                         ConfigFileOutputFormat::Hex => OutputFormat::Hex,
                         ConfigFileOutputFormat::Base64 => OutputFormat::Base64,
+                    }
+                }
+            },
+            target: match value.target() {
+                None => OutputTarget::Console,
+                Some(value) => {
+                    match value {
+                        ConfigFileOutputTarget::Console => OutputTarget::Console,
                     }
                 }
             },
@@ -73,6 +90,15 @@ impl Default for OutputFormat {
     fn default() -> Self { OutputFormat::Plain }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum OutputTarget {
+    Console,
+}
+
+impl Default for OutputTarget {
+    fn default() -> Self { OutputTarget::Console }
+}
+
 #[derive(Clone, Debug, Default, Getters, Validate)]
 pub struct Subscription {
     enabled: bool,
@@ -90,6 +116,18 @@ impl From<&ConfigFileSubscription> for Subscription {
 
 impl From<&ConfigFileTopic> for Topic {
     fn from(value: &ConfigFileTopic) -> Self {
+        let outputs: Vec<Output> =
+            match value.outputs() {
+                None => {
+                    vec![Output::default()]
+                }
+                Some(outputs) => {
+                    outputs.iter().map(|output| {
+                        Output::from(output)
+                    }).collect()
+                }
+            };
+
         Topic {
             topic: String::from(value.topic()),
             subscription: match value.subscription() {
@@ -104,12 +142,7 @@ impl From<&ConfigFileTopic> for Topic {
                     PayloadType::from(value)
                 }
             },
-            output: match value.output() {
-                None => Output::default(),
-                Some(value) => {
-                    Output::from(value)
-                }
-            }
+            outputs,
         }
     }
 }

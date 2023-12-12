@@ -1,12 +1,14 @@
 use std::str::from_utf8;
 
-use log::{debug, info};
+use log::{debug, error, info};
 use rumqttc::v5::{Event, Incoming};
 use tokio::sync::broadcast::Receiver;
 use tokio::task;
 use tokio::task::JoinHandle;
 
 use crate::config::mqtli_config::{PayloadType, Topic};
+use crate::config::mqtli_config::OutputTarget::Console;
+use crate::output::console::ConsoleOutput;
 use crate::payload::protobuf::protobuf::PayloadProtobufHandler;
 use crate::payload::text::PayloadTextHandler;
 
@@ -59,23 +61,29 @@ impl MqttHandler {
 
                         for topic in topics {
                             if topic.topic() == incoming_topic {
-                                let result = match topic.payload() {
-                                    PayloadType::Text(_) => {
-                                        debug!("Handling text payload of topic {}", incoming_topic);
-                                        PayloadTextHandler::handle_publish(&value, topic.output().format())
-                                    }
-                                    PayloadType::Protobuf(payload) => {
-                                        debug!("Handling protobuf payload of topic {}", incoming_topic);
-                                        PayloadProtobufHandler::handle_publish(&value, payload.definition(), payload.message(), topic.output().format())
-                                    }
-                                };
+                                for output in topic.outputs() {
+                                    let result = match topic.payload() {
+                                        PayloadType::Text(_) => {
+                                            debug!("Handling text payload of topic {}", incoming_topic);
+                                            PayloadTextHandler::handle_publish(&value, output.format())
+                                        }
+                                        PayloadType::Protobuf(payload) => {
+                                            debug!("Handling protobuf payload of topic {}", incoming_topic);
+                                            PayloadProtobufHandler::handle_publish(&value, payload.definition(), payload.message(), output.format())
+                                        }
+                                    };
 
-                                match result {
-                                    Ok(content) => {
-                                        println!("{}", String::from_utf8(content).unwrap_or("invalid content".to_string()));
-                                    }
-                                    Err(e) => {
-                                        println!("{:?}", e);
+                                    match result {
+                                        Ok(content) => {
+                                            match output.target() {
+                                                Console => {
+                                                    ConsoleOutput::output(content)
+                                                }
+                                            }
+                                        }
+                                        Err(e) => {
+                                            error!("{:?}", e);
+                                        }
                                     }
                                 }
                             }

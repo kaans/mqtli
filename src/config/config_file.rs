@@ -36,12 +36,13 @@ pub struct Topic {
     topic: String,
     subscription: Option<Subscription>,
     payload: Option<PayloadType>,
-    output: Option<Output>
+    outputs: Option<Vec<Output>>
 }
 
 #[derive(Debug, Serialize, Deserialize, Getters, PartialEq)]
 pub struct Output {
-    format: Option<OutputFormat>
+    format: Option<OutputFormat>,
+    target: Option<OutputTarget>
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -56,6 +57,12 @@ pub enum OutputFormat {
     Hex,
     #[serde(rename = "base64")]
     Base64,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub enum OutputTarget {
+    #[serde(rename = "console")]
+    Console,
 }
 
 #[derive(Debug, Serialize, Deserialize, Getters, PartialEq)]
