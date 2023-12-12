@@ -49,7 +49,13 @@ pub enum OutputFormat {
     #[serde(rename = "plain")]
     Plain,
     #[serde(rename = "json")]
-    Json
+    Json,
+    #[serde(rename = "yaml")]
+    Yaml,
+    #[serde(rename = "hex")]
+    Hex,
+    #[serde(rename = "base64")]
+    Base64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Getters, PartialEq)]
