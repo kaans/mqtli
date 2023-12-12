@@ -7,6 +7,7 @@ use tokio::task;
 use tokio::task::JoinHandle;
 
 use crate::config::mqtli_config::{PayloadType, Topic};
+use crate::payload::OutputFormat;
 use crate::payload::protobuf::PayloadProtobufHandler;
 use crate::payload::text::PayloadTextHandler;
 
@@ -59,15 +60,22 @@ impl MqttHandler {
 
                         for topic in topics {
                             if topic.topic() == incoming_topic {
-                                match topic.payload() {
+                                let result = match topic.payload() {
                                     PayloadType::Text(_) => {
                                         debug!("Handling text payload of topic {}", incoming_topic);
-                                        PayloadTextHandler::handle_publish(&value);
+                                        PayloadTextHandler::handle_publish(&value, OutputFormat::PLAIN)
                                     }
                                     PayloadType::Protobuf(payload) => {
                                         debug!("Handling protobuf payload of topic {}", incoming_topic);
-                                        PayloadProtobufHandler::handle_publish(&value, payload.definition(), payload.message());
+                                        PayloadProtobufHandler::handle_publish(&value, payload.definition(), payload.message(), OutputFormat::PLAIN)
                                     }
+                                };
+
+                                match result {
+                                    Ok(content) => {
+                                        println!("{}", String::from_utf8(content).unwrap_or("invalid".to_string()));
+                                    }
+                                    Err(_) => {}
                                 }
                             }
                         }
