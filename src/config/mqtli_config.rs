@@ -56,10 +56,10 @@ impl From<&ConfigFileOutput> for Output {
     fn from(value: &ConfigFileOutput) -> Self {
         Output {
             format: match value.format() {
-                None => OutputFormat::Plain,
+                None => OutputFormat::Text,
                 Some(value) => {
                     match value {
-                        ConfigFileOutputFormat::Plain => OutputFormat::Plain,
+                        ConfigFileOutputFormat::Text => OutputFormat::Text,
                         ConfigFileOutputFormat::Json => OutputFormat::Json,
                         ConfigFileOutputFormat::Yaml => OutputFormat::Yaml,
                         ConfigFileOutputFormat::Hex => OutputFormat::Hex,
@@ -84,7 +84,7 @@ impl From<&ConfigFileOutput> for Output {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum OutputFormat {
-    Plain,
+    Text,
     Json,
     Yaml,
     Hex,
@@ -92,7 +92,7 @@ pub enum OutputFormat {
 }
 
 impl Default for OutputFormat {
-    fn default() -> Self { OutputFormat::Plain }
+    fn default() -> Self { OutputFormat::Text }
 }
 
 #[derive(Clone, Debug)]

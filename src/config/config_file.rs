@@ -47,8 +47,8 @@ pub struct Output {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum OutputFormat {
-    #[serde(rename = "plain")]
-    Plain,
+    #[serde(rename = "text")]
+    Text,
     #[serde(rename = "json")]
     Json,
     #[serde(rename = "yaml")]
