@@ -57,6 +57,8 @@ pub enum OutputFormat {
     Hex,
     #[serde(rename = "base64")]
     Base64,
+    #[serde(rename = "raw")]
+    Raw,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]

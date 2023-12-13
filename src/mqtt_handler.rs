@@ -65,11 +65,11 @@ impl MqttHandler {
                                 for output in topic.outputs() {
                                     let result = match topic.payload() {
                                         PayloadType::Text(_) => {
-                                            debug!("Handling text payload of topic {}", incoming_topic);
+                                            debug!("Handling text payload of topic {} with format {:?}", incoming_topic, output.format());
                                             PayloadTextHandler::handle_publish(&value, output.format())
                                         }
                                         PayloadType::Protobuf(payload) => {
-                                            debug!("Handling protobuf payload of topic {}", incoming_topic);
+                                            debug!("Handling protobuf payload of topic {} with format {:?}", incoming_topic, output.format());
                                             PayloadProtobufHandler::handle_publish(&value, payload.definition(), payload.message(), output.format())
                                         }
                                     };

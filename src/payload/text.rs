@@ -33,6 +33,9 @@ impl PayloadTextHandler {
             OutputFormat::Base64 => {
                 Self::convert_to_base64(content)
             }
+            OutputFormat::Raw => {
+                Ok(content.to_vec())
+            }
         }
     }
 
