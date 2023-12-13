@@ -64,6 +64,7 @@ impl From<&ConfigFileOutput> for Output {
                         ConfigFileOutputFormat::Yaml => OutputFormat::Yaml,
                         ConfigFileOutputFormat::Hex => OutputFormat::Hex,
                         ConfigFileOutputFormat::Base64 => OutputFormat::Base64,
+                        ConfigFileOutputFormat::Raw => OutputFormat::Raw,
                     }
                 }
             },
@@ -89,6 +90,7 @@ pub enum OutputFormat {
     Yaml,
     Hex,
     Base64,
+    Raw,
 }
 
 impl Default for OutputFormat {
