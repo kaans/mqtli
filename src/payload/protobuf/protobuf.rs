@@ -11,7 +11,7 @@ use crate::config::mqtli_config::OutputFormat;
 
 use crate::payload::PayloadError;
 use crate::payload::protobuf::json_converter::JsonConverter;
-use crate::payload::protobuf::plain_converter::PlainConverter;
+use crate::payload::protobuf::text_converter::TextConverter;
 use crate::payload::protobuf::yaml_converter::YamlConverter;
 
 pub struct PayloadProtobufHandler {}
@@ -37,8 +37,8 @@ impl PayloadProtobufHandler {
         let message_value = message_info.decode(value.payload.as_ref(), &context);
 
         match output_format {
-            OutputFormat::Plain => {
-                PlainConverter::convert(&context, message_value)
+            OutputFormat::Text => {
+                TextConverter::convert(&context, message_value)
             }
             OutputFormat::Json => {
                 JsonConverter::convert(&context, message_value)

@@ -18,7 +18,7 @@ impl PayloadTextHandler {
 
     fn encode_to_output_format(content: &Bytes, output_format: &OutputFormat) -> Result<Vec<u8>, PayloadError> {
         match output_format {
-            OutputFormat::Plain => {
+            OutputFormat::Text => {
                 Self::convert_to_text(content)
             }
             OutputFormat::Json => {

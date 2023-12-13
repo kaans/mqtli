@@ -1,4 +1,4 @@
 pub mod protobuf;
-mod plain_converter;
+mod text_converter;
 mod json_converter;
 mod yaml_converter;

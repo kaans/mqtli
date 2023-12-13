@@ -3,9 +3,9 @@ use protofish::decode::{FieldValue, MessageValue, Value};
 
 use crate::payload::PayloadError;
 
-pub struct PlainConverter {}
+pub struct TextConverter {}
 
-impl PlainConverter {
+impl TextConverter {
     pub fn convert(context: &Context,
                    message_value: MessageValue)
                    -> Result<Vec<u8>, PayloadError> {
