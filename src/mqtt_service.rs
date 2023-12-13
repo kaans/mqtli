@@ -10,11 +10,13 @@ use rumqttc::tokio_rustls::rustls;
 use rumqttc::tokio_rustls::rustls::{Certificate, PrivateKey};
 use rumqttc::v5::{AsyncClient, ConnectionError, Event, EventLoop, Incoming, MqttOptions};
 use rumqttc::v5::mqttbytes::v5::ConnectReturnCode;
+use rustls::SupportedProtocolVersion;
+use rustls::version::{TLS12, TLS13};
 use thiserror::Error;
 use tokio::sync::{broadcast, Mutex};
 use tokio::task::JoinHandle;
 
-use crate::config::mqtli_config::{MqttBrokerConnectArgs, Topic};
+use crate::config::mqtli_config::{MqttBrokerConnectArgs, TlsVersion, Topic};
 
 #[derive(Error, Debug)]
 pub enum MqttServiceError {
@@ -150,9 +152,27 @@ impl MqttService<'_> {
             }
         };
 
-
         let config = rustls::ClientConfig::builder()
-            .with_safe_defaults()
+            .with_safe_default_cipher_suites()
+            .with_safe_default_kx_groups();
+
+        let pr: Vec<&'static SupportedProtocolVersion> = match self.config.tls_version() {
+            TlsVersion::All => {
+                debug!("Using TLS versions 1.2 and 1.3");
+                vec![&TLS12, &TLS13]
+            },
+            TlsVersion::Version1_2 => {
+                debug!("Using TLS version 1.2");
+                vec![&TLS12]
+            }
+            TlsVersion::Version1_3 => {
+                debug!("Using TLS version 1.3");
+                vec![&TLS13]
+            }
+        };
+
+        let config =
+            config.with_protocol_versions(pr.as_slice()).unwrap()
             .with_root_certificates(root_store);
 
         let config = match self.config.tls_client_certificate() {
