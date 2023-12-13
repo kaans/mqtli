@@ -6,6 +6,7 @@ use clap::{Args, Parser};
 use derive_getters::Getters;
 use log::LevelFilter;
 
+use crate::config::mqtli_config::TlsVersion;
 
 #[derive(Parser, Debug, Getters)]
 #[command(author, version, about, long_about = None)]
@@ -54,6 +55,9 @@ pub struct MqttBrokerConnectArgs {
 
     #[arg(long = "client-key", env = "BROKER_TLS_CLIENT_KEY_FILE")]
     tls_client_key: Option<PathBuf>,
+
+    #[arg(long = "tls-version", env = "BROKER_TLS_VERSION", value_enum)]
+    tls_version: Option<TlsVersion>
 }
 
 #[derive(Args, Debug, Getters)]

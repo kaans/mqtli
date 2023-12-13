@@ -4,10 +4,11 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
 
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use derive_getters::Getters;
 use log::LevelFilter;
 use rumqttc::v5::mqttbytes::QoS;
+use serde::{Deserialize, Serialize};
 use validator::{Validate, ValidationError};
 
 use crate::config::args::MqtliArgs;
@@ -240,6 +241,25 @@ impl From<&ConfigFilePayloadProtobuf> for PayloadProtobuf {
     }
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, ValueEnum)]
+pub enum TlsVersion {
+    #[serde(rename = "all")]
+    #[clap(name = "all")]
+    All,
+    #[serde(rename = "v12")]
+    #[clap(name = "v12")]
+    Version1_2,
+    #[serde(rename = "v13")]
+    #[clap(name = "v13")]
+    Version1_3,
+}
+
+impl Default for TlsVersion {
+    fn default() -> Self {
+        TlsVersion::All
+    }
+}
+
 #[derive(Debug, Default, Getters, Validate)]
 #[validate(schema(function = "validate_credentials", skip_on_field_errors = false))]
 #[validate(schema(function = "validate_tls_client", skip_on_field_errors = false))]
@@ -258,6 +278,7 @@ pub struct MqttBrokerConnectArgs {
     tls_ca_file: Option<PathBuf>,
     tls_client_certificate: Option<PathBuf>,
     tls_client_key: Option<PathBuf>,
+    tls_version: TlsVersion,
 }
 
 #[derive(Debug, Getters)]
@@ -292,6 +313,7 @@ pub fn parse_config() -> Result<MqtliConfig, ConfigError> {
     config.broker.tls_ca_file = args.broker().tls_ca_file().clone().or(config_file.tls_ca_file().clone()).or(None);
     config.broker.tls_client_certificate = args.broker().tls_client_certificate().clone().or(config_file.tls_client_certificate().clone()).or(None);
     config.broker.tls_client_key = args.broker().tls_client_key().clone().or(config_file.tls_client_key().clone()).or(None);
+    config.broker.tls_version = args.broker().tls_version().clone().or(config_file.tls_version().clone()).or(Some(TlsVersion::All)).unwrap();
 
     config.logger.level = args.logger().level().or(config_file.log_level().clone()
         .map(|v| LevelFilter::from_str(v.as_str()).expect("Invalid log level {v}")))

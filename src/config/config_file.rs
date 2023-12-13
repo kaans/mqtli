@@ -6,6 +6,7 @@ use rumqttc::v5::mqttbytes::QoS;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde::de::{Error, Unexpected};
 use crate::config::ConfigError;
+use crate::config::mqtli_config::TlsVersion;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Getters)]
 pub struct ConfigFile {
@@ -25,6 +26,7 @@ pub struct ConfigFile {
     tls_ca_file: Option<PathBuf>,
     tls_client_certificate: Option<PathBuf>,
     tls_client_key: Option<PathBuf>,
+    tls_version: Option<TlsVersion>,
 
     log_level: Option<String>,
 
