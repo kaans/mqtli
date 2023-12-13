@@ -1,11 +1,13 @@
-use std::fs::read_to_string;
+use std::fs::File;
 use std::io;
+use std::io::BufReader;
 use std::path::PathBuf;
-use std::str::{from_utf8, Utf8Error};
 use std::sync::Arc;
 
 use log::{debug, error, info, warn};
-use rumqttc::{Key, TlsConfiguration, Transport};
+use rumqttc::{TlsConfiguration, Transport};
+use rumqttc::tokio_rustls::rustls;
+use rumqttc::tokio_rustls::rustls::{Certificate, PrivateKey};
 use rumqttc::v5::{AsyncClient, ConnectionError, Event, EventLoop, Incoming, MqttOptions};
 use rumqttc::v5::mqttbytes::v5::ConnectReturnCode;
 use thiserror::Error;
@@ -19,15 +21,17 @@ pub enum MqttServiceError {
     #[error("CA certificate must be present when using TLS")]
     CaCertificateMustBePresent(),
     #[error("Could not read CA certificate from file \"{1}\"")]
-    CaCertificateNotReadable(#[source] io::Error, PathBuf),
-    #[error("Could not read client certificate from file \"{1}\"")]
-    ClientCertificateNotReadable(#[source] io::Error, PathBuf),
+    CertificateNotReadable(#[source] io::Error, PathBuf),
+    #[error("Could not add CA certificate to root store")]
+    CaCertificateNotAdded(#[source] rustls::Error),
     #[error("Could not read client key from file \"{1}\"")]
-    ClientKeyNotReadable(#[source] io::Error, PathBuf),
-    #[error("Invalid client key in file \"{1}\"")]
-    InvalidClientKey(#[source] Utf8Error, PathBuf),
-    #[error("The client key must be either RSA or ECC in file \"{0}\"")]
-    UnsupportedClientKey(PathBuf),
+    PrivateKeyNotReadable(#[source] io::Error, PathBuf),
+    #[error("No PKCS8-encoded private key found in file \"{0}\"")]
+    PrivateKeyNoneFound(PathBuf),
+    #[error("More than one PKCS8-encoded private key found in file \"{0}\"")]
+    PrivateKeyTooManyFound(PathBuf),
+    #[error("Client key must be present when using TLS authentication")]
+    ClientKeyMustBePresent(),
 }
 
 pub struct MqttService<'a> {
@@ -60,61 +64,12 @@ impl MqttService<'_> {
         if *self.config.use_tls() {
             info!("Using TLS");
 
-            let ca: Vec<u8> = match &self.config.tls_ca_file() {
-                Some(ca_file) => match read_to_string(ca_file) {
-                    Ok(ca) => ca.into_bytes(),
-                    Err(e) => return Err(MqttServiceError::CaCertificateNotReadable(
-                        e, PathBuf::from(ca_file))),
-                },
-                None => {
-                    return Err(MqttServiceError::CaCertificateMustBePresent());
-                }
+            let tls_config_rustls = match self.configure_tls_rustls() {
+                Ok(value) => value,
+                Err(value) => return Err(value),
             };
 
-            let client_auth: Option<(Vec<u8>, Key)> = match self.config.tls_client_certificate() {
-                None => None,
-                Some(cert_file) => {
-                    info!("Using TLS client certificate authentication");
-
-                    let cert = match read_to_string(cert_file) {
-                        Ok(ca) => ca.into_bytes(),
-                        Err(e) => return Err(MqttServiceError::ClientCertificateNotReadable(
-                            e, PathBuf::from(cert_file))),
-                    };
-
-                    let client_key_file = self.config.tls_client_key().as_ref().unwrap();
-                    let key = match read_to_string(client_key_file) {
-                        Ok(ca) => ca.into_bytes(),
-                        Err(e) => return Err(MqttServiceError::ClientKeyNotReadable(
-                            e, PathBuf::from(client_key_file))),
-                    };
-
-                    let key: Key = match from_utf8(key.as_slice()) {
-                        Ok(content) => {
-                            if content.contains("-----BEGIN RSA PRIVATE KEY-----") {
-                                Key::RSA(key)
-                            } else if content.contains("-----BEGIN EC PRIVATE KEY-----") {
-                                Key::ECC(key)
-                            } else {
-                                return Err(MqttServiceError::UnsupportedClientKey(
-                                    PathBuf::from(client_key_file)));
-                            }
-                        }
-                        Err(e) => return Err(MqttServiceError::InvalidClientKey(
-                            e, PathBuf::from(client_key_file))),
-                    };
-
-                    Some((cert, key))
-                }
-            };
-
-            let tls_config = TlsConfiguration::Simple {
-                ca,
-                alpn: None,
-                client_auth,
-            };
-
-            options.set_transport(Transport::Tls(tls_config));
+            options.set_transport(Transport::Tls(tls_config_rustls));
         }
 
         debug!("Setting keep alive to {} seconds", self.config.keep_alive().as_secs());
@@ -140,6 +95,92 @@ impl MqttService<'_> {
         self.task_handle = Some(task_handle);
 
         Ok(())
+    }
+
+    fn configure_tls_rustls(&mut self) -> Result<TlsConfiguration, MqttServiceError> {
+        fn load_private_key_from_file(path: &PathBuf) -> Result<PrivateKey, MqttServiceError> {
+            let file = match File::open(&path) {
+                Ok(file) => file,
+                Err(e) => return Err(MqttServiceError::PrivateKeyNotReadable(e, PathBuf::from(path)))
+            };
+            let mut reader = BufReader::new(file);
+            let mut keys = match rustls_pemfile::pkcs8_private_keys(&mut reader) {
+                Ok(keys) => keys,
+                Err(e) => return Err(MqttServiceError::PrivateKeyNotReadable(e, PathBuf::from(path)))
+            };
+
+            match keys.len() {
+                0 => Err(MqttServiceError::PrivateKeyNoneFound(PathBuf::from(path))),
+                1 => Ok(PrivateKey(keys.remove(0))),
+                _ => Err(MqttServiceError::PrivateKeyTooManyFound(PathBuf::from(path))),
+            }
+        }
+
+        fn load_certificates_from_file(path: &PathBuf) -> Result<Vec<Certificate>, MqttServiceError> {
+            let file = match File::open(&path) {
+                Ok(file) => file,
+                Err(e) => return Err(MqttServiceError::CertificateNotReadable(e, PathBuf::from(path)))
+            };
+            let mut reader = BufReader::new(file);
+            let certs = match rustls_pemfile::certs(&mut reader) {
+                Ok(certs) => certs,
+                Err(e) => return Err(MqttServiceError::CertificateNotReadable(e, PathBuf::from(path)))
+            };
+
+            Ok(certs.into_iter().map(Certificate).collect())
+        }
+
+        let mut root_store = rustls::RootCertStore::empty();
+
+        match &self.config.tls_ca_file() {
+            Some(ca_file) => {
+                let certificates
+                    = load_certificates_from_file(ca_file)?;
+
+                info!("Found {} root ca certificates", certificates.len());
+
+                for certificate in certificates {
+                    if let Err(e) = root_store.add(&certificate) {
+                        return Err(MqttServiceError::CaCertificateNotAdded(e));
+                    }
+                }
+            }
+            None => {
+                return Err(MqttServiceError::CaCertificateMustBePresent());
+            }
+        };
+
+
+        let config = rustls::ClientConfig::builder()
+            .with_safe_defaults()
+            .with_root_certificates(root_store);
+
+        let config = match self.config.tls_client_certificate() {
+            None => {
+                config.with_no_client_auth()
+            }
+            Some(client_certificate_file) => {
+                info!("Using TLS client certificate authentication");
+
+                let client_certificate =
+                    load_certificates_from_file(client_certificate_file)?;
+
+                let Some(client_key_file) = self.config.tls_client_key() else {
+                    return Err(MqttServiceError::ClientKeyMustBePresent());
+                };
+
+                let client_key = load_private_key_from_file(client_key_file)?;
+
+                config.with_client_auth_cert(client_certificate, client_key)
+                    .unwrap()
+            }
+        };
+
+        let tls_config = TlsConfiguration::Rustls {
+            0: Arc::new(config),
+        };
+
+        Ok(tls_config)
     }
 
     async fn start_connection_task(mut event_loop: EventLoop,
