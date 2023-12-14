@@ -11,18 +11,9 @@ use rumqttc::v5::mqttbytes::QoS;
 use serde::{Deserialize, Serialize};
 use validator::{Validate, ValidationError};
 
-use crate::config::args::MqtliArgs;
-use crate::config::config_file::{Output as ConfigFileOutput,
-                                 OutputFormat as ConfigFileOutputFormat,
-                                 OutputTarget as ConfigFileOutputTarget,
-                                 OutputTargetConsole as ConfigFileOutputTargetConsole,
-                                 OutputTargetFile as ConfigFileOutputTargetFile,
-                                 PayloadProtobuf as ConfigFilePayloadProtobuf,
-                                 PayloadText as ConfigFilePayloadText,
-                                 PayloadType as ConfigFilePayloadType,
-                                 read_config,
-                                 Subscription as ConfigFileSubscription,
-                                 Topic as ConfigFileTopic};
+use crate::config::args::{LastWillConfig as ArgsLastWillConfig,
+                          MqtliArgs};
+use crate::config::config_file::{LastWillConfig as ConfigFileLastWillConfig, Output as ConfigFileOutput, OutputFormat as ConfigFileOutputFormat, OutputTarget as ConfigFileOutputTarget, OutputTargetConsole as ConfigFileOutputTargetConsole, OutputTargetFile as ConfigFileOutputTargetFile, PayloadProtobuf as ConfigFilePayloadProtobuf, PayloadText as ConfigFilePayloadText, PayloadType as ConfigFilePayloadType, read_config, Subscription as ConfigFileSubscription, Topic as ConfigFileTopic};
 use crate::config::ConfigError;
 use crate::config::mqtli_config::PayloadType::Text;
 
@@ -279,6 +270,68 @@ pub struct MqttBrokerConnectArgs {
     tls_client_certificate: Option<PathBuf>,
     tls_client_key: Option<PathBuf>,
     tls_version: TlsVersion,
+
+    #[validate]
+    last_will: Option<LastWillConfig>,
+}
+
+#[derive(Debug, Default, Getters, Validate)]
+pub struct LastWillConfig {
+    #[validate(length(min = 1, message = "Last will topic must be given"))]
+    topic: String,
+    payload: Vec<u8>,
+    qos: QoS,
+    retain: bool,
+}
+
+impl From<&ConfigFileLastWillConfig> for LastWillConfig {
+    fn from(value: &ConfigFileLastWillConfig) -> Self {
+        Self {
+            topic: match value.topic() {
+                None => { String::default() }
+                Some(value) => {
+                    String::from(value)
+                }
+            },
+            payload: match value.payload() {
+                None => vec![],
+                Some(payload) => Vec::from(payload.clone())
+            },
+            qos: match value.qos() {
+                None => QoS::AtMostOnce,
+                Some(qos) => *qos
+            },
+            retain: match value.retain() {
+                None => false,
+                Some(retain) => *retain
+            },
+        }
+    }
+}
+
+impl From<&ArgsLastWillConfig> for LastWillConfig {
+    fn from(value: &ArgsLastWillConfig) -> Self {
+        Self {
+            topic: match value.topic() {
+                None => { String::default() }
+                Some(value) => {
+                    String::from(value)
+                }
+            },
+            payload: match value.payload() {
+                None => vec![],
+                Some(payload) => Vec::from(payload.clone())
+            },
+            qos: match value.qos() {
+                None => QoS::AtMostOnce,
+                Some(qos) => *qos
+            },
+            retain: match value.retain() {
+                None => false,
+                Some(retain) => *retain
+            },
+        }
+    }
 }
 
 #[derive(Debug, Getters)]
@@ -314,6 +367,55 @@ pub fn parse_config() -> Result<MqtliConfig, ConfigError> {
     config.broker.tls_client_certificate = args.broker().tls_client_certificate().clone().or(config_file.tls_client_certificate().clone()).or(None);
     config.broker.tls_client_key = args.broker().tls_client_key().clone().or(config_file.tls_client_key().clone()).or(None);
     config.broker.tls_version = args.broker().tls_version().clone().or(config_file.tls_version().clone()).or(Some(TlsVersion::All)).unwrap();
+
+    {
+        let last_will = if args.broker().last_will().is_none() && config_file.last_will().is_none() {
+            None
+        } else {
+            let mut lwc = LastWillConfig {
+                topic: "".to_string(),
+                payload: vec![],
+                qos: Default::default(),
+                retain: false,
+            };
+
+            if let Some(lw_args) = config_file.last_will() {
+                if lw_args.topic().is_some() {
+                    lwc.topic = lw_args.topic().clone().unwrap();
+                }
+                if lw_args.payload().is_some() {
+                    lwc.payload = lw_args.payload().clone().unwrap().into_bytes();
+                }
+                if lw_args.qos().is_some() {
+                    lwc.qos = lw_args.qos().clone().unwrap();
+                }
+                if lw_args.retain().is_some() {
+                    lwc.retain = lw_args.retain().clone().unwrap();
+                }
+            }
+
+            if let Some(lw_args) = args.broker().last_will() {
+                if lw_args.topic().is_some() {
+                    lwc.topic = lw_args.topic().clone().unwrap();
+                }
+                if lw_args.payload().is_some() {
+                    lwc.payload = lw_args.payload().clone().unwrap().into_bytes();
+                }
+                if lw_args.qos().is_some() {
+                    lwc.qos = lw_args.qos().clone().unwrap();
+                }
+                if lw_args.retain().is_some() {
+                    lwc.retain = lw_args.retain().clone().unwrap();
+                }
+            }
+
+            Some(lwc)
+        };
+
+        println!("{:?}", last_will);
+
+        config.broker.last_will = last_will;
+    }
 
     config.logger.level = args.logger().level().or(config_file.log_level().clone()
         .map(|v| LevelFilter::from_str(v.as_str()).expect("Invalid log level {v}")))

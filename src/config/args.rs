@@ -5,6 +5,7 @@ use std::time::Duration;
 use clap::{Args, Parser};
 use derive_getters::Getters;
 use log::LevelFilter;
+use rumqttc::v5::mqttbytes::QoS;
 
 use crate::config::mqtli_config::TlsVersion;
 
@@ -44,26 +45,44 @@ pub struct MqttBrokerConnectArgs {
     #[arg(short = 'w', long = "password", env = "BROKER_PASSWORD")]
     password: Option<String>,
 
-    #[arg(long = "use-tls", env = "BROKER_USE_TLS")]
+    #[arg(long = "use-tls", env = "BROKER_USE_TLS", help_heading = "TLS")]
     use_tls: Option<bool>,
 
-    #[arg(long = "ca-file", env = "BROKER_TLS_CA_FILE")]
+    #[arg(long = "ca-file", env = "BROKER_TLS_CA_FILE", help_heading = "TLS")]
     tls_ca_file: Option<PathBuf>,
 
-    #[arg(long = "client-cert", env = "BROKER_TLS_CLIENT_CERTIFICATE_FILE")]
+    #[arg(long = "client-cert", env = "BROKER_TLS_CLIENT_CERTIFICATE_FILE", help_heading = "TLS")]
     tls_client_certificate: Option<PathBuf>,
 
-    #[arg(long = "client-key", env = "BROKER_TLS_CLIENT_KEY_FILE")]
+    #[arg(long = "client-key", env = "BROKER_TLS_CLIENT_KEY_FILE", help_heading = "TLS")]
     tls_client_key: Option<PathBuf>,
 
-    #[arg(long = "tls-version", env = "BROKER_TLS_VERSION", value_enum)]
-    tls_version: Option<TlsVersion>
+    #[arg(long = "tls-version", env = "BROKER_TLS_VERSION", value_enum, help_heading = "TLS")]
+    tls_version: Option<TlsVersion>,
+
+    #[command(flatten)]
+    last_will: Option<LastWillConfig>
+}
+
+#[derive(Args, Debug, Default, Getters)]
+pub struct LastWillConfig {
+    #[arg(long = "last-will-payload", env = "BROKER_LAST_WILL_PAYLOAD", help_heading = "Last will")]
+    payload: Option<String>,
+
+    #[arg(long = "last-will-topic", env = "BROKER_LAST_WILL_TOPIC", help_heading = "Last will")]
+    topic: Option<String>,
+
+    #[arg(long = "last-will-qos", env = "BROKER_LAST_WILL_QOS", value_parser = parse_qos, help_heading = "Last will", help = "0 = at most once; 1 = at least once; 2 = exactly once")]
+    qos: Option<QoS>,
+
+    #[arg(long = "last-will-retain", env = "BROKER_LAST_WILL_RETAIN", help_heading = "Last will")]
+    retain: Option<bool>
 }
 
 #[derive(Args, Debug, Getters)]
 #[group(required = false, multiple = true)]
 pub struct LoggingArgs {
-    #[arg(short = 'l', long = "log-level", env = "LOG_LEVEL")]
+    #[arg(short = 'l', long = "log-level", env = "LOG_LEVEL", help_heading = "Logging")]
     level: Option<LevelFilter>,
 }
 
@@ -72,4 +91,15 @@ fn parse_keep_alive(input: &str) -> Result<Duration, String> {
         .map_err(|_| format!("{input} is not a valid duration in seconds"))?;
 
     Ok(Duration::from_secs(duration_in_seconds))
+}
+
+fn parse_qos(input: &str) -> Result<QoS, String> {
+    let qos: QoS = match input {
+        "0" => QoS::AtMostOnce,
+        "1" => QoS::AtLeastOnce,
+        "2" => QoS::ExactlyOnce,
+        _ => return Err("QoS value must be 0, 1 or 2".to_string())
+    };
+
+    Ok(qos)
 }

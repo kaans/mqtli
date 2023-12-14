@@ -1,10 +1,12 @@
 use std::fs::read_to_string;
 use std::path::PathBuf;
 use std::time::Duration;
+
 use derive_getters::Getters;
 use rumqttc::v5::mqttbytes::QoS;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde::de::{Error, Unexpected};
+
 use crate::config::ConfigError;
 use crate::config::mqtli_config::TlsVersion;
 
@@ -30,7 +32,21 @@ pub struct ConfigFile {
 
     log_level: Option<String>,
 
-    topics: Vec<Topic>
+    topics: Vec<Topic>,
+
+    last_will: Option<LastWillConfig>,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, Getters, PartialEq)]
+pub struct LastWillConfig {
+    topic: Option<String>,
+    payload: Option<String>,
+
+    #[serde(default)]
+    #[serde(serialize_with = "serialize_qos_option")]
+    #[serde(deserialize_with = "deserialize_qos_option")]
+    qos: Option<QoS>,
+    retain: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Getters, PartialEq)]
@@ -38,13 +54,13 @@ pub struct Topic {
     topic: String,
     subscription: Option<Subscription>,
     payload: Option<PayloadType>,
-    outputs: Option<Vec<Output>>
+    outputs: Option<Vec<Output>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Getters, PartialEq)]
 pub struct Output {
     format: Option<OutputFormat>,
-    target: Option<OutputTarget>
+    target: Option<OutputTarget>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -73,8 +89,7 @@ pub enum OutputTarget {
 }
 
 #[derive(Debug, Serialize, Deserialize, Getters, PartialEq)]
-pub struct OutputTargetConsole {
-}
+pub struct OutputTargetConsole {}
 
 #[derive(Debug, Serialize, Deserialize, Getters, PartialEq)]
 pub struct OutputTargetFile {
@@ -83,7 +98,7 @@ pub struct OutputTargetFile {
     #[serde(default)]
     overwrite: bool,
     prepend: Option<String>,
-    append: Option<String>
+    append: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Getters, PartialEq)]
@@ -102,7 +117,7 @@ pub enum PayloadType {
     #[serde(rename = "text")]
     Text(PayloadText),
     #[serde(rename = "protobuf")]
-    Protobuf(PayloadProtobuf)
+    Protobuf(PayloadProtobuf),
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Getters, PartialEq)]
@@ -111,11 +126,11 @@ pub struct PayloadText {}
 #[derive(Debug, Default, Serialize, Deserialize, Getters, PartialEq)]
 pub struct PayloadProtobuf {
     definition: PathBuf,
-    message: String
+    message: String,
 }
 
 pub fn read_config(buf: &PathBuf) -> Result<ConfigFile, ConfigError> {
-    let content = match read_to_string(buf)  {
+    let content = match read_to_string(buf) {
         Ok(content) => content,
         Err(e) => {
             return Err(ConfigError::CouldNotReadConfigFile(e, PathBuf::from(buf)));
@@ -140,7 +155,7 @@ fn deserialize_keep_alive<'a, D>(deserializer: D) -> Result<Option<Duration>, D:
     let value: &str = Deserialize::deserialize(deserializer)?;
 
     if let Ok(value) = value.parse() {
-        return Ok(Some(Duration::from_secs(value)))
+        return Ok(Some(Duration::from_secs(value)));
     }
 
     Err(Error::invalid_value(Unexpected::Other(value), &"unsigned integer between 0 and 65535"))
@@ -169,4 +184,18 @@ fn deserialize_qos<'a, D>(deserializer: D) -> Result<QoS, D::Error> where D: Des
     }
 
     Err(Error::invalid_value(Unexpected::Other(value), &"unsigned integer between 0 and 2"))
+}
+
+
+fn serialize_qos_option<S>(value: &Option<QoS>, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    let value = match value {
+        None => &QoS::AtLeastOnce,
+        Some(value) => value,
+    };
+
+    serialize_qos(value, serializer)
+}
+
+fn deserialize_qos_option<'a, D>(deserializer: D) -> Result<Option<QoS>, D::Error> where D: Deserializer<'a> {
+    Ok(Some(deserialize_qos(deserializer)?))
 }

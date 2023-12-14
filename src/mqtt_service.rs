@@ -9,7 +9,7 @@ use rumqttc::{TlsConfiguration, Transport};
 use rumqttc::tokio_rustls::rustls;
 use rumqttc::tokio_rustls::rustls::{Certificate, PrivateKey};
 use rumqttc::v5::{AsyncClient, ConnectionError, Event, EventLoop, Incoming, MqttOptions};
-use rumqttc::v5::mqttbytes::v5::ConnectReturnCode;
+use rumqttc::v5::mqttbytes::v5::{ConnectReturnCode, LastWill};
 use rustls::SupportedProtocolVersion;
 use rustls::version::{TLS12, TLS13};
 use thiserror::Error;
@@ -83,6 +83,23 @@ impl MqttService<'_> {
                                     self.config.password().clone().unwrap());
         } else {
             info!("Using anonymous access");
+        }
+
+        if let Some(last_will) = self.config.last_will() {
+            info!("Setting last will for topic {} [Payload length: {}, QoS {:?}; retain: {}]",
+                last_will.topic(),
+                last_will.payload().len(),
+                last_will.qos(),
+                last_will.retain(),
+            );
+            let last_will = LastWill::new(
+                last_will.topic(),
+                last_will.payload().clone(),
+                *last_will.qos(),
+                *last_will.retain(),
+                None
+            );
+            options.set_last_will(last_will);
         }
 
         let (client, event_loop) = AsyncClient::new(options, 10);
