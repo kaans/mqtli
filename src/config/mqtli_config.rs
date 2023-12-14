@@ -17,10 +17,10 @@ use crate::config::config_file::{LastWillConfig as ConfigFileLastWillConfig, Out
 use crate::config::ConfigError;
 use crate::config::mqtli_config::PayloadType::Text;
 
-#[derive(Debug, Default, Getters, Validate)]
+#[derive(Clone, Debug, Default, Getters, Validate)]
 pub struct MqtliConfig {
     #[validate]
-    broker: MqttBrokerConnectArgs,
+    pub broker: MqttBrokerConnectArgs,
 
     logger: LoggingArgs,
 
@@ -251,7 +251,7 @@ impl Default for TlsVersion {
     }
 }
 
-#[derive(Debug, Default, Getters, Validate)]
+#[derive(Clone, Debug, Default, Getters, Validate)]
 #[validate(schema(function = "validate_credentials", skip_on_field_errors = false))]
 #[validate(schema(function = "validate_tls_client", skip_on_field_errors = false))]
 pub struct MqttBrokerConnectArgs {
@@ -275,7 +275,7 @@ pub struct MqttBrokerConnectArgs {
     last_will: Option<LastWillConfig>,
 }
 
-#[derive(Debug, Default, Getters, Validate)]
+#[derive(Clone, Debug, Default, Getters, Validate)]
 pub struct LastWillConfig {
     #[validate(length(min = 1, message = "Last will topic must be given"))]
     topic: String,
@@ -334,7 +334,7 @@ impl From<&ArgsLastWillConfig> for LastWillConfig {
     }
 }
 
-#[derive(Debug, Getters)]
+#[derive(Clone, Debug, Getters)]
 pub struct LoggingArgs {
     level: LevelFilter,
 }
@@ -411,8 +411,6 @@ pub fn parse_config() -> Result<MqtliConfig, ConfigError> {
 
             Some(lwc)
         };
-
-        println!("{:?}", last_will);
 
         config.broker.last_will = last_will;
     }

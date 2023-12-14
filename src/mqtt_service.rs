@@ -14,6 +14,7 @@ use rustls::SupportedProtocolVersion;
 use rustls::version::{TLS12, TLS13};
 use thiserror::Error;
 use tokio::sync::{broadcast, Mutex};
+use tokio::sync::broadcast::Receiver;
 use tokio::task::JoinHandle;
 
 use crate::config::mqtli_config::{MqttBrokerConnectArgs, TlsVersion, Topic};
@@ -36,23 +37,38 @@ pub enum MqttServiceError {
     ClientKeyMustBePresent(),
 }
 
-pub struct MqttService<'a> {
-    client: Option<AsyncClient>,
-    config: &'a MqttBrokerConnectArgs,
+pub struct MqttService {
+    client: Option<Arc<Mutex<AsyncClient>>>,
+    config: Arc<MqttBrokerConnectArgs>,
 
     topics: Arc<Mutex<Vec<Topic>>>,
 
     task_handle: Option<JoinHandle<()>>,
+    receiver: Arc<Mutex<Receiver<i32>>>,
 }
 
-impl MqttService<'_> {
-    pub fn new(mqtt_connect_args: &MqttBrokerConnectArgs) -> MqttService {
+impl MqttService {
+    pub fn new(mqtt_connect_args: Arc<MqttBrokerConnectArgs>, receiver_exit: Receiver<i32>) -> MqttService {
         MqttService {
             client: None,
             config: mqtt_connect_args,
 
             topics: Arc::new(Mutex::new(vec![])),
             task_handle: None,
+            receiver: Arc::new(Mutex::new(receiver_exit)),
+        }
+    }
+
+    pub async fn _disconnect(&self) {
+        if self.client.is_some() {
+            match self.client.clone().unwrap().lock().await.disconnect().await {
+                Ok(_) => {
+                    info!("Successfully disconnected");
+                }
+                Err(e) => {
+                    error!("Error during disconnect: {:?}", e);
+                }
+            };
         }
     }
 
@@ -97,19 +113,21 @@ impl MqttService<'_> {
                 last_will.payload().clone(),
                 *last_will.qos(),
                 *last_will.retain(),
-                None
+                None,
             );
             options.set_last_will(last_will);
         }
 
         let (client, event_loop) = AsyncClient::new(options, 10);
-        self.client = Option::from(client.clone());
+        self.client = Option::from(Arc::new(Mutex::new(client)));
 
         let topics = self.topics.clone();
 
         let task_handle: JoinHandle<()> =
-            MqttService::start_connection_task(event_loop, client, topics, channel)
+            MqttService::start_connection_task(event_loop, self.client.clone().unwrap().clone(), topics, channel)
                 .await;
+
+        self.start_exit_task().await;
 
         self.task_handle = Some(task_handle);
 
@@ -177,7 +195,7 @@ impl MqttService<'_> {
             TlsVersion::All => {
                 debug!("Using TLS versions 1.2 and 1.3");
                 vec![&TLS12, &TLS13]
-            },
+            }
             TlsVersion::Version1_2 => {
                 debug!("Using TLS version 1.2");
                 vec![&TLS12]
@@ -190,7 +208,7 @@ impl MqttService<'_> {
 
         let config =
             config.with_protocol_versions(pr.as_slice()).unwrap()
-            .with_root_certificates(root_store);
+                .with_root_certificates(root_store);
 
         let config = match self.config.tls_client_certificate() {
             None => {
@@ -221,7 +239,7 @@ impl MqttService<'_> {
     }
 
     async fn start_connection_task(mut event_loop: EventLoop,
-                                   client: AsyncClient,
+                                   client: Arc<Mutex<AsyncClient>>,
                                    topics: Arc<Mutex<Vec<Topic>>>,
                                    channel: Option<broadcast::Sender<Event>>) -> JoinHandle<()> {
         tokio::task::spawn(async move {
@@ -239,7 +257,7 @@ impl MqttService<'_> {
                                         for topic in topics.lock().await.iter() {
                                             if *topic.subscription().enabled() {
                                                 info!("Subscribing to topic {} with QoS {:?}", topic.topic(), topic.subscription().qos());
-                                                if let Err(e) = client.subscribe(topic.topic(), *topic.subscription().qos()).await {
+                                                if let Err(e) = client.lock().await.subscribe(topic.topic(), *topic.subscription().qos()).await {
                                                     error!("Could not subscribe to topic {}: {}", topic.topic(), e);
                                                 }
                                             } else {
@@ -269,6 +287,29 @@ impl MqttService<'_> {
                             }
                         }
                     }
+                }
+            }
+        })
+    }
+
+    async fn start_exit_task(&mut self) -> JoinHandle<()> {
+        let rec = self.receiver.clone();
+        let client = self.client.clone().unwrap().clone();
+
+        tokio::task::spawn(async move {
+            match rec.lock().await.recv().await {
+                Ok(_event) => {
+                    match client.lock().await.disconnect().await {
+                        Ok(_) => {
+                            info!("Successfully disconnected");
+                        }
+                        Err(e) => {
+                            error!("Error during disconnect: {:?}", e);
+                        }
+                    };
+                }
+                Err(_) => {
+                    // ignore
                 }
             }
         })

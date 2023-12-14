@@ -1,9 +1,13 @@
 use std::process::exit;
+use std::sync::Arc;
 
 use anyhow::anyhow;
-use log::{error, LevelFilter};
+use log::{error, info, LevelFilter};
 use simplelog::{Config, SimpleLogger};
+use tokio::{signal, task};
 use tokio::sync::broadcast;
+use tokio::sync::broadcast::Sender;
+use tokio::task::JoinHandle;
 
 use crate::config::mqtli_config::parse_config;
 use crate::mqtt_handler::MqttHandler;
@@ -28,7 +32,9 @@ async fn main() {
 
     init_logger(config.logger().level());
 
-    let mut mqtt_service = MqttService::new(config.broker());
+    let (sender_exit, receiver_exit) = broadcast::channel(1);
+
+    let mut mqtt_service = MqttService::new(Arc::new(config.broker.clone()), receiver_exit);
 
     for topic in config.topics() {
         mqtt_service.subscribe((*topic).clone()).await;
@@ -44,9 +50,25 @@ async fn main() {
         exit(2);
     }
 
+    start_exit_task(sender_exit).await;
     mqtt_service.await_task().await;
     handler.await_task().await;
 }
+
+async fn start_exit_task(sender_exit: Sender<i32>) {
+    let exit_task: JoinHandle<()> = task::spawn(async move {
+        if let Err(_e) = signal::ctrl_c().await {
+            error!("Could not add ctrlc handler");
+        }
+
+        info!("Exit signal received, shutting down");
+
+        let _ = sender_exit.send(10);
+    });
+
+    exit_task.await.expect("Could not join thread");
+}
+
 
 fn init_logger(filter: &LevelFilter) {
     let config = Config::default();
