@@ -15,7 +15,7 @@ clap = { version = "4.4.11", features = ["derive", "env"] }
 derive-getters = "0.3.0"
 log = "0.4.20"
 protofish = "0.5.2"
-rumqttc = "0.23.0"
+rumqttc = { version = "0.23.0", features = ["use-rustls", "websocket"] }
 serde = { version = "1.0.193", features = ["derive"] }
 serde_yaml = "0.9.27"
 simplelog = "0.12.1"
