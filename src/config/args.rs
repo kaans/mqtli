@@ -45,7 +45,7 @@ pub struct MqttBrokerConnectArgs {
     pub client_id: Option<String>,
 
     #[serde(default)]
-    #[serde(deserialize_with = "deserialize_keep_alive")]
+    #[serde(deserialize_with = "deserialize_duration_seconds")]
     #[arg(long = "keep-alive", env = "BROKER_KEEP_ALIVE", value_parser = parse_keep_alive)]
     pub keep_alive: Option<Duration>,
 
@@ -91,11 +91,46 @@ pub struct LastWillConfig {
     pub retain: Option<bool>,
 }
 
-#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
+#[derive(Debug, Default, Deserialize, Getters)]
 pub struct Topic {
     pub topic: String,
     pub subscription: Option<Subscription>,
     pub payload: Option<PayloadType>,
+    pub publish: Option<Publish>,
+}
+
+#[derive(Debug, Default, Deserialize, Getters)]
+pub struct Publish {
+    #[serde(default)]
+    enabled: bool,
+
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_qos")]
+    qos: QoS,
+    trigger: Option<Vec<PublishTriggerType>>,
+}
+
+#[derive(Debug, Default, Deserialize, Getters)]
+pub struct PublishTrigger {
+    trigger_type: Option<PublishTriggerType>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(tag = "type")]
+pub enum PublishTriggerType {
+    #[serde(rename = "periodic")]
+    Periodic(PublishTriggerTypePeriodic)
+}
+
+#[derive(Debug, Default, Deserialize, Getters)]
+pub struct PublishTriggerTypePeriodic {
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_duration_milliseconds")]
+    interval: Option<Duration>,
+    count: Option<u32>,
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_duration_milliseconds")]
+    initial_delay: Option<Duration>,
 }
 
 #[derive(Debug, Default, Deserialize, Getters, PartialEq)]
@@ -207,14 +242,14 @@ pub fn read_cli_args() -> MqtliArgs {
     args::MqtliArgs::parse()
 }
 
-fn deserialize_keep_alive<'a, D>(deserializer: D) -> Result<Option<Duration>, D::Error> where D: Deserializer<'a> {
-    let value: &str = Deserialize::deserialize(deserializer)?;
+fn deserialize_duration_seconds<'a, D>(deserializer: D) -> Result<Option<Duration>, D::Error> where D: Deserializer<'a> {
+    let value: u64 = Deserialize::deserialize(deserializer)?;
+    return Ok(Some(Duration::from_secs(value)));
+}
 
-    if let Ok(value) = value.parse() {
-        return Ok(Some(Duration::from_secs(value)));
-    }
-
-    Err(Error::invalid_value(Unexpected::Other(value), &"unsigned integer between 0 and 65535"))
+fn deserialize_duration_milliseconds<'a, D>(deserializer: D) -> Result<Option<Duration>, D::Error> where D: Deserializer<'a> {
+    let value: u64 = Deserialize::deserialize(deserializer)?;
+    return Ok(Some(Duration::from_millis(value)));
 }
 
 fn deserialize_qos<'a, D>(deserializer: D) -> Result<QoS, D::Error> where D: Deserializer<'a> {

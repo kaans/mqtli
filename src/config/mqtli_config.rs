@@ -44,6 +44,130 @@ pub struct Topic {
     topic: String,
     subscription: Subscription,
     payload: PayloadType,
+    publish: Publish,
+}
+
+#[derive(Debug, Getters, Validate)]
+pub struct Publish {
+    enabled: bool,
+    qos: QoS,
+    trigger: Vec<PublishTriggerType>,
+}
+
+impl Default for Publish {
+    fn default() -> Self {
+        Publish {
+            enabled: true,
+            qos: Default::default(),
+            trigger: vec![],
+        }
+    }
+}
+
+impl From<&args::Publish> for Publish {
+    fn from(value: &args::Publish) -> Self {
+        let trigger: Vec<PublishTriggerType> =
+            match value.trigger() {
+                None => {
+                    vec![PublishTriggerType::default()]
+                }
+                Some(trigger) => {
+                    trigger.iter().map(|tr| {
+                        PublishTriggerType::from(tr)
+                    }).collect()
+                }
+            };
+
+        Publish {
+            enabled: *value.enabled(),
+            qos: *value.qos(),
+            trigger,
+        }
+    }
+}
+
+#[derive(Debug, Getters, Validate)]
+pub struct PublishTrigger {
+    trigger_type: PublishTriggerType,
+}
+
+impl Default for PublishTrigger {
+    fn default() -> Self {
+        Self {
+            trigger_type: PublishTriggerType::default()
+        }
+    }
+}
+
+impl From<&args::PublishTrigger> for PublishTrigger {
+    fn from(value: &args::PublishTrigger) -> Self {
+        let ert = PublishTriggerType::Periodic(PublishTriggerTypePeriodic::default());
+
+        PublishTrigger {
+            trigger_type: match value.trigger_type() {
+                None => ert,
+                Some(value) => PublishTriggerType::from(value)
+            },
+        }
+    }
+}
+
+#[derive(Debug, Getters, Validate)]
+pub struct PublishTriggerTypePeriodic {
+    interval: Duration,
+    count: Option<u32>,
+    initial_delay: Duration,
+}
+
+impl Default for PublishTriggerTypePeriodic {
+    fn default() -> Self {
+        Self {
+            interval: Duration::from_secs(1),
+            count: Some(1),
+            initial_delay: Duration::from_secs(0),
+        }
+    }
+}
+
+impl From<&args::PublishTriggerTypePeriodic> for PublishTriggerTypePeriodic {
+    fn from(value: &args::PublishTriggerTypePeriodic) -> Self {
+        let default = Self::default();
+
+        Self {
+            interval: match value.interval() {
+                None => default.interval,
+                Some(value) => *value
+            },
+            count: match value.count() {
+                None => default.count,
+                Some(value) => Some(*value)
+            },
+            initial_delay: match value.initial_delay() {
+                None => default.initial_delay,
+                Some(value) => *value
+            },
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum PublishTriggerType {
+    Periodic(PublishTriggerTypePeriodic)
+}
+
+impl From<&args::PublishTriggerType> for PublishTriggerType {
+    fn from(value: &args::PublishTriggerType) -> Self {
+        match value {
+            args::PublishTriggerType::Periodic(value)
+            => PublishTriggerType::Periodic(PublishTriggerTypePeriodic::from(value))
+        }
+    }
+}
+
+impl Default for PublishTriggerType {
+    fn default() -> Self {
+        Self::Periodic(PublishTriggerTypePeriodic::default())
+    }
 }
 
 #[derive(Debug, Default, Getters, Validate)]
@@ -188,7 +312,7 @@ impl From<&args::Topic> for Topic {
         Topic {
             topic: String::from(value.topic()),
             subscription: match value.subscription() {
-                None => { Subscription::default() }
+                None => Subscription::default(),
                 Some(value) => {
                     Subscription::from(value)
                 }
@@ -197,6 +321,12 @@ impl From<&args::Topic> for Topic {
                 None => PayloadType::default(),
                 Some(value) => {
                     PayloadType::from(value)
+                }
+            },
+            publish: match value.publish() {
+                None => Publish::default(),
+                Some(value) => {
+                    Publish::from(value)
                 }
             },
         }

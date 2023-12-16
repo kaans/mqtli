@@ -2,7 +2,7 @@ broker:
   host: "localhost"
   port: 8883
   client_id: "mqtcli"
-  #keep_alive: "5"
+  #keep_alive: 5
   #username: ""
   #password: ""
 
