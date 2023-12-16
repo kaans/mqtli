@@ -30,19 +30,23 @@ async fn main() {
         }
     };
 
-    init_logger(config.logger().level());
+    init_logger(config.log_level());
 
     let (sender_exit, receiver_exit) = broadcast::channel(1);
 
-    let mut mqtt_service = MqttService::new(Arc::new(config.broker.clone()), receiver_exit);
+    let mut mqtt_service = MqttService::new(Arc::new(config.broker().clone()), receiver_exit);
 
     for topic in config.topics() {
-        mqtt_service.subscribe((*topic).clone()).await;
+        if *topic.subscription().enabled() {
+            mqtt_service.subscribe(topic.topic().to_string(), *topic.subscription().qos()).await;
+        } else {
+            info!("Not subscribing to topic, not enabled :{}", topic.topic());
+        }
     }
 
     let (sender, receiver) = broadcast::channel(32);
 
-    let mut handler = MqttHandler::new(config.topics());
+    let mut handler = MqttHandler::new(Arc::new(Box::new(config.topics)));
     handler.start_task(receiver);
 
     if let Err(e) = mqtt_service.connect(Some(sender)).await {
