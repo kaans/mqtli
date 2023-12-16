@@ -24,7 +24,7 @@ pub struct MqtliArgs {
     #[arg(short = 'l', long = "log-level", env = "LOG_LEVEL", help_heading = "Logging")]
     pub log_level: Option<LevelFilter>,
 
-    #[arg(long = "config-file", default_value = "config.yaml", env = "CONFIG_FILE_PATH")]
+    #[arg(long = "config-file", env = "CONFIG_FILE_PATH")]
     #[serde(skip_serializing)]
     pub config_file: Option<PathBuf>,
 
