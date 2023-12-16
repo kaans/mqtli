@@ -96,7 +96,6 @@ pub struct Topic {
     pub topic: String,
     pub subscription: Option<Subscription>,
     pub payload: Option<PayloadType>,
-    pub outputs: Option<Vec<Output>>,
 }
 
 #[derive(Debug, Default, Deserialize, Getters, PartialEq)]
@@ -174,6 +173,7 @@ pub struct Subscription {
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_qos")]
     qos: QoS,
+    outputs: Option<Vec<Output>>,
 }
 
 #[derive(Debug, Default, Deserialize, Getters, PartialEq)]
