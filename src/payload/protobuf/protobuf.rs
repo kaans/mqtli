@@ -8,7 +8,7 @@ use log::error;
 use protofish::context::Context;
 use protofish::decode::MessageValue;
 use rumqttc::v5::mqttbytes::v5::Publish;
-use crate::config::mqtli_config::OutputFormat;
+use crate::config::OutputFormat;
 
 use crate::payload::PayloadError;
 use crate::payload::protobuf::json_converter::JsonConverter;

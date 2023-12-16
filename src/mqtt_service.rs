@@ -4,11 +4,12 @@ use std::io::BufReader;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use log::{debug, error, info, warn};
+use log::{debug, error, info};
 use rumqttc::{TlsConfiguration, Transport};
 use rumqttc::tokio_rustls::rustls;
 use rumqttc::tokio_rustls::rustls::{Certificate, PrivateKey};
 use rumqttc::v5::{AsyncClient, ConnectionError, Event, EventLoop, Incoming, MqttOptions};
+use rumqttc::v5::mqttbytes::QoS;
 use rumqttc::v5::mqttbytes::v5::{ConnectReturnCode, LastWill};
 use rustls::SupportedProtocolVersion;
 use rustls::version::{TLS12, TLS13};
@@ -17,7 +18,8 @@ use tokio::sync::{broadcast, Mutex};
 use tokio::sync::broadcast::Receiver;
 use tokio::task::JoinHandle;
 
-use crate::config::mqtli_config::{MqttBrokerConnectArgs, TlsVersion, Topic};
+use crate::config::args::TlsVersion;
+use crate::config::mqtli_config::MqttBrokerConnectArgs;
 
 #[derive(Error, Debug)]
 pub enum MqttServiceError {
@@ -41,7 +43,7 @@ pub struct MqttService {
     client: Option<Arc<Mutex<AsyncClient>>>,
     config: Arc<MqttBrokerConnectArgs>,
 
-    topics: Arc<Mutex<Vec<Topic>>>,
+    topics: Arc<Mutex<Vec<(String, QoS)>>>,
 
     task_handle: Option<JoinHandle<()>>,
     receiver: Arc<Mutex<Receiver<i32>>>,
@@ -240,7 +242,7 @@ impl MqttService {
 
     async fn start_connection_task(mut event_loop: EventLoop,
                                    client: Arc<Mutex<AsyncClient>>,
-                                   topics: Arc<Mutex<Vec<Topic>>>,
+                                   topics: Arc<Mutex<Vec<(String, QoS)>>>,
                                    channel: Option<broadcast::Sender<Event>>) -> JoinHandle<()> {
         tokio::task::spawn(async move {
             loop {
@@ -254,14 +256,10 @@ impl MqttService {
                                     Incoming::ConnAck(_) => {
                                         info!("Connected to broker");
 
-                                        for topic in topics.lock().await.iter() {
-                                            if *topic.subscription().enabled() {
-                                                info!("Subscribing to topic {} with QoS {:?}", topic.topic(), topic.subscription().qos());
-                                                if let Err(e) = client.lock().await.subscribe(topic.topic(), *topic.subscription().qos()).await {
-                                                    error!("Could not subscribe to topic {}: {}", topic.topic(), e);
-                                                }
-                                            } else {
-                                                warn!("Not subscribing to topic, not enabled :{}", topic.topic());
+                                        for (topic, qos) in topics.lock().await.iter() {
+                                            info!("Subscribing to topic {} with QoS {:?}", topic, qos);
+                                            if let Err(e) = client.lock().await.subscribe(topic, *qos).await {
+                                                error!("Could not subscribe to topic {}: {}", topic, e);
                                             }
                                         }
                                     }
@@ -315,10 +313,8 @@ impl MqttService {
         })
     }
 
-    pub async fn subscribe(&mut self, topic: Topic) {
-        if *topic.subscription().enabled() {
-            self.topics.lock().await.push(topic);
-        }
+    pub async fn subscribe(&mut self, topic: String, qos: QoS) {
+        self.topics.lock().await.push((topic, qos));
     }
 
     pub async fn await_task(self) {

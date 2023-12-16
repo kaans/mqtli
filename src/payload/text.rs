@@ -5,8 +5,8 @@ use base64::engine::general_purpose;
 use bytes::Bytes;
 use rumqttc::v5::mqttbytes::v5::Publish;
 use serde_json::json;
+use crate::config::OutputFormat;
 
-use crate::config::mqtli_config::OutputFormat;
 use crate::payload::PayloadError;
 
 pub struct PayloadTextHandler {}

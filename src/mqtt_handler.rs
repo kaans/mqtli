@@ -1,4 +1,5 @@
 use std::str::from_utf8;
+use std::sync::Arc;
 
 use log::{debug, error, info};
 use rumqttc::v5::{Event, Incoming};
@@ -15,14 +16,14 @@ use crate::payload::text::PayloadTextHandler;
 
 pub struct MqttHandler {
     task_handle: Option<JoinHandle<()>>,
-    topics: Vec<Topic>,
+    topics: Arc<Box<Vec<Topic>>>,
 }
 
 impl MqttHandler {
-    pub fn new(topics: &Vec<Topic>) -> MqttHandler {
+    pub fn new(topics: Arc<Box<Vec<Topic>>>) -> MqttHandler {
         MqttHandler {
             task_handle: None,
-            topics: topics.clone(),
+            topics,
         }
     }
 
