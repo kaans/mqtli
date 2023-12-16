@@ -1,14 +1,21 @@
-host: "localhost"
-port: 8883
-client_id: "mqtcli"
-#keep_alive: "5"
-#username: ""
-#password: ""
+broker:
+  host: "localhost"
+  port: 8883
+  client_id: "mqtcli"
+  #keep_alive: "5"
+  #username: ""
+  #password: ""
 
-use_tls: false
-#tls_ca_file: "ca.crt"
-#tls_client_certificate: "client.crt"
-#tls_client_key: "client.key"
+  use_tls: false
+  #tls_ca_file: "ca.crt"
+  #tls_client_certificate: "client.crt"
+  #tls_client_key: "client.key"
+
+  #last_will:
+  #  topic: "mqtli/lwt"
+  #  payload: "Good bye"
+  #  qos: 1
+  #  retain: true
 
 log_level: "info"
 
@@ -17,20 +24,21 @@ topics:
     subscription:
       enabled: true
       qos: 1
+      outputs:
+        - format: yaml
+          #target:
+          #  type: console # console is default and can be omitted
+        - format: json
+          target:
+            type: file
+            path: "log.txt"
+            overwrite: false # true only saves the latest message, false appends to the end
+            prepend: "BEGIN " # prepends a string to the beginning of the message
+            append: " END\n" # appends a string to the end of the message
+
     payload:
       type: protobuf
       definition: "messages.proto"
       message: "Proto.Response"
     # payload:
       # type: text
-    outputs:
-      - format: yaml
-        target:
-          type: console
-      - format: json
-        target:
-          type: file
-          path: "log.txt"
-          overwrite: false # true only saves the latest message, false appends to the end
-          prepend: "BEGIN " # prepends a string to the beginning of the message
-          append: " END\n" # appends a string to the end of the message
