@@ -309,15 +309,17 @@ pub struct LastWillConfig {
 pub fn parse_config() -> Result<MqtliConfig, ConfigError> {
     let args = read_cli_args();
     let config_file = match &args.config_file {
-        None => None,
-        Some(config_file) => Some(read_config(&config_file)?)
+        None => PathBuf::from("config.yaml"),
+        Some(config_file) => config_file.to_path_buf()
     };
+
+    let config_file = read_config(&config_file)?;
 
     let mut config = MqtliConfig {
         ..Default::default()
     };
 
-    if let Some(ref config_file) = config_file { config.merge(config_file) };
+    config.merge(&config_file);
     config.merge(&args);
 
     return match config.validate() {
