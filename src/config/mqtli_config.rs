@@ -44,7 +44,6 @@ pub struct Topic {
     topic: String,
     subscription: Subscription,
     payload: PayloadType,
-    outputs: Vec<Output>,
 }
 
 #[derive(Debug, Default, Getters, Validate)]
@@ -149,6 +148,7 @@ impl Default for OutputTargetFile {
 pub struct Subscription {
     enabled: bool,
     qos: QoS,
+    outputs: Vec<Output>,
 }
 
 impl Default for Subscription {
@@ -156,21 +156,13 @@ impl Default for Subscription {
         Subscription {
             enabled: true,
             qos: Default::default(),
+            outputs: vec![],
         }
     }
 }
 
 impl From<&args::Subscription> for Subscription {
     fn from(value: &args::Subscription) -> Self {
-        Subscription {
-            enabled: *value.enabled(),
-            qos: *value.qos(),
-        }
-    }
-}
-
-impl From<&args::Topic> for Topic {
-    fn from(value: &args::Topic) -> Self {
         let outputs: Vec<Output> =
             match value.outputs() {
                 None => {
@@ -183,6 +175,16 @@ impl From<&args::Topic> for Topic {
                 }
             };
 
+        Subscription {
+            enabled: *value.enabled(),
+            qos: *value.qos(),
+            outputs,
+        }
+    }
+}
+
+impl From<&args::Topic> for Topic {
+    fn from(value: &args::Topic) -> Self {
         Topic {
             topic: String::from(value.topic()),
             subscription: match value.subscription() {
@@ -197,7 +199,6 @@ impl From<&args::Topic> for Topic {
                     PayloadType::from(value)
                 }
             },
-            outputs,
         }
     }
 }

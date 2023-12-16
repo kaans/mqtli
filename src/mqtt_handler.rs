@@ -57,43 +57,45 @@ impl MqttHandler {
                     Incoming::Publish(value) => {
                         let incoming_topic = from_utf8(value.topic.as_ref()).unwrap();
 
-                        info!("Incoming message on topic {} (QoS: {:?})",
-                                            incoming_topic,
-                                            value.qos);
+                        info!("Incoming message on topic {} (QoS: {:?})", incoming_topic, value.qos);
 
                         for topic in topics {
                             if topic.topic() == incoming_topic {
-                                for output in topic.outputs() {
-                                    let result = match topic.payload() {
-                                        PayloadType::Text(_) => {
-                                            debug!("Handling text payload of topic {} with format {:?}", incoming_topic, output.format());
-                                            PayloadTextHandler::handle_publish(&value, output.format())
-                                        }
-                                        PayloadType::Protobuf(payload) => {
-                                            debug!("Handling protobuf payload of topic {} with format {:?}", incoming_topic, output.format());
-                                            PayloadProtobufHandler::handle_publish(&value, payload.definition(), payload.message(), output.format())
-                                        }
-                                    };
+                                if *topic.subscription().enabled() {
+                                    for output in topic.subscription().outputs() {
+                                        let result = match topic.payload() {
+                                            PayloadType::Text(_) => {
+                                                debug!("Handling text payload of topic {} with format {:?}", incoming_topic, output.format());
+                                                PayloadTextHandler::handle_publish(&value, output.format())
+                                            }
+                                            PayloadType::Protobuf(payload) => {
+                                                debug!("Handling protobuf payload of topic {} with format {:?}", incoming_topic, output.format());
+                                                PayloadProtobufHandler::handle_publish(&value, payload.definition(), payload.message(), output.format())
+                                            }
+                                        };
 
-                                    match result {
-                                        Ok(content) => {
-                                            let result = match output.target() {
-                                                Console(_options) => {
-                                                    ConsoleOutput::output(content)
-                                                }
-                                                OutputTarget::File(file) => {
-                                                    FileOutput::output(content, file)
-                                                }
-                                            };
+                                        match result {
+                                            Ok(content) => {
+                                                let result = match output.target() {
+                                                    Console(_options) => {
+                                                        ConsoleOutput::output(content)
+                                                    }
+                                                    OutputTarget::File(file) => {
+                                                        FileOutput::output(content, file)
+                                                    }
+                                                };
 
-                                            if let Err(e) = result {
+                                                if let Err(e) = result {
+                                                    error!("{:?}", e);
+                                                }
+                                            }
+                                            Err(e) => {
                                                 error!("{:?}", e);
                                             }
-                                        }
-                                        Err(e) => {
-                                            error!("{:?}", e);
-                                        }
-                                    };
+                                        };
+                                    }
+                                } else {
+                                    debug!("Not subscribing to topic {}, not enabled", topic.topic())
                                 }
                             }
                         }
