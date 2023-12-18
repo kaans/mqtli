@@ -110,11 +110,6 @@ pub struct Publish {
     trigger: Option<Vec<PublishTriggerType>>,
 }
 
-#[derive(Debug, Default, Deserialize, Getters)]
-pub struct PublishTrigger {
-    trigger_type: Option<PublishTriggerType>,
-}
-
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type")]
 pub enum PublishTriggerType {

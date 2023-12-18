@@ -87,32 +87,6 @@ impl From<&args::Publish> for Publish {
 }
 
 #[derive(Debug, Getters, Validate)]
-pub struct PublishTrigger {
-    trigger_type: PublishTriggerType,
-}
-
-impl Default for PublishTrigger {
-    fn default() -> Self {
-        Self {
-            trigger_type: PublishTriggerType::default()
-        }
-    }
-}
-
-impl From<&args::PublishTrigger> for PublishTrigger {
-    fn from(value: &args::PublishTrigger) -> Self {
-        let ert = PublishTriggerType::Periodic(PublishTriggerTypePeriodic::default());
-
-        PublishTrigger {
-            trigger_type: match value.trigger_type() {
-                None => ert,
-                Some(value) => PublishTriggerType::from(value)
-            },
-        }
-    }
-}
-
-#[derive(Debug, Getters, Validate)]
 pub struct PublishTriggerTypePeriodic {
     interval: Duration,
     count: Option<u32>,
