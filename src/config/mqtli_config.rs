@@ -99,12 +99,13 @@ impl From<&args::Publish> for Publish {
 
 #[derive(Debug)]
 pub enum PublishInputType {
-    Text(PublishInputTypeText)
+    Text(PublishInputTypeContentPath),
+    Raw(PublishInputTypePath)
 }
 
 impl Default for PublishInputType {
     fn default() -> Self {
-        Self::Text(PublishInputTypeText::default())
+        Self::Text(PublishInputTypeContentPath::default())
     }
 }
 
@@ -114,6 +115,9 @@ impl Validate for PublishInputType {
             PublishInputType::Text(value) => {
                 ValidationErrors::merge(Ok(()), "Text", value.validate())
             }
+            PublishInputType::Raw(value) => {
+                ValidationErrors::merge(Ok(()), "Raw", value.validate())
+            }
         }
     }
 }
@@ -122,20 +126,34 @@ impl From<&args::PublishInputType> for PublishInputType {
     fn from(value: &args::PublishInputType) -> Self {
         match value {
             args::PublishInputType::Text(value)
-            => Self::Text(PublishInputTypeText::from(value))
+            => Self::Text(PublishInputTypeContentPath::from(value)),
+            args::PublishInputType::Raw(value)
+            => Self::Raw(PublishInputTypePath::from(value)),
         }
     }
 }
 
+#[derive(Debug, Default, Getters, Validate)]
+pub struct PublishInputTypePath {
+    path: PathBuf,
+}
+
+impl From<&args::PublishInputTypePath> for PublishInputTypePath {
+    fn from(value: &args::PublishInputTypePath) -> Self {
+        Self {
+            path: value.path().clone(),
+        }
+    }
+}
 
 #[derive(Debug, Default, Getters)]
-pub struct PublishInputTypeText {
+pub struct PublishInputTypeContentPath {
     content: Option<String>,
     path: Option<PathBuf>,
 }
 
-impl From<&args::PublishInputTypeText> for PublishInputTypeText {
-    fn from(value: &args::PublishInputTypeText) -> Self {
+impl From<&args::PublishInputTypeContentPath> for PublishInputTypeContentPath {
+    fn from(value: &args::PublishInputTypeContentPath) -> Self {
         Self {
             content: value.content().clone(),
             path: value.path().clone(),
@@ -143,7 +161,7 @@ impl From<&args::PublishInputTypeText> for PublishInputTypeText {
     }
 }
 
-impl Validate for PublishInputTypeText {
+impl Validate for PublishInputTypeContentPath {
     fn validate(&self) -> Result<(), ValidationErrors> {
         let mut err = ValidationError::new("invalid_publish_input");
 
