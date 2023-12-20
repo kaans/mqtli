@@ -119,19 +119,26 @@ pub struct Publish {
 #[serde(tag = "type")]
 pub enum PublishInputType {
     #[serde(rename = "text")]
-    Text(PublishInputTypeText)
+    Text(PublishInputTypeContentPath),
+    #[serde(rename = "raw")]
+    Raw(PublishInputTypePath)
 }
 
 impl Default for PublishInputType {
     fn default() -> Self {
-        Self::Text(PublishInputTypeText::default())
+        Self::Text(PublishInputTypeContentPath::default())
     }
 }
 
 #[derive(Debug, Default, Deserialize, Getters)]
-pub struct PublishInputTypeText {
+pub struct PublishInputTypeContentPath {
     content: Option<String>,
     path: Option<PathBuf>,
+}
+
+#[derive(Debug, Default, Deserialize, Getters)]
+pub struct PublishInputTypePath {
+    path: PathBuf,
 }
 
 #[derive(Debug, Deserialize)]
