@@ -2,10 +2,10 @@ use std::process::exit;
 use std::sync::Arc;
 
 use anyhow::anyhow;
-use log::{error, info, LevelFilter};
+use log::{debug, error, info, LevelFilter};
 use simplelog::{Config, SimpleLogger};
 use tokio::{signal, task};
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, Mutex};
 use tokio::sync::broadcast::Sender;
 use tokio::task::JoinHandle;
 
@@ -37,11 +37,11 @@ async fn main() {
 
     let (sender_exit, receiver_exit) = broadcast::channel(1);
 
-    let mut mqtt_service = MqttService::new(Arc::new(config.broker().clone()), receiver_exit);
+    let mut mqtt_service = Arc::new(Mutex::new(MqttService::new(Arc::new(config.broker().clone()), receiver_exit)));
 
     for topic in config.topics() {
         if *topic.subscription().enabled() {
-            mqtt_service.subscribe(topic.topic().to_string(), *topic.subscription().qos()).await;
+            mqtt_service.lock().await.subscribe(topic.topic().to_string(), *topic.subscription().qos()).await;
         } else {
             info!("Not subscribing to topic, not enabled :{}", topic.topic());
         }
@@ -49,32 +49,41 @@ async fn main() {
 
     let (sender, receiver) = broadcast::channel(32);
 
-    let topics = Arc::new(Box::new(config.topics));
+    let topics = Arc::new(config.topics);
     let mut handler = MqttHandler::new(topics.clone());
     handler.start_task(receiver);
 
-    if let Err(e) = mqtt_service.connect(Some(sender)).await {
-        error!("Error while connecting to mqtt broker: {}", e);
-        exit(2);
-    }
+    let task_handle_service = mqtt_service.lock().await.connect(Some(sender)).await.unwrap_or_else(
+        |e| {
+            error!("Error while connecting to mqtt broker: {}", e);
+            exit(2);
+        });
 
-    start_scheduler(topics.clone()).await;
+    start_scheduler(topics.clone(), mqtt_service.clone()).await;
 
     start_exit_task(sender_exit).await;
-    mqtt_service.await_task().await;
+    task_handle_service.await.expect("Error while waiting for tasks to shut down");
     handler.await_task().await;
 }
 
-async fn start_scheduler(topics: Arc<Box<Vec<Topic>>>) {
-    let mut scheduler = TriggerPeriodic::new();
+async fn start_scheduler(topics: Arc<Vec<Topic>>, mqtt_service: Arc<Mutex<MqttService>>) {
+    let mut scheduler = TriggerPeriodic::new(mqtt_service);
 
-    topics.iter().for_each(|topic| for trigger in topic.publish().trigger() {
-        if let Periodic(value) = trigger {
-            if let Err(e) = scheduler.add_schedule(value.interval(), value.count(), value.initial_delay()) {
-                error!("Error while adding schedule: {:?}", e);
-            };
+    topics.iter()
+        .for_each(|topic| {
+            topic.publish().as_ref()
+                .filter(|publish| *publish.enabled())
+                .map(|publish| publish.trigger().iter()
+                    .for_each(|trigger|
+                        if let Periodic(value) = trigger {
+                            if let Err(e) = scheduler.add_schedule(value.interval(), value.count(), value.initial_delay(),
+                                                                   topic.topic(), publish.qos(), *publish.retain(), publish.input()) {
+                                error!("Error while adding schedule: {:?}", e);
+                            };
+                        }
+                    ));
         }
-    });
+        );
 
     scheduler.start().await;
 }

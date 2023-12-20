@@ -16,11 +16,11 @@ use crate::payload::text::PayloadTextHandler;
 
 pub struct MqttHandler {
     task_handle: Option<JoinHandle<()>>,
-    topics: Arc<Box<Vec<Topic>>>,
+    topics: Arc<Vec<Topic>>,
 }
 
 impl MqttHandler {
-    pub fn new(topics: Arc<Box<Vec<Topic>>>) -> MqttHandler {
+    pub fn new(topics: Arc<Vec<Topic>>) -> MqttHandler {
         MqttHandler {
             task_handle: None,
             topics,

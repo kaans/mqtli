@@ -1,12 +1,13 @@
 use std::borrow::Cow;
 use std::fmt::Debug;
+use std::fs::read_to_string;
 use std::path::PathBuf;
 use std::time::Duration;
 
 use derive_getters::Getters;
 use log::LevelFilter;
 use rumqttc::v5::mqttbytes::QoS;
-use validator::{Validate, ValidationError};
+use validator::{Validate, ValidationError, ValidationErrors};
 
 use crate::config::{args, OutputFormat};
 use crate::config::args::{read_cli_args, read_config, TlsVersion};
@@ -17,6 +18,7 @@ pub struct MqtliConfig {
     #[validate]
     broker: MqttBrokerConnectArgs,
     log_level: LevelFilter,
+    #[validate]
     pub topics: Vec<Topic>,
 }
 
@@ -42,16 +44,21 @@ impl Default for MqtliConfig {
 pub struct Topic {
     #[validate(length(min = 1, message = "Topic must be given"))]
     topic: String,
+    #[validate]
     subscription: Subscription,
     payload: PayloadType,
-    publish: Publish,
+    #[validate]
+    publish: Option<Publish>,
 }
 
 #[derive(Debug, Getters, Validate)]
 pub struct Publish {
     enabled: bool,
     qos: QoS,
+    retain: bool,
     trigger: Vec<PublishTriggerType>,
+    #[validate]
+    input: PublishInputType,
 }
 
 impl Default for Publish {
@@ -59,7 +66,9 @@ impl Default for Publish {
         Publish {
             enabled: true,
             qos: Default::default(),
+            retain: false,
             trigger: vec![],
+            input: Default::default(),
         }
     }
 }
@@ -81,8 +90,92 @@ impl From<&args::Publish> for Publish {
         Publish {
             enabled: *value.enabled(),
             qos: *value.qos(),
+            retain: *value.retain(),
             trigger,
+            input: PublishInputType::from(value.input()),
         }
+    }
+}
+
+#[derive(Debug)]
+pub enum PublishInputType {
+    Text(PublishInputTypeText)
+}
+
+impl Default for PublishInputType {
+    fn default() -> Self {
+        Self::Text(PublishInputTypeText::default())
+    }
+}
+
+impl Validate for PublishInputType {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        match self {
+            PublishInputType::Text(value) => {
+                ValidationErrors::merge(Ok(()), "Text", value.validate())
+            }
+        }
+    }
+}
+
+impl From<&args::PublishInputType> for PublishInputType {
+    fn from(value: &args::PublishInputType) -> Self {
+        match value {
+            args::PublishInputType::Text(value)
+            => Self::Text(PublishInputTypeText::from(value))
+        }
+    }
+}
+
+
+#[derive(Debug, Default, Getters)]
+pub struct PublishInputTypeText {
+    content: Option<String>,
+    path: Option<PathBuf>,
+}
+
+impl PublishInputTypeText {
+    pub fn to_vec(&self) -> Result<Vec<u8>, ConfigError> {
+        if let Some(content) = self.content.as_ref() {
+            Ok(Vec::from(content.as_str()))
+        } else {
+            if let Some(path) = self.path.as_ref() {
+                match read_to_string(path) {
+                    Ok(content) => Ok(Vec::from(content)),
+                    Err(e) => {
+                        Err(ConfigError::CannotReadInputFromPath(e, PathBuf::from(path)))
+                    }
+                }
+            } else {
+                Err(ConfigError::EitherContentOrPathMustBeGiven)
+            }
+        }
+    }
+}
+
+impl From<&args::PublishInputTypeText> for PublishInputTypeText {
+    fn from(value: &args::PublishInputTypeText) -> Self {
+        Self {
+            content: value.content().clone(),
+            path: value.path().clone(),
+        }
+    }
+}
+
+impl Validate for PublishInputTypeText {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut err = ValidationError::new("invalid_publish_input");
+
+        if (self.path.is_none() && self.content.is_none())
+            || (self.path.is_some() && self.content.is_some()) {
+            println!("{:?}", self);
+            err.message = Some(Cow::from("Exactly one of path or content must be given for publish input"));
+            let mut errors = ValidationErrors::new();
+            errors.add("content", err);
+            return Err(errors);
+        }
+
+        Ok(())
     }
 }
 
@@ -97,7 +190,7 @@ impl Default for PublishTriggerTypePeriodic {
     fn default() -> Self {
         Self {
             interval: Duration::from_secs(1),
-            count: Some(1),
+            count: None,
             initial_delay: Duration::from_secs(0),
         }
     }
@@ -298,9 +391,9 @@ impl From<&args::Topic> for Topic {
                 }
             },
             publish: match value.publish() {
-                None => Publish::default(),
+                None => None,
                 Some(value) => {
-                    Publish::from(value)
+                    Some(Publish::from(value))
                 }
             },
         }

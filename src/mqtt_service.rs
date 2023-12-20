@@ -40,12 +40,11 @@ pub enum MqttServiceError {
 }
 
 pub struct MqttService {
-    client: Option<Arc<Mutex<AsyncClient>>>,
+    client: Option<AsyncClient>,
     config: Arc<MqttBrokerConnectArgs>,
 
     topics: Arc<Mutex<Vec<(String, QoS)>>>,
 
-    task_handle: Option<JoinHandle<()>>,
     receiver: Arc<Mutex<Receiver<i32>>>,
 }
 
@@ -56,14 +55,13 @@ impl MqttService {
             config: mqtt_connect_args,
 
             topics: Arc::new(Mutex::new(vec![])),
-            task_handle: None,
             receiver: Arc::new(Mutex::new(receiver_exit)),
         }
     }
 
     pub async fn _disconnect(&self) {
-        if self.client.is_some() {
-            match self.client.clone().unwrap().lock().await.disconnect().await {
+        if let Some(client) = self.client.as_ref() {
+            match client.disconnect().await {
                 Ok(_) => {
                     info!("Successfully disconnected");
                 }
@@ -74,7 +72,7 @@ impl MqttService {
         }
     }
 
-    pub async fn connect(&mut self, channel: Option<broadcast::Sender<Event>>) -> Result<(), MqttServiceError> {
+    pub async fn connect(&mut self, channel: Option<broadcast::Sender<Event>>) -> Result<JoinHandle<()>, MqttServiceError> {
         info!("Connection to {}:{} with client id {}", self.config.host(),
             self.config.port(), self.config.client_id());
         let mut options = MqttOptions::new(self.config.client_id(),
@@ -121,19 +119,18 @@ impl MqttService {
         }
 
         let (client, event_loop) = AsyncClient::new(options, 10);
-        self.client = Option::from(Arc::new(Mutex::new(client)));
 
         let topics = self.topics.clone();
 
         let task_handle: JoinHandle<()> =
-            MqttService::start_connection_task(event_loop, self.client.clone().unwrap().clone(), topics, channel)
+            MqttService::start_connection_task(event_loop, client.clone(), topics, channel)
                 .await;
+
+        self.client = Option::from(client);
 
         self.start_exit_task().await;
 
-        self.task_handle = Some(task_handle);
-
-        Ok(())
+        Ok(task_handle)
     }
 
     fn configure_tls_rustls(&mut self) -> Result<TlsConfiguration, MqttServiceError> {
@@ -241,7 +238,7 @@ impl MqttService {
     }
 
     async fn start_connection_task(mut event_loop: EventLoop,
-                                   client: Arc<Mutex<AsyncClient>>,
+                                   client: AsyncClient,
                                    topics: Arc<Mutex<Vec<(String, QoS)>>>,
                                    channel: Option<broadcast::Sender<Event>>) -> JoinHandle<()> {
         tokio::task::spawn(async move {
@@ -258,7 +255,7 @@ impl MqttService {
 
                                         for (topic, qos) in topics.lock().await.iter() {
                                             info!("Subscribing to topic {} with QoS {:?}", topic, qos);
-                                            if let Err(e) = client.lock().await.subscribe(topic, *qos).await {
+                                            if let Err(e) = client.subscribe(topic, *qos).await {
                                                 error!("Could not subscribe to topic {}: {}", topic, e);
                                             }
                                         }
@@ -297,7 +294,7 @@ impl MqttService {
         tokio::task::spawn(async move {
             match rec.lock().await.recv().await {
                 Ok(_event) => {
-                    match client.lock().await.disconnect().await {
+                    match client.disconnect().await {
                         Ok(_) => {
                             info!("Successfully disconnected");
                         }
@@ -317,9 +314,11 @@ impl MqttService {
         self.topics.lock().await.push((topic, qos));
     }
 
-    pub async fn await_task(self) {
-        if self.task_handle.is_some() {
-            self.task_handle.unwrap().await.expect("Could not join thread");
+    pub async fn publish(&self, topic: String, qos: QoS, retain: bool, payload: Vec<u8>) {
+        if let Some(client) = self.client.clone() {
+            if let Err(e) = client.publish(topic, qos, retain, payload).await {
+                error!("Error during publish: {:?}", e);
+            }
         }
     }
 }
