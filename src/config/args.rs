@@ -105,9 +105,33 @@ pub struct Publish {
     enabled: bool,
 
     #[serde(default)]
+    retain: bool,
+
+    #[serde(default)]
     #[serde(deserialize_with = "deserialize_qos")]
     qos: QoS,
     trigger: Option<Vec<PublishTriggerType>>,
+
+    input: PublishInputType,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(tag = "type")]
+pub enum PublishInputType {
+    #[serde(rename = "text")]
+    Text(PublishInputTypeText)
+}
+
+impl Default for PublishInputType {
+    fn default() -> Self {
+        Self::Text(PublishInputTypeText::default())
+    }
+}
+
+#[derive(Debug, Default, Deserialize, Getters)]
+pub struct PublishInputTypeText {
+    content: Option<String>,
+    path: Option<PathBuf>,
 }
 
 #[derive(Debug, Deserialize)]
