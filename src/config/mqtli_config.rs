@@ -134,25 +134,6 @@ pub struct PublishInputTypeText {
     path: Option<PathBuf>,
 }
 
-impl PublishInputTypeText {
-    pub fn to_vec(&self) -> Result<Vec<u8>, ConfigError> {
-        if let Some(content) = self.content.as_ref() {
-            Ok(Vec::from(content.as_str()))
-        } else {
-            if let Some(path) = self.path.as_ref() {
-                match read_to_string(path) {
-                    Ok(content) => Ok(Vec::from(content)),
-                    Err(e) => {
-                        Err(ConfigError::CannotReadInputFromPath(e, PathBuf::from(path)))
-                    }
-                }
-            } else {
-                Err(ConfigError::EitherContentOrPathMustBeGiven)
-            }
-        }
-    }
-}
-
 impl From<&args::PublishInputTypeText> for PublishInputTypeText {
     fn from(value: &args::PublishInputTypeText) -> Self {
         Self {
@@ -168,7 +149,6 @@ impl Validate for PublishInputTypeText {
 
         if (self.path.is_none() && self.content.is_none())
             || (self.path.is_some() && self.content.is_some()) {
-            println!("{:?}", self);
             err.message = Some(Cow::from("Exactly one of path or content must be given for publish input"));
             let mut errors = ValidationErrors::new();
             errors.add("content", err);

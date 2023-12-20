@@ -2,7 +2,7 @@ use std::process::exit;
 use std::sync::Arc;
 
 use anyhow::anyhow;
-use log::{debug, error, info, LevelFilter};
+use log::{error, info, LevelFilter};
 use simplelog::{Config, SimpleLogger};
 use tokio::{signal, task};
 use tokio::sync::{broadcast, Mutex};
@@ -21,7 +21,7 @@ mod mqtt_handler;
 mod payload;
 mod output;
 mod publish;
-
+mod input;
 
 #[tokio::main]
 async fn main() {
@@ -37,7 +37,7 @@ async fn main() {
 
     let (sender_exit, receiver_exit) = broadcast::channel(1);
 
-    let mut mqtt_service = Arc::new(Mutex::new(MqttService::new(Arc::new(config.broker().clone()), receiver_exit)));
+    let mqtt_service = Arc::new(Mutex::new(MqttService::new(Arc::new(config.broker().clone()), receiver_exit)));
 
     for topic in config.topics() {
         if *topic.subscription().enabled() {
@@ -82,8 +82,7 @@ async fn start_scheduler(topics: Arc<Vec<Topic>>, mqtt_service: Arc<Mutex<MqttSe
                             };
                         }
                     ));
-        }
-        );
+        });
 
     scheduler.start().await;
 }
@@ -101,7 +100,6 @@ async fn start_exit_task(sender_exit: Sender<i32>) {
 
     exit_task.await.expect("Could not join thread");
 }
-
 
 fn init_logger(filter: &LevelFilter) {
     let config = Config::default();
