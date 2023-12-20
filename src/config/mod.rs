@@ -16,10 +16,6 @@ pub enum ConfigError {
     CouldNotParseConfigFile(#[source] serde_yaml::Error, PathBuf),
     #[error("Invalid configuration")]
     InvalidConfiguration(#[source] ValidationErrors),
-    #[error("Cannot read content from path {1}")]
-    CannotReadInputFromPath(#[source] io::Error, PathBuf),
-    #[error("Either content or path to content must be given")]
-    EitherContentOrPathMustBeGiven,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]

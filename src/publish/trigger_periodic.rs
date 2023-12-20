@@ -8,6 +8,8 @@ use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
 use crate::config::mqtli_config::PublishInputType;
+use crate::input::converter::InputConverter;
+use crate::input::InputError;
 use crate::mqtt_service::MqttService;
 use crate::publish::TriggerError;
 
@@ -44,17 +46,9 @@ impl TriggerPeriodic {
                 job = job.forever();
             }
 
-            let payload = match input {
-                PublishInputType::Text(content) => content.to_vec()
-            };
-
-            let payload = match payload {
-                Ok(content) => {
-                    content
-                }
-                Err(e) => {
-                    return Err(TriggerError::CouldNotConvertPayload(e));
-                }
+            let payload = match InputConverter::convert_input(input) {
+                Ok(payload) => payload,
+                Err(e) => return Err(TriggerError::CouldNotConvertPayload(e))
             };
 
             let mqtt_service = Arc::clone(&self.mqtt_service);

@@ -1,5 +1,6 @@
 use thiserror::Error;
-use crate::config::ConfigError;
+
+use crate::input::InputError;
 
 pub mod trigger_periodic;
 
@@ -8,5 +9,5 @@ pub enum TriggerError {
     #[error("Scheduler is already running, cannot add more jobs")]
     SchedulerAlreadyRunning,
     #[error("Could not convert payload")]
-    CouldNotConvertPayload(#[source] ConfigError),
+    CouldNotConvertPayload(#[source] InputError),
 }
