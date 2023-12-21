@@ -7,11 +7,12 @@ use tokio::sync::broadcast::Receiver;
 use tokio::task;
 use tokio::task::JoinHandle;
 
-use crate::config::mqtli_config::{OutputTarget, Topic};
+use crate::config::mqtli_config::{Output, OutputTarget, Topic};
 use crate::config::mqtli_config::OutputTarget::Console;
 use crate::output::console::ConsoleOutput;
 use crate::output::file::FileOutput;
-use crate::payload::{PayloadFormat, PayloadFormatOutput};
+use crate::output::OutputError;
+use crate::payload::{PayloadFormat, PayloadFormatTopic};
 
 pub struct MqttHandler {
     task_handle: Option<JoinHandle<()>>,
@@ -63,28 +64,12 @@ impl MqttHandler {
                                 for output in topic.subscription().outputs() {
                                     let result
                                         = PayloadFormat::try_from(
-                                        PayloadFormatOutput::new(output.format().clone(), value.payload.to_vec()));
+                                        PayloadFormatTopic::new(topic.payload().clone(), value.payload.to_vec()));
 
                                     match result {
                                         Ok(content) => {
-                                            match content.try_into() {
-                                                Ok(content) => {
-                                                    let result = match output.target() {
-                                                        Console(_options) => {
-                                                            ConsoleOutput::output(content)
-                                                        }
-                                                        OutputTarget::File(file) => {
-                                                            FileOutput::output(content, file)
-                                                        }
-                                                    };
-
-                                                    if let Err(e) = result {
-                                                        error!("{:?}", e);
-                                                    }
-                                                }
-                                                Err(e) => {
-                                                    error!("{:?}", e);
-                                                }
+                                            if let Err(e) = Self::forward_to_output(output, content) {
+                                                error!("{:?}", e);
                                             }
                                         }
                                         Err(e) => {
@@ -102,5 +87,20 @@ impl MqttHandler {
             }
             Event::Outgoing(_event) => {}
         }
+    }
+
+    fn forward_to_output(output: &Output, content: PayloadFormat) -> Result<(), OutputError> {
+        let conv = content.convert_for_output(output)?;
+
+        let result = match output.target() {
+            Console(_options) => {
+                ConsoleOutput::output(conv.try_into()?)
+            }
+            OutputTarget::File(file) => {
+                FileOutput::output(conv.try_into()?, file)
+            }
+        };
+
+        result
     }
 }

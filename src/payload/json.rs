@@ -7,12 +7,12 @@ pub struct PayloadFormatJson {
     content: Value,
 }
 
-pub type PayloadFormatJsonInput = Vec<u8>;
-
-impl TryFrom<PayloadFormatJsonInput> for PayloadFormatJson {
+impl TryFrom<Vec<u8>> for PayloadFormatJson {
     type Error = PayloadFormatError;
 
-    fn try_from(value: PayloadFormatJsonInput) -> Result<Self, Self::Error> {
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        eprintln!("value = {:?}", value);
+        eprintln!("String::from_utf8(value.to_vec()) = {:?}", String::from_utf8(value.to_vec()));
         let content = from_slice(value.as_slice())?;
 
         Ok(Self {
@@ -24,6 +24,12 @@ impl TryFrom<PayloadFormatJsonInput> for PayloadFormatJson {
 impl Into<Vec<u8>> for PayloadFormatJson {
     fn into(self) -> Vec<u8> {
         self.content.to_string().into_bytes()
+    }
+}
+
+impl Into<String> for PayloadFormatJson {
+    fn into(self) -> String {
+        self.content.to_string()
     }
 }
 

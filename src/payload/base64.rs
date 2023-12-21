@@ -4,7 +4,7 @@ use crate::payload::{PayloadFormat, PayloadFormatError};
 
 #[derive(Clone, Debug)]
 pub struct PayloadFormatBase64 {
-    content: String,
+    content: Vec<u8>,
 }
 
 pub type PayloadFormatBase64Input = Vec<u8>;
@@ -12,14 +12,20 @@ pub type PayloadFormatBase64Input = Vec<u8>;
 impl From<PayloadFormatBase64Input> for PayloadFormatBase64 {
     fn from(value: PayloadFormatBase64Input) -> Self {
         Self {
-            content: general_purpose::STANDARD_NO_PAD.encode(value)
+            content: value
         }
     }
 }
 
 impl Into<Vec<u8>> for PayloadFormatBase64 {
     fn into(self) -> Vec<u8> {
-        self.content.into_bytes()
+        self.content
+    }
+}
+
+impl Into<String> for PayloadFormatBase64 {
+    fn into(self) -> String {
+        general_purpose::STANDARD_NO_PAD.encode(self.content)
     }
 }
 

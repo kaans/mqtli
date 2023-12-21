@@ -23,6 +23,12 @@ impl Into<Vec<u8>> for PayloadFormatText {
     }
 }
 
+impl Into<String> for PayloadFormatText {
+    fn into(self) -> String {
+        self.content
+    }
+}
+
 impl TryFrom<PayloadFormat> for PayloadFormatText {
     type Error = PayloadFormatError;
 
@@ -65,10 +71,10 @@ mod protobuf {
     use crate::payload::PayloadFormatError;
 
     pub(super) fn get_message_value(context: &Context,
-                         message_value: &Box<MessageValue>,
-                         indent_level: u16,
-                         parent_field: Option<u64>)
-                         -> Result<String, PayloadFormatError> {
+                                    message_value: &Box<MessageValue>,
+                                    indent_level: u16,
+                                    parent_field: Option<u64>)
+                                    -> Result<String, PayloadFormatError> {
         let mut result = String::new();
 
         let message_info = context.resolve_message(message_value.msg_ref);

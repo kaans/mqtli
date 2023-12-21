@@ -102,6 +102,7 @@ impl From<&args::Publish> for Publish {
 pub enum PublishInputType {
     Text(PublishInputTypeContentPath),
     Raw(PublishInputTypePath),
+    Hex(PublishInputTypeContentPath),
 }
 
 impl Default for PublishInputType {
@@ -119,6 +120,9 @@ impl Validate for PublishInputType {
             PublishInputType::Raw(value) => {
                 ValidationErrors::merge(Ok(()), "Raw", value.validate())
             }
+            PublishInputType::Hex(value) => {
+                ValidationErrors::merge(Ok(()), "Text", value.validate())
+            }
         }
     }
 }
@@ -130,6 +134,8 @@ impl From<&args::PublishInputType> for PublishInputType {
             => Self::Text(PublishInputTypeContentPath::from(value)),
             args::PublishInputType::Raw(value)
             => Self::Raw(PublishInputTypePath::from(value)),
+            args::PublishInputType::Hex(value)
+            => Self::Hex(PublishInputTypeContentPath::from(value)),
         }
     }
 }
@@ -264,7 +270,7 @@ impl From<&args::Output> for Output {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum PayloadType {
     Text(PayloadText),
     Protobuf(PayloadProtobuf),
@@ -399,7 +405,7 @@ impl From<&args::Topic> for Topic {
     }
 }
 
-#[derive(Debug, Default, Getters, Validate)]
+#[derive(Clone, Debug, Default, Getters, Validate)]
 pub struct PayloadText {}
 
 impl From<&args::PayloadText> for PayloadText {
@@ -408,7 +414,7 @@ impl From<&args::PayloadText> for PayloadText {
     }
 }
 
-#[derive(Debug, Default, Getters, Validate)]
+#[derive(Clone, Debug, Default, Getters, Validate)]
 pub struct PayloadProtobuf {
     definition: PathBuf,
     #[validate(length(min = 1, message = "Message must be given"))]

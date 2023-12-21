@@ -1,8 +1,9 @@
 use std::io;
 use std::path::PathBuf;
-use std::string::FromUtf8Error;
 
 use thiserror::Error;
+
+use crate::payload::PayloadFormatError;
 
 pub mod console;
 pub mod file;
@@ -13,6 +14,12 @@ pub enum OutputError {
     CouldNotOpenTargetFile(#[source] io::Error, PathBuf),
     #[error("Error while writing to file \"{1}\"")]
     ErrorWhileWritingToFile(#[source] io::Error, PathBuf),
-    #[error("Could not decode UTF8")]
-    CouldNotDecodeUtf8(#[source] FromUtf8Error),
+    #[error("Error while formatting payload")]
+    ErrorPayloadFormat(#[source] PayloadFormatError),
+}
+
+impl From<PayloadFormatError> for OutputError {
+    fn from(value: PayloadFormatError) -> Self {
+        Self::ErrorPayloadFormat(value)
+    }
 }
