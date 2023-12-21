@@ -2,22 +2,44 @@ use crate::payload::{PayloadFormat, PayloadFormatError};
 
 #[derive(Clone, Debug)]
 pub struct PayloadFormatHex {
-    content: String,
+    content: Vec<u8>,
 }
 
-pub type PayloadFormatHexInput = Vec<u8>;
+impl PayloadFormatHex {
+    pub fn decode_from(value: Vec<u8>) -> Result<Self, PayloadFormatError> {
+        Ok(Self {
+            content: hex::decode(value)?
+        })
+    }
+}
 
-impl From<PayloadFormatHexInput> for PayloadFormatHex {
-    fn from(value: PayloadFormatHexInput) -> Self {
+impl From<Vec<u8>> for PayloadFormatHex {
+    fn from(value: Vec<u8>) -> Self {
         Self {
-            content: hex::encode_upper(value)
+            content: value
         }
+    }
+}
+
+impl TryFrom<String> for PayloadFormatHex {
+    type Error = PayloadFormatError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Ok(Self {
+            content: hex::decode(value)?
+        })
     }
 }
 
 impl Into<Vec<u8>> for PayloadFormatHex {
     fn into(self) -> Vec<u8> {
-        self.content.into_bytes()
+        self.content
+    }
+}
+
+impl Into<String> for PayloadFormatHex {
+    fn into(self) -> String {
+        hex::encode(self.content)
     }
 }
 

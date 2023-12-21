@@ -29,6 +29,15 @@ impl TryInto<Vec<u8>> for PayloadFormatYaml {
     }
 }
 
+impl TryInto<String> for PayloadFormatYaml {
+    type Error = PayloadFormatError;
+
+    fn try_into(self) -> Result<String, Self::Error> {
+        let result: Result<Vec<u8>, Self::Error> = self.try_into();
+        Ok(String::from_utf8(result?)?)
+    }
+}
+
 impl TryFrom<PayloadFormat> for PayloadFormatYaml {
     type Error = PayloadFormatError;
 

@@ -123,6 +123,10 @@ pub enum PublishInputType {
     Text(PublishInputTypeContentPath),
     #[serde(rename = "raw")]
     Raw(PublishInputTypePath),
+    #[serde(rename = "hex")]
+    Hex(PublishInputTypeContentPath),
+
+    // TODO add more patterns
 }
 
 impl Default for PublishInputType {

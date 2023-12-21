@@ -31,7 +31,10 @@ impl TryFrom<PayloadFormat> for PayloadFormatRaw {
                 Self::try_from(a)
             }
             PayloadFormat::Raw(value) => Ok(value),
-            PayloadFormat::Protobuf(_) => Err(PayloadFormatError::ConversionNotPossible(String::from("protobuf"), String::from("raw"))),
+            PayloadFormat::Protobuf(value) => {
+                let a: Vec<u8> = value.into();
+                Self::try_from(a)
+            }
             PayloadFormat::Hex(value) => {
                 let a: Vec<u8> = value.into();
                 Self::try_from(a)
