@@ -77,7 +77,8 @@ async fn start_scheduler(topics: Arc<Vec<Topic>>, mqtt_service: Arc<Mutex<MqttSe
                     .for_each(|trigger|
                         if let Periodic(value) = trigger {
                             if let Err(e) = scheduler.add_schedule(value.interval(), value.count(), value.initial_delay(),
-                                                                   topic.topic(), publish.qos(), *publish.retain(), publish.input()) {
+                                                                   topic.topic(), publish.qos(), *publish.retain(), publish.input(),
+                                                                   topic.payload()) {
                                 error!("Error while adding schedule: {:?}", e);
                             };
                         }

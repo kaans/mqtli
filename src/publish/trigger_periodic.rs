@@ -7,9 +7,8 @@ use rumqttc::v5::mqttbytes::QoS;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
-use crate::config::mqtli_config::PublishInputType;
+use crate::config::mqtli_config::{PayloadType, PublishInputType};
 use crate::input::converter::InputConverter;
-use crate::input::InputError;
 use crate::mqtt_service::MqttService;
 use crate::publish::TriggerError;
 
@@ -35,7 +34,8 @@ impl TriggerPeriodic {
                         topic: &str,
                         qos: &QoS,
                         retain: bool,
-                        input: &PublishInputType) -> Result<(), TriggerError> {
+                        input: &PublishInputType,
+                        output_format: &PayloadType) -> Result<(), TriggerError> {
         if let Some(scheduler) = self.scheduler.as_mut() {
             let mut job = scheduler.every(Interval::Seconds(interval.as_secs() as u32))
                 .plus(Interval::Seconds(initial_delay.as_secs() as u32));
@@ -46,7 +46,7 @@ impl TriggerPeriodic {
                 job = job.forever();
             }
 
-            let payload = match InputConverter::convert_input(input) {
+            let payload = match InputConverter::convert_input(input, output_format) {
                 Ok(payload) => payload,
                 Err(e) => return Err(TriggerError::CouldNotConvertPayload(e))
             };
