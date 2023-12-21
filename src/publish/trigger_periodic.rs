@@ -8,8 +8,8 @@ use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
 use crate::config::mqtli_config::{PayloadType, PublishInputType};
-use crate::input::converter::InputConverter;
 use crate::mqtt_service::MqttService;
+use crate::payload::PayloadFormat;
 use crate::publish::TriggerError;
 
 pub struct TriggerPeriodic {
@@ -46,8 +46,8 @@ impl TriggerPeriodic {
                 job = job.forever();
             }
 
-            let payload = match InputConverter::convert_input(input, output_format) {
-                Ok(payload) => payload,
+            let payload: Vec<u8> = match PayloadFormat::new(input, output_format) {
+                Ok(payload) => payload.try_into()?,
                 Err(e) => return Err(TriggerError::CouldNotConvertPayload(e))
             };
 
@@ -58,7 +58,7 @@ impl TriggerPeriodic {
             let clos =
                 move || {
                     let topic = String::from(topic.as_str());
-                    let payload = payload.clone();
+                    let payload: Vec<u8> = payload.clone();
                     let mqtt_service = Arc::clone(&mqtt_service);
 
                     async move {

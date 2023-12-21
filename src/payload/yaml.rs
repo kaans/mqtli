@@ -1,34 +1,85 @@
-use protofish::context::Context;
-use protofish::decode::{FieldValue, MessageValue, Value};
-use serde_yaml::value;
+use serde_yaml::{from_slice, Value};
 
-use crate::payload::PayloadError;
+use crate::payload::{PayloadFormat, PayloadFormatError};
 
-pub struct YamlConverter {}
+#[derive(Clone, Debug)]
+pub struct PayloadFormatYaml {
+    content: Value,
+}
 
-impl YamlConverter {
-    pub fn convert(context: &Context,
-                   message_value: MessageValue)
-                   -> Result<Vec<u8>, PayloadError> {
-        let result = Self::get_message_value(context, &Box::new(message_value))?;
+pub type PayloadFormatYamlInput = Vec<u8>;
 
-        match serde_yaml::to_string(&result) {
-            Ok(yaml) => Ok(yaml.into_bytes()),
-            Err(e) => {
-                Err(PayloadError::CouldNotConvertToYaml(e))
+impl TryFrom<PayloadFormatYamlInput> for PayloadFormatYaml {
+    type Error = PayloadFormatError;
+
+    fn try_from(value: PayloadFormatYamlInput) -> Result<Self, Self::Error> {
+        let content = from_slice(value.as_slice())?;
+
+        Ok(Self {
+            content
+        })
+    }
+}
+
+impl TryInto<Vec<u8>> for PayloadFormatYaml {
+    type Error = PayloadFormatError;
+
+    fn try_into(self) -> Result<Vec<u8>, Self::Error> {
+        Ok(serde_yaml::to_string(&self.content)?.into_bytes())
+    }
+}
+
+impl TryFrom<PayloadFormat> for PayloadFormatYaml {
+    type Error = PayloadFormatError;
+
+    fn try_from(value: PayloadFormat) -> Result<Self, Self::Error> {
+        match value {
+            PayloadFormat::Text(value) => {
+                let a: Vec<u8> = value.into();
+                Self::try_from(a)
+            }
+            PayloadFormat::Raw(value) => {
+                let a: Vec<u8> = value.into();
+                Self::try_from(a)
+            }
+            PayloadFormat::Protobuf(value) => {
+                Ok(Self {
+                    content: protobuf::get_message_value(value.context(), value.message_value())?
+                })
+            }
+            PayloadFormat::Hex(value) => {
+                let a: Vec<u8> = value.into();
+                Self::try_from(a)
+            }
+            PayloadFormat::Base64(value) => {
+                let a: Vec<u8> = value.into();
+                Self::try_from(a)
+            }
+            PayloadFormat::Yaml(value) => Ok(value),
+            PayloadFormat::Json(value) => {
+                let a: Vec<u8> = value.into();
+                Self::try_from(a)
             }
         }
     }
+}
 
-    fn get_message_value(context: &Context,
-                         message_value: &Box<MessageValue>)
-                         -> Result<serde_yaml::Value, PayloadError> {
+mod protobuf {
+    use protofish::context::Context;
+    use protofish::decode::{FieldValue, MessageValue, Value};
+    use serde_yaml::value;
+
+    use crate::payload::PayloadFormatError;
+
+    pub(super) fn get_message_value(context: &Context,
+                                    message_value: &Box<MessageValue>)
+                                    -> Result<serde_yaml::Value, PayloadFormatError> {
         let message_info = context.resolve_message(message_value.msg_ref);
 
         let mut map_fields = serde_yaml::Mapping::new();
 
         for field in &message_value.fields {
-            let result_field = Self::get_field_value(context, &field)?;
+            let result_field = get_field_value(context, &field)?;
             let field_name = match &message_info.get_field(field.number) {
                 None => "unknown",
                 Some(value) => value.name.as_str()
@@ -42,7 +93,7 @@ impl YamlConverter {
     fn get_field_value(
         context: &Context,
         field_value: &FieldValue)
-        -> Result<serde_yaml::Value, PayloadError> {
+        -> Result<serde_yaml::Value, PayloadFormatError> {
         let result = match &field_value.value {
             Value::Double(value) => {
                 serde_yaml::Value::Number(value::Number::from(*value))
@@ -87,7 +138,7 @@ impl YamlConverter {
                 serde_yaml::Value::String(value.clone())
             }
             Value::Message(value) => {
-                Self::get_message_value(context, value)?
+                get_message_value(context, value)?
             }
             value => {
                 serde_yaml::Value::String(format!("Unknown: {:?}", value))
