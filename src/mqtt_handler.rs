@@ -7,12 +7,11 @@ use tokio::sync::broadcast::Receiver;
 use tokio::task;
 use tokio::task::JoinHandle;
 
-use crate::config::mqtli_config::{OutputTarget, PayloadType, Topic};
+use crate::config::mqtli_config::{OutputTarget, Topic};
 use crate::config::mqtli_config::OutputTarget::Console;
 use crate::output::console::ConsoleOutput;
 use crate::output::file::FileOutput;
-use crate::payload::protobuf::protobuf::PayloadProtobufHandler;
-use crate::payload::text::PayloadTextHandler;
+use crate::payload::{PayloadFormat, PayloadFormatOutput};
 
 pub struct MqttHandler {
     task_handle: Option<JoinHandle<()>>,
@@ -60,43 +59,41 @@ impl MqttHandler {
                         info!("Incoming message on topic {} (QoS: {:?})", incoming_topic, value.qos);
 
                         for topic in topics {
-                            if topic.topic() == incoming_topic {
-                                if *topic.subscription().enabled() {
-                                    for output in topic.subscription().outputs() {
-                                        let result = match topic.payload() {
-                                            PayloadType::Text(_) => {
-                                                debug!("Handling text payload of topic {} with format {:?}", incoming_topic, output.format());
-                                                PayloadTextHandler::handle_publish(&value, output.format())
-                                            }
-                                            PayloadType::Protobuf(payload) => {
-                                                debug!("Handling protobuf payload of topic {} with format {:?}", incoming_topic, output.format());
-                                                PayloadProtobufHandler::handle_publish(&value, payload.definition(), payload.message(), output.format())
-                                            }
-                                        };
+                            if topic.topic() == incoming_topic && *topic.subscription().enabled() {
+                                for output in topic.subscription().outputs() {
+                                    let result
+                                        = PayloadFormat::try_from(
+                                        PayloadFormatOutput::new(output.format().clone(), value.payload.to_vec()));
 
-                                        match result {
-                                            Ok(content) => {
-                                                let result = match output.target() {
-                                                    Console(_options) => {
-                                                        ConsoleOutput::output(content)
-                                                    }
-                                                    OutputTarget::File(file) => {
-                                                        FileOutput::output(content, file)
-                                                    }
-                                                };
+                                    match result {
+                                        Ok(content) => {
+                                            match content.try_into() {
+                                                Ok(content) => {
+                                                    let result = match output.target() {
+                                                        Console(_options) => {
+                                                            ConsoleOutput::output(content)
+                                                        }
+                                                        OutputTarget::File(file) => {
+                                                            FileOutput::output(content, file)
+                                                        }
+                                                    };
 
-                                                if let Err(e) = result {
+                                                    if let Err(e) = result {
+                                                        error!("{:?}", e);
+                                                    }
+                                                }
+                                                Err(e) => {
                                                     error!("{:?}", e);
                                                 }
                                             }
-                                            Err(e) => {
-                                                error!("{:?}", e);
-                                            }
-                                        };
-                                    }
-                                } else {
-                                    debug!("Not subscribing to topic {}, not enabled", topic.topic())
+                                        }
+                                        Err(e) => {
+                                            error!("{:?}", e);
+                                        }
+                                    };
                                 }
+                            } else {
+                                debug!("Not subscribing to topic {}, not enabled", topic.topic())
                             }
                         }
                     }
