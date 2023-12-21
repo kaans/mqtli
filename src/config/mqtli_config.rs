@@ -1,16 +1,17 @@
 use std::borrow::Cow;
 use std::fmt::Debug;
-use std::fs::read_to_string;
 use std::path::PathBuf;
 use std::time::Duration;
 
+use clap::ValueEnum;
 use derive_getters::Getters;
 use log::LevelFilter;
 use rumqttc::v5::mqttbytes::QoS;
+use serde::Deserialize;
 use validator::{Validate, ValidationError, ValidationErrors};
 
 use crate::config::{args, OutputFormat};
-use crate::config::args::{read_cli_args, read_config, TlsVersion};
+use crate::config::args::{read_cli_args, read_config};
 use crate::config::ConfigError;
 
 #[derive(Debug, Getters, Validate)]
@@ -100,7 +101,7 @@ impl From<&args::Publish> for Publish {
 #[derive(Debug)]
 pub enum PublishInputType {
     Text(PublishInputTypeContentPath),
-    Raw(PublishInputTypePath)
+    Raw(PublishInputTypePath),
 }
 
 impl Default for PublishInputType {
@@ -420,6 +421,25 @@ impl From<&args::PayloadProtobuf> for PayloadProtobuf {
             definition: PathBuf::from(value.definition()),
             message: String::from(value.message()),
         }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, ValueEnum)]
+pub enum TlsVersion {
+    #[serde(rename = "all")]
+    #[clap(name = "all")]
+    All,
+    #[serde(rename = "v12")]
+    #[clap(name = "v12")]
+    Version1_2,
+    #[serde(rename = "v13")]
+    #[clap(name = "v13")]
+    Version1_3,
+}
+
+impl Default for TlsVersion {
+    fn default() -> Self {
+        TlsVersion::All
     }
 }
 

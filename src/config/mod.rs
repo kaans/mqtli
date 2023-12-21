@@ -6,7 +6,7 @@ use thiserror::Error;
 use validator::ValidationErrors;
 
 pub mod mqtli_config;
-pub(crate) mod args;
+mod args;
 
 #[derive(Error, Debug)]
 pub enum ConfigError {
