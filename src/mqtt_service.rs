@@ -18,8 +18,7 @@ use tokio::sync::{broadcast, Mutex};
 use tokio::sync::broadcast::Receiver;
 use tokio::task::JoinHandle;
 
-use crate::config::args::TlsVersion;
-use crate::config::mqtli_config::MqttBrokerConnectArgs;
+use crate::config::mqtli_config::{MqttBrokerConnectArgs, TlsVersion};
 
 #[derive(Error, Debug)]
 pub enum MqttServiceError {

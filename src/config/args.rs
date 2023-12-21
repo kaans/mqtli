@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
 
-use clap::{Args, Parser, ValueEnum};
+use clap::{Args, Parser};
 use derive_getters::Getters;
 use log::LevelFilter;
 use rumqttc::v5::mqttbytes::QoS;
@@ -12,6 +12,7 @@ use serde::{Deserialize, Deserializer};
 use serde::de::{Error, Unexpected};
 
 use crate::config::{args, ConfigError, OutputFormat};
+use crate::config::mqtli_config::TlsVersion;
 
 #[derive(Debug, Deserialize, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -121,7 +122,7 @@ pub enum PublishInputType {
     #[serde(rename = "text")]
     Text(PublishInputTypeContentPath),
     #[serde(rename = "raw")]
-    Raw(PublishInputTypePath)
+    Raw(PublishInputTypePath),
 }
 
 impl Default for PublishInputType {
@@ -187,25 +188,6 @@ impl Default for OutputTargetFile {
             prepend: None,
             append: Some("\n".to_string()),
         }
-    }
-}
-
-#[derive(Clone, Debug, Deserialize, PartialEq, ValueEnum)]
-pub enum TlsVersion {
-    #[serde(rename = "all")]
-    #[clap(name = "all")]
-    All,
-    #[serde(rename = "v12")]
-    #[clap(name = "v12")]
-    Version1_2,
-    #[serde(rename = "v13")]
-    #[clap(name = "v13")]
-    Version1_3,
-}
-
-impl Default for TlsVersion {
-    fn default() -> Self {
-        TlsVersion::All
     }
 }
 
