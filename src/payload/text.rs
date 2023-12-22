@@ -1,4 +1,3 @@
-use crate::payload::hex::PayloadFormatHex;
 use crate::payload::{PayloadFormat, PayloadFormatError};
 
 #[derive(Clone, Debug)]
@@ -76,7 +75,7 @@ mod protobuf {
 
     pub(super) fn get_message_value(
         context: &Context,
-        message_value: &Box<MessageValue>,
+        message_value: &MessageValue,
         indent_level: u16,
         parent_field: Option<u64>,
     ) -> Result<String, PayloadFormatError> {
@@ -99,7 +98,7 @@ mod protobuf {
         result.push_str(&message_text);
 
         for field in &message_value.fields {
-            let result_field = get_field_value(context, message_info, &field, indent_level + 1)?;
+            let result_field = get_field_value(context, message_info, field, indent_level + 1)?;
             result.push_str(&result_field);
         }
 
@@ -125,92 +124,79 @@ mod protobuf {
                     Value::Double(value) => {
                         format!(
                             "{indent_spaces}[{}] {type_name} = {} (Double)\n",
-                            field.number,
-                            value.to_string()
+                            field.number, value
                         )
                     }
                     Value::Float(value) => {
                         format!(
                             "{indent_spaces}[{}] {type_name} = {} (Float)\n",
-                            field.number,
-                            value.to_string()
+                            field.number, value
                         )
                     }
                     Value::Int32(value) => {
                         format!(
                             "{indent_spaces}[{}] {type_name} = {} (Int32)\n",
-                            field.number,
-                            value.to_string()
+                            field.number, value
                         )
                     }
                     Value::Int64(value) => {
                         format!(
                             "{indent_spaces}[{}] {type_name} = {} (Int64)\n",
-                            field.number,
-                            value.to_string()
+                            field.number, value
                         )
                     }
                     Value::UInt32(value) => {
                         format!(
                             "{indent_spaces}[{}] {type_name} = {} (UInt32)\n",
-                            field.number,
-                            value.to_string()
+                            field.number, value
                         )
                     }
                     Value::UInt64(value) => {
                         format!(
                             "{indent_spaces}[{}] {type_name} = {} (UInt64)\n",
-                            field.number,
-                            value.to_string()
+                            field.number, value
                         )
                     }
                     Value::SInt32(value) => {
                         format!(
                             "{indent_spaces}[{}] {type_name} = {} (SInt32)\n",
-                            field.number,
-                            value.to_string()
+                            field.number, value
                         )
                     }
                     Value::SInt64(value) => {
                         format!(
                             "{indent_spaces}[{}] {type_name} = {} (SInt64)\n",
-                            field.number,
-                            value.to_string()
+                            field.number, value
                         )
                     }
                     Value::Fixed32(value) => {
                         format!(
                             "{indent_spaces}[{}] {type_name} = {} (Fixed32)\n",
-                            field.number,
-                            value.to_string()
+                            field.number, value
                         )
                     }
                     Value::Fixed64(value) => {
                         format!(
                             "{indent_spaces}[{}] {type_name} = {} (Fixed64)\n",
-                            field.number,
-                            value.to_string()
+                            field.number, value
                         )
                     }
                     Value::SFixed32(value) => {
                         format!(
                             "{indent_spaces}[{}] {type_name} = {} (SFixed32)\n",
-                            field.number,
-                            value.to_string()
+                            field.number, value
                         )
                     }
                     Value::SFixed64(value) => {
                         format!(
                             "{indent_spaces}[{}] {type_name} = {} (SFixed64)\n",
-                            field.number,
-                            value.to_string()
+                            field.number, value
                         )
                     }
                     Value::Bool(value) => {
                         format!(
                             "{indent_spaces}[{}] {type_name} = {} (Bool)\n",
-                            field.number,
-                            value.to_string()
+                            field.number, value
                         )
                     }
                     Value::String(value) => {

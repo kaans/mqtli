@@ -90,7 +90,7 @@ impl TryFrom<PayloadFormat> for PayloadFormatProtobuf {
     }
 }
 
-fn validate_protobuf(value: &Box<MessageValue>) -> Result<(), PayloadFormatError> {
+fn validate_protobuf(value: &MessageValue) -> Result<(), PayloadFormatError> {
     for field in &value.fields {
         let result = match &field.value {
             Value::Message(value) => validate_protobuf(value),
@@ -98,16 +98,14 @@ fn validate_protobuf(value: &Box<MessageValue>) -> Result<(), PayloadFormatError
             _ => Ok(()),
         };
 
-        if let Err(e) = result {
-            return Err(e);
-        }
+        result?
     }
 
     Ok(())
 }
 
 fn get_message_value(
-    value: &Vec<u8>,
+    value: &[u8],
     definition_file: &PathBuf,
     message_name: &str,
 ) -> Result<(Context, MessageValue), PayloadFormatError> {

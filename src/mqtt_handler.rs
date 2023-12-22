@@ -48,8 +48,8 @@ impl MqttHandler {
 
     pub fn handle_event(event: Event, topics: &Vec<Topic>) {
         match event {
-            Event::Incoming(event) => match event {
-                Incoming::Publish(value) => {
+            Event::Incoming(event) => {
+                if let Incoming::Publish(value) = event {
                     let incoming_topic = from_utf8(value.topic.as_ref()).unwrap();
 
                     info!(
@@ -81,8 +81,7 @@ impl MqttHandler {
                         }
                     }
                 }
-                _ => {}
-            },
+            }
             Event::Outgoing(_event) => {}
         }
     }
