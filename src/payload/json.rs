@@ -1,8 +1,9 @@
+use derive_getters::Getters;
 use serde_json::{from_slice, Value};
 
 use crate::payload::{PayloadFormat, PayloadFormatError};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Getters)]
 pub struct PayloadFormatJson {
     content: Value,
 }
@@ -11,11 +12,6 @@ impl TryFrom<Vec<u8>> for PayloadFormatJson {
     type Error = PayloadFormatError;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        eprintln!("value = {:?}", value);
-        eprintln!(
-            "String::from_utf8(value.to_vec()) = {:?}",
-            String::from_utf8(value.to_vec())
-        );
         let content = from_slice(value.as_slice())?;
 
         Ok(Self { content })

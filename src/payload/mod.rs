@@ -1,3 +1,4 @@
+use ::base64::DecodeError;
 use std::fs::File;
 use std::io;
 use std::io::Read;
@@ -52,10 +53,16 @@ pub enum PayloadFormatError {
     FieldNumberNotFoundInProtoFile(u64),
     #[error("Could not convert payload to yaml")]
     CouldNotConvertToYaml(#[source] serde_yaml::Error),
+    #[error("Could not convert payload from yaml")]
+    CouldNotConvertFromYaml(String),
     #[error("Could not convert payload to json")]
     CouldNotConvertToJson(#[source] serde_json::Error),
+    #[error("Could not convert payload from json")]
+    CouldNotConvertFromJson(String),
     #[error("Could not convert payload to hex")]
     CouldNotConvertToHex(#[source] FromHexError),
+    #[error("Could not convert payload to base64")]
+    CouldNotConvertToBase64(#[source] DecodeError),
 }
 
 impl From<FromUtf8Error> for PayloadFormatError {
@@ -79,6 +86,12 @@ impl From<serde_yaml::Error> for PayloadFormatError {
 impl From<FromHexError> for PayloadFormatError {
     fn from(value: FromHexError) -> Self {
         Self::CouldNotConvertToHex(value)
+    }
+}
+
+impl From<DecodeError> for PayloadFormatError {
+    fn from(value: DecodeError) -> Self {
+        Self::CouldNotConvertToBase64(value)
     }
 }
 
