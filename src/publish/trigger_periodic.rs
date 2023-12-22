@@ -56,7 +56,7 @@ impl TriggerPeriodic {
 
             let mqtt_service = Arc::clone(&self.mqtt_service);
             let topic = String::from(topic);
-            let qos = QoS::from(*qos);
+            let qos = *qos;
 
             let clos = move || {
                 let topic = String::from(topic.as_str());
@@ -74,7 +74,7 @@ impl TriggerPeriodic {
 
             Ok(())
         } else {
-            return Err(TriggerError::SchedulerAlreadyRunning);
+            Err(TriggerError::SchedulerAlreadyRunning)
         }
     }
 

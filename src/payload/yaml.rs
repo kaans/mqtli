@@ -78,14 +78,14 @@ mod protobuf {
 
     pub(super) fn get_message_value(
         context: &Context,
-        message_value: &Box<MessageValue>,
+        message_value: &MessageValue,
     ) -> Result<serde_yaml::Value, PayloadFormatError> {
         let message_info = context.resolve_message(message_value.msg_ref);
 
         let mut map_fields = serde_yaml::Mapping::new();
 
         for field in &message_value.fields {
-            let result_field = get_field_value(context, &field)?;
+            let result_field = get_field_value(context, field)?;
             let field_name = match &message_info.get_field(field.number) {
                 None => "unknown",
                 Some(value) => value.name.as_str(),

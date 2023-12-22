@@ -85,10 +85,7 @@ impl From<&args::Publish> for Publish {
             None => {
                 vec![PublishTriggerType::default()]
             }
-            Some(trigger) => trigger
-                .iter()
-                .map(|tr| PublishTriggerType::from(tr))
-                .collect(),
+            Some(trigger) => trigger.iter().map(PublishTriggerType::from).collect(),
         };
 
         Publish {
@@ -375,7 +372,7 @@ impl From<&args::Subscription> for Subscription {
             None => {
                 vec![Output::default()]
             }
-            Some(outputs) => outputs.iter().map(|output| Output::from(output)).collect(),
+            Some(outputs) => outputs.iter().map(Output::from).collect(),
         };
 
         Subscription {
