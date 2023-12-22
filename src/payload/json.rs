@@ -21,15 +21,15 @@ impl TryFrom<Vec<u8>> for PayloadFormatJson {
     }
 }
 
-impl Into<Vec<u8>> for PayloadFormatJson {
-    fn into(self) -> Vec<u8> {
-        self.content.to_string().into_bytes()
+impl From<PayloadFormatJson> for Vec<u8> {
+    fn from(val: PayloadFormatJson) -> Self {
+        val.content.to_string().into_bytes()
     }
 }
 
-impl Into<String> for PayloadFormatJson {
-    fn into(self) -> String {
-        self.content.to_string()
+impl From<PayloadFormatJson> for String {
+    fn from(val: PayloadFormatJson) -> Self {
+        val.content.to_string()
     }
 }
 
@@ -72,6 +72,7 @@ mod protobuf {
     use protofish::context::Context;
     use protofish::decode::{FieldValue, MessageValue, Value};
     use serde_json::json;
+
     use crate::payload::PayloadFormatError;
 
     pub(super) fn get_message_value(context: &Context,

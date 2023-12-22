@@ -1,7 +1,7 @@
 use std::fs::read_to_string;
 use std::path::PathBuf;
-use derive_getters::Getters;
 
+use derive_getters::Getters;
 use log::error;
 use protofish::context::Context;
 use protofish::decode::{MessageValue, Value};
@@ -35,7 +35,7 @@ impl TryFrom<PayloadFormatProtobufInput> for PayloadFormatProtobuf {
 
     fn try_from(value: PayloadFormatProtobufInput) -> Result<Self, Self::Error> {
         let (context, message_value)
-            = get_message_value(&value.content, &value.definition_file, &value.message_name)?;
+            = get_message_value(&value.content, &value.definition_file, value.message_name.as_str())?;
 
         let message_value = Box::new(message_value);
         validate_protobuf(&message_value)?;
@@ -47,9 +47,9 @@ impl TryFrom<PayloadFormatProtobufInput> for PayloadFormatProtobuf {
     }
 }
 
-impl Into<Vec<u8>> for PayloadFormatProtobuf {
-    fn into(self) -> Vec<u8> {
-        self.message_value.encode(&self.context).to_vec()
+impl From<PayloadFormatProtobuf> for Vec<u8> {
+    fn from(val: PayloadFormatProtobuf) -> Self {
+        val.message_value.encode(&val.context).to_vec()
     }
 }
 
@@ -71,7 +71,7 @@ impl TryFrom<PayloadFormat> for PayloadFormatProtobuf {
 
 fn validate_protobuf(value: &Box<MessageValue>) -> Result<(), PayloadFormatError> {
     for field in &value.fields {
-        return match &field.value {
+        let result = match &field.value {
             Value::Message(value) => {
                 validate_protobuf(value)
             }
@@ -79,13 +79,17 @@ fn validate_protobuf(value: &Box<MessageValue>) -> Result<(), PayloadFormatError
                 Err(PayloadFormatError::InvalidProtobuf)
             }
             _ => Ok(())
+        };
+
+        if let Err(e) = result {
+            return Err(e);
         }
     }
 
     Ok(())
 }
 
-fn get_message_value(value: &Vec<u8>, definition_file: &PathBuf, message_name: &String) -> Result<(Context, MessageValue), PayloadFormatError> {
+fn get_message_value(value: &Vec<u8>, definition_file: &PathBuf, message_name: &str) -> Result<(Context, MessageValue), PayloadFormatError> {
     let Ok(content) = read_to_string(definition_file) else {
         error!("Could not open definition file {definition_file:?}");
         return Err(PayloadFormatError::CouldNotOpenDefinitionFile(definition_file.to_str().unwrap_or("invalid path").to_string()));
@@ -99,7 +103,7 @@ fn get_message_value(value: &Vec<u8>, definition_file: &PathBuf, message_name: &
     };
 
     let Some(message_info) = context.get_message(message_name) else {
-        return Err(PayloadFormatError::MessageNotFoundInProtoFile(message_name.clone()));
+        return Err(PayloadFormatError::MessageNotFoundInProtoFile(message_name.to_owned()));
     };
 
     let message_value = message_info.decode(value, &context);

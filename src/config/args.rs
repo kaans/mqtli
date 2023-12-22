@@ -256,12 +256,12 @@ pub fn read_cli_args() -> MqtliArgs {
 
 fn deserialize_duration_seconds<'a, D>(deserializer: D) -> Result<Option<Duration>, D::Error> where D: Deserializer<'a> {
     let value: u64 = Deserialize::deserialize(deserializer)?;
-    return Ok(Some(Duration::from_secs(value)));
+    Ok(Some(Duration::from_secs(value)))
 }
 
 fn deserialize_duration_milliseconds<'a, D>(deserializer: D) -> Result<Option<Duration>, D::Error> where D: Deserializer<'a> {
     let value: u64 = Deserialize::deserialize(deserializer)?;
-    return Ok(Some(Duration::from_millis(value)));
+    Ok(Some(Duration::from_millis(value)))
 }
 
 fn deserialize_qos<'a, D>(deserializer: D) -> Result<QoS, D::Error> where D: Deserializer<'a> {

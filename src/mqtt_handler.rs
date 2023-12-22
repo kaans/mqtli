@@ -31,15 +31,8 @@ impl MqttHandler {
         let topics = self.topics.clone();
 
         self.task_handle = Some(task::spawn(async move {
-            loop {
-                match receiver.recv().await {
-                    Ok(event) => {
-                        MqttHandler::handle_event(event, &topics);
-                    }
-                    Err(_) => {
-                        break;
-                    }
-                }
+            while let Ok(event) = receiver.recv().await {
+                MqttHandler::handle_event(event, &topics);
             }
         }));
     }

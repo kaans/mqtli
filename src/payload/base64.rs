@@ -1,5 +1,6 @@
 use base64::Engine;
 use base64::engine::general_purpose;
+
 use crate::payload::{PayloadFormat, PayloadFormatError};
 
 #[derive(Clone, Debug)]
@@ -17,15 +18,15 @@ impl From<PayloadFormatBase64Input> for PayloadFormatBase64 {
     }
 }
 
-impl Into<Vec<u8>> for PayloadFormatBase64 {
-    fn into(self) -> Vec<u8> {
-        self.content
+impl From<PayloadFormatBase64> for Vec<u8> {
+    fn from(val: PayloadFormatBase64) -> Self {
+        val.content
     }
 }
 
-impl Into<String> for PayloadFormatBase64 {
-    fn into(self) -> String {
-        general_purpose::STANDARD_NO_PAD.encode(self.content)
+impl From<PayloadFormatBase64> for String {
+    fn from(val: PayloadFormatBase64) -> Self {
+        general_purpose::STANDARD_NO_PAD.encode(val.content)
     }
 }
 

@@ -15,9 +15,9 @@ impl TryFrom<Vec<u8>> for PayloadFormatRaw {
     }
 }
 
-impl Into<Vec<u8>> for PayloadFormatRaw {
-    fn into(self) -> Vec<u8> {
-        self.content
+impl From<PayloadFormatRaw> for Vec<u8> {
+    fn from(val: PayloadFormatRaw) -> Self {
+        val.content
     }
 }
 

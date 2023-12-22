@@ -31,15 +31,15 @@ impl TryFrom<String> for PayloadFormatHex {
     }
 }
 
-impl Into<Vec<u8>> for PayloadFormatHex {
-    fn into(self) -> Vec<u8> {
-        self.content
+impl From<PayloadFormatHex> for Vec<u8> {
+    fn from(val: PayloadFormatHex) -> Self {
+        val.content
     }
 }
 
-impl Into<String> for PayloadFormatHex {
-    fn into(self) -> String {
-        hex::encode(self.content)
+impl From<PayloadFormatHex> for String {
+    fn from(val: PayloadFormatHex) -> Self {
+        hex::encode(val.content)
     }
 }
 

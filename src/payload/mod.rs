@@ -201,12 +201,10 @@ impl PayloadFormat {
 fn read_input_type_content_path(input: &PublishInputTypeContentPath) -> Result<Vec<u8>, PayloadFormatError> {
     if let Some(content) = input.content() {
         Ok(Vec::from(content.as_str()))
+    } else if let Some(path) = input.path() {
+        read_from_path(path)
     } else {
-        if let Some(path) = input.path() {
-            read_from_path(path)
-        } else {
-            return Err(PayloadFormatError::EitherContentOrPathMustBeGiven);
-        }
+        return Err(PayloadFormatError::EitherContentOrPathMustBeGiven);
     }
 }
 
