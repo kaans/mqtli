@@ -9,9 +9,7 @@ impl TryFrom<Vec<u8>> for PayloadFormatRaw {
     type Error = PayloadFormatError;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        Ok(Self {
-            content: value
-        })
+        Ok(Self { content: value })
     }
 }
 

@@ -8,7 +8,9 @@ use ::hex::FromHexError;
 use protofish::context::ParseError;
 use thiserror::Error;
 
-use crate::config::mqtli_config::{Output, PayloadType, PublishInputType, PublishInputTypeContentPath};
+use crate::config::mqtli_config::{
+    Output, PayloadType, PublishInputType, PublishInputTypeContentPath,
+};
 use crate::config::OutputFormat;
 use crate::payload::base64::PayloadFormatBase64;
 use crate::payload::hex::PayloadFormatHex;
@@ -18,12 +20,12 @@ use crate::payload::raw::PayloadFormatRaw;
 use crate::payload::text::PayloadFormatText;
 use crate::payload::yaml::PayloadFormatYaml;
 
-pub mod text;
-pub mod raw;
-pub mod protobuf;
-pub mod hex;
 pub mod base64;
+pub mod hex;
 pub mod json;
+pub mod protobuf;
+pub mod raw;
+pub mod text;
 pub mod yaml;
 
 #[derive(Debug, Error)]
@@ -113,8 +115,12 @@ impl TryInto<String> for PayloadFormat {
     fn try_into(self) -> Result<String, Self::Error> {
         match self {
             PayloadFormat::Text(value) => Ok(value.into()),
-            PayloadFormat::Raw(_value) => Err(PayloadFormatError::DisplayNotPossible(String::from("raw"))),
-            PayloadFormat::Protobuf(_value) => Err(PayloadFormatError::DisplayNotPossible(String::from("protobuf"))),
+            PayloadFormat::Raw(_value) => {
+                Err(PayloadFormatError::DisplayNotPossible(String::from("raw")))
+            }
+            PayloadFormat::Protobuf(_value) => Err(PayloadFormatError::DisplayNotPossible(
+                String::from("protobuf"),
+            )),
             PayloadFormat::Hex(value) => Ok(value.into()),
             PayloadFormat::Base64(value) => Ok(value.into()),
             PayloadFormat::Json(value) => Ok(value.into()),
@@ -142,17 +148,25 @@ impl TryFrom<PayloadFormatTopic> for PayloadFormat {
 
     fn try_from(value: PayloadFormatTopic) -> Result<Self, Self::Error> {
         Ok(match value.payload_type {
-            PayloadType::Text(_options) => PayloadFormat::Text(PayloadFormatText::try_from(value.content)?),
+            PayloadType::Text(_options) => {
+                PayloadFormat::Text(PayloadFormatText::try_from(value.content)?)
+            }
             PayloadType::Protobuf(options) => PayloadFormat::Protobuf(
-                PayloadFormatProtobuf::try_from(
-                    PayloadFormatProtobufInput::new(value.content, options.definition().clone(), options.message().clone())
-                )?),
+                PayloadFormatProtobuf::try_from(PayloadFormatProtobufInput::new(
+                    value.content,
+                    options.definition().clone(),
+                    options.message().clone(),
+                ))?,
+            ),
         })
     }
 }
 
 impl PayloadFormat {
-    pub fn new(input: &PublishInputType, output: &PayloadType) -> Result<PayloadFormat, PayloadFormatError> {
+    pub fn new(
+        input: &PublishInputType,
+        output: &PayloadType,
+    ) -> Result<PayloadFormat, PayloadFormatError> {
         let content = match input {
             PublishInputType::Text(input) => {
                 let c = read_input_type_content_path(input)?;
@@ -180,7 +194,7 @@ impl PayloadFormat {
                 );
 
                 Ok(PayloadFormat::Protobuf(PayloadFormatProtobuf::try_from(
-                    param
+                    param,
                 )?))
             }
         }
@@ -198,7 +212,9 @@ impl PayloadFormat {
     }
 }
 
-fn read_input_type_content_path(input: &PublishInputTypeContentPath) -> Result<Vec<u8>, PayloadFormatError> {
+fn read_input_type_content_path(
+    input: &PublishInputTypeContentPath,
+) -> Result<Vec<u8>, PayloadFormatError> {
     if let Some(content) = input.content() {
         Ok(Vec::from(content.as_str()))
     } else if let Some(path) = input.path() {
@@ -211,12 +227,20 @@ fn read_input_type_content_path(input: &PublishInputTypeContentPath) -> Result<V
 fn read_from_path(path: &PathBuf) -> Result<Vec<u8>, PayloadFormatError> {
     let mut file = match File::open(path) {
         Ok(f) => f,
-        Err(e) => { return Err(PayloadFormatError::CannotReadInputFromPath(e, PathBuf::from(path))); }
+        Err(e) => {
+            return Err(PayloadFormatError::CannotReadInputFromPath(
+                e,
+                PathBuf::from(path),
+            ));
+        }
     };
 
     let mut buf = Vec::new();
     if let Err(e) = file.read_to_end(&mut buf) {
-        return Err(PayloadFormatError::CannotReadInputFromPath(e, PathBuf::from(path)));
+        return Err(PayloadFormatError::CannotReadInputFromPath(
+            e,
+            PathBuf::from(path),
+        ));
     };
     Ok(buf)
 }

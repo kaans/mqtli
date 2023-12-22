@@ -5,17 +5,17 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use log::{debug, error, info};
-use rumqttc::{TlsConfiguration, Transport};
 use rumqttc::tokio_rustls::rustls;
 use rumqttc::tokio_rustls::rustls::{Certificate, PrivateKey};
-use rumqttc::v5::{AsyncClient, ConnectionError, Event, EventLoop, Incoming, MqttOptions};
-use rumqttc::v5::mqttbytes::QoS;
 use rumqttc::v5::mqttbytes::v5::{ConnectReturnCode, LastWill};
-use rustls::SupportedProtocolVersion;
+use rumqttc::v5::mqttbytes::QoS;
+use rumqttc::v5::{AsyncClient, ConnectionError, Event, EventLoop, Incoming, MqttOptions};
+use rumqttc::{TlsConfiguration, Transport};
 use rustls::version::{TLS12, TLS13};
+use rustls::SupportedProtocolVersion;
 use thiserror::Error;
-use tokio::sync::{broadcast, Mutex};
 use tokio::sync::broadcast::Receiver;
+use tokio::sync::{broadcast, Mutex};
 use tokio::task::JoinHandle;
 
 use crate::config::mqtli_config::{MqttBrokerConnectArgs, TlsVersion};
@@ -48,7 +48,10 @@ pub struct MqttService {
 }
 
 impl MqttService {
-    pub fn new(mqtt_connect_args: Arc<MqttBrokerConnectArgs>, receiver_exit: Receiver<i32>) -> MqttService {
+    pub fn new(
+        mqtt_connect_args: Arc<MqttBrokerConnectArgs>,
+        receiver_exit: Receiver<i32>,
+    ) -> MqttService {
         MqttService {
             client: None,
             config: mqtt_connect_args,
@@ -71,12 +74,21 @@ impl MqttService {
         }
     }
 
-    pub async fn connect(&mut self, channel: Option<broadcast::Sender<Event>>) -> Result<JoinHandle<()>, MqttServiceError> {
-        info!("Connection to {}:{} with client id {}", self.config.host(),
-            self.config.port(), self.config.client_id());
-        let mut options = MqttOptions::new(self.config.client_id(),
-                                           self.config.host(),
-                                           *self.config.port());
+    pub async fn connect(
+        &mut self,
+        channel: Option<broadcast::Sender<Event>>,
+    ) -> Result<JoinHandle<()>, MqttServiceError> {
+        info!(
+            "Connection to {}:{} with client id {}",
+            self.config.host(),
+            self.config.port(),
+            self.config.client_id()
+        );
+        let mut options = MqttOptions::new(
+            self.config.client_id(),
+            self.config.host(),
+            *self.config.port(),
+        );
 
         if *self.config.use_tls() {
             info!("Using TLS");
@@ -89,19 +101,25 @@ impl MqttService {
             options.set_transport(Transport::Tls(tls_config_rustls));
         }
 
-        debug!("Setting keep alive to {} seconds", self.config.keep_alive().as_secs());
+        debug!(
+            "Setting keep alive to {} seconds",
+            self.config.keep_alive().as_secs()
+        );
         options.set_keep_alive(*self.config.keep_alive());
 
         if self.config.username().is_some() && self.config.password().is_some() {
             info!("Using username/password for authentication");
-            options.set_credentials(self.config.username().clone().unwrap(),
-                                    self.config.password().clone().unwrap());
+            options.set_credentials(
+                self.config.username().clone().unwrap(),
+                self.config.password().clone().unwrap(),
+            );
         } else {
             info!("Using anonymous access");
         }
 
         if let Some(last_will) = self.config.last_will() {
-            info!("Setting last will for topic {} [Payload length: {}, QoS {:?}; retain: {}]",
+            info!(
+                "Setting last will for topic {} [Payload length: {}, QoS {:?}; retain: {}]",
                 last_will.topic(),
                 last_will.payload().len(),
                 last_will.qos(),
@@ -122,8 +140,7 @@ impl MqttService {
         let topics = self.topics.clone();
 
         let task_handle: JoinHandle<()> =
-            MqttService::start_connection_task(event_loop, client.clone(), topics, channel)
-                .await;
+            MqttService::start_connection_task(event_loop, client.clone(), topics, channel).await;
 
         self.client = Option::from(client);
 
@@ -136,30 +153,54 @@ impl MqttService {
         fn load_private_key_from_file(path: &PathBuf) -> Result<PrivateKey, MqttServiceError> {
             let file = match File::open(path) {
                 Ok(file) => file,
-                Err(e) => return Err(MqttServiceError::PrivateKeyNotReadable(e, PathBuf::from(path)))
+                Err(e) => {
+                    return Err(MqttServiceError::PrivateKeyNotReadable(
+                        e,
+                        PathBuf::from(path),
+                    ))
+                }
             };
             let mut reader = BufReader::new(file);
             let mut keys = match rustls_pemfile::pkcs8_private_keys(&mut reader) {
                 Ok(keys) => keys,
-                Err(e) => return Err(MqttServiceError::PrivateKeyNotReadable(e, PathBuf::from(path)))
+                Err(e) => {
+                    return Err(MqttServiceError::PrivateKeyNotReadable(
+                        e,
+                        PathBuf::from(path),
+                    ))
+                }
             };
 
             match keys.len() {
                 0 => Err(MqttServiceError::PrivateKeyNoneFound(PathBuf::from(path))),
                 1 => Ok(PrivateKey(keys.remove(0))),
-                _ => Err(MqttServiceError::PrivateKeyTooManyFound(PathBuf::from(path))),
+                _ => Err(MqttServiceError::PrivateKeyTooManyFound(PathBuf::from(
+                    path,
+                ))),
             }
         }
 
-        fn load_certificates_from_file(path: &PathBuf) -> Result<Vec<Certificate>, MqttServiceError> {
+        fn load_certificates_from_file(
+            path: &PathBuf,
+        ) -> Result<Vec<Certificate>, MqttServiceError> {
             let file = match File::open(path) {
                 Ok(file) => file,
-                Err(e) => return Err(MqttServiceError::CertificateNotReadable(e, PathBuf::from(path)))
+                Err(e) => {
+                    return Err(MqttServiceError::CertificateNotReadable(
+                        e,
+                        PathBuf::from(path),
+                    ))
+                }
             };
             let mut reader = BufReader::new(file);
             let certs = match rustls_pemfile::certs(&mut reader) {
                 Ok(certs) => certs,
-                Err(e) => return Err(MqttServiceError::CertificateNotReadable(e, PathBuf::from(path)))
+                Err(e) => {
+                    return Err(MqttServiceError::CertificateNotReadable(
+                        e,
+                        PathBuf::from(path),
+                    ))
+                }
             };
 
             Ok(certs.into_iter().map(Certificate).collect())
@@ -169,8 +210,7 @@ impl MqttService {
 
         match &self.config.tls_ca_file() {
             Some(ca_file) => {
-                let certificates
-                    = load_certificates_from_file(ca_file)?;
+                let certificates = load_certificates_from_file(ca_file)?;
 
                 info!("Found {} root ca certificates", certificates.len());
 
@@ -204,19 +244,17 @@ impl MqttService {
             }
         };
 
-        let config =
-            config.with_protocol_versions(pr.as_slice()).unwrap()
-                .with_root_certificates(root_store);
+        let config = config
+            .with_protocol_versions(pr.as_slice())
+            .unwrap()
+            .with_root_certificates(root_store);
 
         let config = match self.config.tls_client_certificate() {
-            None => {
-                config.with_no_client_auth()
-            }
+            None => config.with_no_client_auth(),
             Some(client_certificate_file) => {
                 info!("Using TLS client certificate authentication");
 
-                let client_certificate =
-                    load_certificates_from_file(client_certificate_file)?;
+                let client_certificate = load_certificates_from_file(client_certificate_file)?;
 
                 let Some(client_key_file) = self.config.tls_client_key() else {
                     return Err(MqttServiceError::ClientKeyMustBePresent());
@@ -224,7 +262,8 @@ impl MqttService {
 
                 let client_key = load_private_key_from_file(client_key_file)?;
 
-                config.with_client_auth_cert(client_certificate, client_key)
+                config
+                    .with_client_auth_cert(client_certificate, client_key)
                     .unwrap()
             }
         };
@@ -232,10 +271,12 @@ impl MqttService {
         Ok(TlsConfiguration::Rustls(Arc::new(config)))
     }
 
-    async fn start_connection_task(mut event_loop: EventLoop,
-                                   client: AsyncClient,
-                                   topics: Arc<Mutex<Vec<(String, QoS)>>>,
-                                   channel: Option<broadcast::Sender<Event>>) -> JoinHandle<()> {
+    async fn start_connection_task(
+        mut event_loop: EventLoop,
+        client: AsyncClient,
+        topics: Arc<Mutex<Vec<(String, QoS)>>>,
+        channel: Option<broadcast::Sender<Event>>,
+    ) -> JoinHandle<()> {
         tokio::task::spawn(async move {
             loop {
                 match event_loop.poll().await {
@@ -262,18 +303,16 @@ impl MqttService {
                             let _ = channel.send(event);
                         }
                     }
-                    Err(e) => {
-                        match e {
-                            ConnectionError::ConnectionRefused(ConnectReturnCode::NotAuthorized) => {
-                                error!("Not authorized, check if the credentials are valid");
-                                return;
-                            }
-                            _ => {
-                                error!("Error while processing mqtt loop: {:?}", e);
-                                return;
-                            }
+                    Err(e) => match e {
+                        ConnectionError::ConnectionRefused(ConnectReturnCode::NotAuthorized) => {
+                            error!("Not authorized, check if the credentials are valid");
+                            return;
                         }
-                    }
+                        _ => {
+                            error!("Error while processing mqtt loop: {:?}", e);
+                            return;
+                        }
+                    },
                 }
             }
         })

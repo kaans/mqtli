@@ -12,12 +12,13 @@ impl TryFrom<Vec<u8>> for PayloadFormatJson {
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
         eprintln!("value = {:?}", value);
-        eprintln!("String::from_utf8(value.to_vec()) = {:?}", String::from_utf8(value.to_vec()));
+        eprintln!(
+            "String::from_utf8(value.to_vec()) = {:?}",
+            String::from_utf8(value.to_vec())
+        );
         let content = from_slice(value.as_slice())?;
 
-        Ok(Self {
-            content
-        })
+        Ok(Self { content })
     }
 }
 
@@ -46,11 +47,9 @@ impl TryFrom<PayloadFormat> for PayloadFormatJson {
                 let a: Vec<u8> = value.into();
                 Self::try_from(a)
             }
-            PayloadFormat::Protobuf(value) => {
-                Ok(Self {
-                    content: protobuf::get_message_value(value.context(), value.message_value())?
-                })
-            }
+            PayloadFormat::Protobuf(value) => Ok(Self {
+                content: protobuf::get_message_value(value.context(), value.message_value())?,
+            }),
             PayloadFormat::Hex(value) => {
                 let a: Vec<u8> = value.into();
                 Self::try_from(a)
@@ -75,9 +74,10 @@ mod protobuf {
 
     use crate::payload::PayloadFormatError;
 
-    pub(super) fn get_message_value(context: &Context,
-                                    message_value: &Box<MessageValue>)
-                                    -> Result<serde_json::Value, PayloadFormatError> {
+    pub(super) fn get_message_value(
+        context: &Context,
+        message_value: &Box<MessageValue>,
+    ) -> Result<serde_json::Value, PayloadFormatError> {
         let message_info = context.resolve_message(message_value.msg_ref);
 
         let mut map_fields = serde_json::Map::new();
@@ -86,7 +86,7 @@ mod protobuf {
             let result_field = get_field_value(context, &field)?;
             let field_name = match &message_info.get_field(field.number) {
                 None => "unknown",
-                Some(value) => value.name.as_str()
+                Some(value) => value.name.as_str(),
             };
             map_fields.insert(field_name.to_string(), result_field);
         }
@@ -96,8 +96,8 @@ mod protobuf {
 
     fn get_field_value(
         context: &Context,
-        field_value: &FieldValue)
-        -> Result<serde_json::Value, PayloadFormatError> {
+        field_value: &FieldValue,
+    ) -> Result<serde_json::Value, PayloadFormatError> {
         let result = match &field_value.value {
             Value::Double(value) => {
                 json!(value)
@@ -141,9 +141,7 @@ mod protobuf {
             Value::String(value) => {
                 json!(value)
             }
-            Value::Message(value) => {
-                get_message_value(context, value)?
-            }
+            Value::Message(value) => get_message_value(context, value)?,
             value => {
                 json!(format!("Unknown: {:?}", value))
             }

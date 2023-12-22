@@ -1,12 +1,12 @@
+use serde::Deserialize;
 use std::io;
 use std::path::PathBuf;
-use serde::Deserialize;
 
 use thiserror::Error;
 use validator::ValidationErrors;
 
-pub mod mqtli_config;
 mod args;
+pub mod mqtli_config;
 
 #[derive(Error, Debug)]
 pub enum ConfigError {

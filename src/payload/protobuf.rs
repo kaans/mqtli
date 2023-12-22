@@ -34,8 +34,11 @@ impl TryFrom<PayloadFormatProtobufInput> for PayloadFormatProtobuf {
     type Error = PayloadFormatError;
 
     fn try_from(value: PayloadFormatProtobufInput) -> Result<Self, Self::Error> {
-        let (context, message_value)
-            = get_message_value(&value.content, &value.definition_file, value.message_name.as_str())?;
+        let (context, message_value) = get_message_value(
+            &value.content,
+            &value.definition_file,
+            value.message_name.as_str(),
+        )?;
 
         let message_value = Box::new(message_value);
         validate_protobuf(&message_value)?;
@@ -58,13 +61,31 @@ impl TryFrom<PayloadFormat> for PayloadFormatProtobuf {
 
     fn try_from(value: PayloadFormat) -> Result<Self, Self::Error> {
         match value {
-            PayloadFormat::Text(_) => Err(Self::Error::ConversionNotPossible(String::from("text"), String::from("protobuf"))),
-            PayloadFormat::Raw(_) => Err(Self::Error::ConversionNotPossible(String::from("raw"), String::from("protobuf"))),
+            PayloadFormat::Text(_) => Err(Self::Error::ConversionNotPossible(
+                String::from("text"),
+                String::from("protobuf"),
+            )),
+            PayloadFormat::Raw(_) => Err(Self::Error::ConversionNotPossible(
+                String::from("raw"),
+                String::from("protobuf"),
+            )),
             PayloadFormat::Protobuf(value) => Ok(value),
-            PayloadFormat::Hex(_) => Err(Self::Error::ConversionNotPossible(String::from("hex"), String::from("protobuf"))),
-            PayloadFormat::Base64(_) => Err(Self::Error::ConversionNotPossible(String::from("base64"), String::from("protobuf"))),
-            PayloadFormat::Json(_) => Err(Self::Error::ConversionNotPossible(String::from("json"), String::from("protobuf"))),
-            PayloadFormat::Yaml(_) => Err(Self::Error::ConversionNotPossible(String::from("yaml"), String::from("protobuf"))),
+            PayloadFormat::Hex(_) => Err(Self::Error::ConversionNotPossible(
+                String::from("hex"),
+                String::from("protobuf"),
+            )),
+            PayloadFormat::Base64(_) => Err(Self::Error::ConversionNotPossible(
+                String::from("base64"),
+                String::from("protobuf"),
+            )),
+            PayloadFormat::Json(_) => Err(Self::Error::ConversionNotPossible(
+                String::from("json"),
+                String::from("protobuf"),
+            )),
+            PayloadFormat::Yaml(_) => Err(Self::Error::ConversionNotPossible(
+                String::from("yaml"),
+                String::from("protobuf"),
+            )),
         }
     }
 }
@@ -72,13 +93,9 @@ impl TryFrom<PayloadFormat> for PayloadFormatProtobuf {
 fn validate_protobuf(value: &Box<MessageValue>) -> Result<(), PayloadFormatError> {
     for field in &value.fields {
         let result = match &field.value {
-            Value::Message(value) => {
-                validate_protobuf(value)
-            }
-            Value::Unknown(_value) => {
-                Err(PayloadFormatError::InvalidProtobuf)
-            }
-            _ => Ok(())
+            Value::Message(value) => validate_protobuf(value),
+            Value::Unknown(_value) => Err(PayloadFormatError::InvalidProtobuf),
+            _ => Ok(()),
         };
 
         if let Err(e) = result {
@@ -89,10 +106,19 @@ fn validate_protobuf(value: &Box<MessageValue>) -> Result<(), PayloadFormatError
     Ok(())
 }
 
-fn get_message_value(value: &Vec<u8>, definition_file: &PathBuf, message_name: &str) -> Result<(Context, MessageValue), PayloadFormatError> {
+fn get_message_value(
+    value: &Vec<u8>,
+    definition_file: &PathBuf,
+    message_name: &str,
+) -> Result<(Context, MessageValue), PayloadFormatError> {
     let Ok(content) = read_to_string(definition_file) else {
         error!("Could not open definition file {definition_file:?}");
-        return Err(PayloadFormatError::CouldNotOpenDefinitionFile(definition_file.to_str().unwrap_or("invalid path").to_string()));
+        return Err(PayloadFormatError::CouldNotOpenDefinitionFile(
+            definition_file
+                .to_str()
+                .unwrap_or("invalid path")
+                .to_string(),
+        ));
     };
 
     let context = match Context::parse(vec![content]) {
@@ -103,7 +129,9 @@ fn get_message_value(value: &Vec<u8>, definition_file: &PathBuf, message_name: &
     };
 
     let Some(message_info) = context.get_message(message_name) else {
-        return Err(PayloadFormatError::MessageNotFoundInProtoFile(message_name.to_owned()));
+        return Err(PayloadFormatError::MessageNotFoundInProtoFile(
+            message_name.to_owned(),
+        ));
     };
 
     let message_value = message_info.decode(value, &context);

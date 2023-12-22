@@ -27,17 +27,20 @@ impl TriggerPeriodic {
         }
     }
 
-    pub fn add_schedule(&mut self,
-                        interval: &Duration,
-                        count: &Option<u32>,
-                        initial_delay: &Duration,
-                        topic: &str,
-                        qos: &QoS,
-                        retain: bool,
-                        input: &PublishInputType,
-                        output_format: &PayloadType) -> Result<(), TriggerError> {
+    pub fn add_schedule(
+        &mut self,
+        interval: &Duration,
+        count: &Option<u32>,
+        initial_delay: &Duration,
+        topic: &str,
+        qos: &QoS,
+        retain: bool,
+        input: &PublishInputType,
+        output_format: &PayloadType,
+    ) -> Result<(), TriggerError> {
         if let Some(scheduler) = self.scheduler.as_mut() {
-            let mut job = scheduler.every(Interval::Seconds(interval.as_secs() as u32))
+            let mut job = scheduler
+                .every(Interval::Seconds(interval.as_secs() as u32))
                 .plus(Interval::Seconds(initial_delay.as_secs() as u32));
 
             if let Some(count) = count {
@@ -48,25 +51,24 @@ impl TriggerPeriodic {
 
             let payload: Vec<u8> = match PayloadFormat::new(input, output_format) {
                 Ok(payload) => payload.try_into()?,
-                Err(e) => return Err(TriggerError::CouldNotConvertPayload(e))
+                Err(e) => return Err(TriggerError::CouldNotConvertPayload(e)),
             };
 
             let mqtt_service = Arc::clone(&self.mqtt_service);
             let topic = String::from(topic);
             let qos = QoS::from(*qos);
 
-            let clos =
-                move || {
-                    let topic = String::from(topic.as_str());
-                    let payload: Vec<u8> = payload.clone();
-                    let mqtt_service = Arc::clone(&mqtt_service);
+            let clos = move || {
+                let topic = String::from(topic.as_str());
+                let payload: Vec<u8> = payload.clone();
+                let mqtt_service = Arc::clone(&mqtt_service);
 
-                    async move {
-                        let a = &mut mqtt_service.lock().await;
+                async move {
+                    let a = &mut mqtt_service.lock().await;
 
-                        a.publish(topic, qos, retain, payload).await;
-                    }
-                };
+                    a.publish(topic, qos, retain, payload).await;
+                }
+            };
 
             job.run(clos);
 
@@ -91,4 +93,3 @@ impl TriggerPeriodic {
         }
     }
 }
-
