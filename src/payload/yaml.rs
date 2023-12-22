@@ -1,8 +1,9 @@
+use derive_getters::Getters;
 use serde_yaml::{from_slice, Value};
 
 use crate::payload::{PayloadFormat, PayloadFormatError};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Getters)]
 pub struct PayloadFormatYaml {
     content: Value,
 }
