@@ -4,24 +4,23 @@ use std::sync::Arc;
 use anyhow::anyhow;
 use log::{error, info, LevelFilter};
 use simplelog::{Config, SimpleLogger};
-use tokio::{signal, task};
-use tokio::sync::{broadcast, Mutex};
 use tokio::sync::broadcast::Sender;
+use tokio::sync::{broadcast, Mutex};
 use tokio::task::JoinHandle;
+use tokio::{signal, task};
 
-use crate::config::mqtli_config::{parse_config, Topic};
 use crate::config::mqtli_config::PublishTriggerType::Periodic;
+use crate::config::mqtli_config::{parse_config, Topic};
 use crate::mqtt_handler::MqttHandler;
 use crate::mqtt_service::MqttService;
 use crate::publish::trigger_periodic::TriggerPeriodic;
 
 mod config;
-mod mqtt_service;
 mod mqtt_handler;
-mod payload;
+mod mqtt_service;
 mod output;
+mod payload;
 mod publish;
-
 
 #[tokio::main]
 async fn main() {
@@ -37,11 +36,18 @@ async fn main() {
 
     let (sender_exit, receiver_exit) = broadcast::channel(1);
 
-    let mqtt_service = Arc::new(Mutex::new(MqttService::new(Arc::new(config.broker().clone()), receiver_exit)));
+    let mqtt_service = Arc::new(Mutex::new(MqttService::new(
+        Arc::new(config.broker().clone()),
+        receiver_exit,
+    )));
 
     for topic in config.topics() {
         if *topic.subscription().enabled() {
-            mqtt_service.lock().await.subscribe(topic.topic().to_string(), *topic.subscription().qos()).await;
+            mqtt_service
+                .lock()
+                .await
+                .subscribe(topic.topic().to_string(), *topic.subscription().qos())
+                .await;
         } else {
             info!("Not subscribing to topic, not enabled :{}", topic.topic());
         }
@@ -53,8 +59,12 @@ async fn main() {
     let mut handler = MqttHandler::new(topics.clone());
     handler.start_task(receiver);
 
-    let task_handle_service = mqtt_service.lock().await.connect(Some(sender)).await.unwrap_or_else(
-        |e| {
+    let task_handle_service = mqtt_service
+        .lock()
+        .await
+        .connect(Some(sender))
+        .await
+        .unwrap_or_else(|e| {
             error!("Error while connecting to mqtt broker: {}", e);
             exit(2);
         });
@@ -62,28 +72,39 @@ async fn main() {
     start_scheduler(topics.clone(), mqtt_service.clone()).await;
 
     start_exit_task(sender_exit).await;
-    task_handle_service.await.expect("Error while waiting for tasks to shut down");
+    task_handle_service
+        .await
+        .expect("Error while waiting for tasks to shut down");
     handler.await_task().await;
 }
 
 async fn start_scheduler(topics: Arc<Vec<Topic>>, mqtt_service: Arc<Mutex<MqttService>>) {
     let mut scheduler = TriggerPeriodic::new(mqtt_service);
 
-    topics.iter()
-        .for_each(|topic| {
-            topic.publish().as_ref()
-                .filter(|publish| *publish.enabled())
-                .map(|publish| publish.trigger().iter()
-                    .for_each(|trigger|
-                        if let Periodic(value) = trigger {
-                            if let Err(e) = scheduler.add_schedule(value.interval(), value.count(), value.initial_delay(),
-                                                                   topic.topic(), publish.qos(), *publish.retain(), publish.input(),
-                                                                   topic.payload()) {
-                                error!("Error while adding schedule: {:?}", e);
-                            };
-                        }
-                    ));
-        });
+    topics.iter().for_each(|topic| {
+        topic
+            .publish()
+            .as_ref()
+            .filter(|publish| *publish.enabled())
+            .map(|publish| {
+                publish.trigger().iter().for_each(|trigger| {
+                    if let Periodic(value) = trigger {
+                        if let Err(e) = scheduler.add_schedule(
+                            value.interval(),
+                            value.count(),
+                            value.initial_delay(),
+                            topic.topic(),
+                            publish.qos(),
+                            *publish.retain(),
+                            publish.input(),
+                            topic.payload(),
+                        ) {
+                            error!("Error while adding schedule: {:?}", e);
+                        };
+                    }
+                })
+            });
+    });
 
     scheduler.start().await;
 }

@@ -1,5 +1,5 @@
-use base64::Engine;
 use base64::engine::general_purpose;
+use base64::Engine;
 
 use crate::payload::{PayloadFormat, PayloadFormatError};
 
@@ -12,9 +12,7 @@ pub type PayloadFormatBase64Input = Vec<u8>;
 
 impl From<PayloadFormatBase64Input> for PayloadFormatBase64 {
     fn from(value: PayloadFormatBase64Input) -> Self {
-        Self {
-            content: value
-        }
+        Self { content: value }
     }
 }
 

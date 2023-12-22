@@ -7,8 +7,8 @@ use tokio::sync::broadcast::Receiver;
 use tokio::task;
 use tokio::task::JoinHandle;
 
-use crate::config::mqtli_config::{Output, OutputTarget, Topic};
 use crate::config::mqtli_config::OutputTarget::Console;
+use crate::config::mqtli_config::{Output, OutputTarget, Topic};
 use crate::output::console::ConsoleOutput;
 use crate::output::file::FileOutput;
 use crate::output::OutputError;
@@ -39,45 +39,50 @@ impl MqttHandler {
 
     pub async fn await_task(self) {
         if self.task_handle.is_some() {
-            self.task_handle.unwrap().await.expect("Could not join thread");
+            self.task_handle
+                .unwrap()
+                .await
+                .expect("Could not join thread");
         }
     }
 
     pub fn handle_event(event: Event, topics: &Vec<Topic>) {
         match event {
-            Event::Incoming(event) => {
-                match event {
-                    Incoming::Publish(value) => {
-                        let incoming_topic = from_utf8(value.topic.as_ref()).unwrap();
+            Event::Incoming(event) => match event {
+                Incoming::Publish(value) => {
+                    let incoming_topic = from_utf8(value.topic.as_ref()).unwrap();
 
-                        info!("Incoming message on topic {} (QoS: {:?})", incoming_topic, value.qos);
+                    info!(
+                        "Incoming message on topic {} (QoS: {:?})",
+                        incoming_topic, value.qos
+                    );
 
-                        for topic in topics {
-                            if topic.topic() == incoming_topic && *topic.subscription().enabled() {
-                                for output in topic.subscription().outputs() {
-                                    let result
-                                        = PayloadFormat::try_from(
-                                        PayloadFormatTopic::new(topic.payload().clone(), value.payload.to_vec()));
+                    for topic in topics {
+                        if topic.topic() == incoming_topic && *topic.subscription().enabled() {
+                            for output in topic.subscription().outputs() {
+                                let result = PayloadFormat::try_from(PayloadFormatTopic::new(
+                                    topic.payload().clone(),
+                                    value.payload.to_vec(),
+                                ));
 
-                                    match result {
-                                        Ok(content) => {
-                                            if let Err(e) = Self::forward_to_output(output, content) {
-                                                error!("{:?}", e);
-                                            }
-                                        }
-                                        Err(e) => {
+                                match result {
+                                    Ok(content) => {
+                                        if let Err(e) = Self::forward_to_output(output, content) {
                                             error!("{:?}", e);
                                         }
-                                    };
-                                }
-                            } else {
-                                debug!("Not subscribing to topic {}, not enabled", topic.topic())
+                                    }
+                                    Err(e) => {
+                                        error!("{:?}", e);
+                                    }
+                                };
                             }
+                        } else {
+                            debug!("Not subscribing to topic {}, not enabled", topic.topic())
                         }
                     }
-                    _ => {}
                 }
-            }
+                _ => {}
+            },
             Event::Outgoing(_event) => {}
         }
     }
@@ -86,12 +91,8 @@ impl MqttHandler {
         let conv = content.convert_for_output(output)?;
 
         let result = match output.target() {
-            Console(_options) => {
-                ConsoleOutput::output(conv.try_into()?)
-            }
-            OutputTarget::File(file) => {
-                FileOutput::output(conv.try_into()?, file)
-            }
+            Console(_options) => ConsoleOutput::output(conv.try_into()?),
+            OutputTarget::File(file) => FileOutput::output(conv.try_into()?, file),
         };
 
         result

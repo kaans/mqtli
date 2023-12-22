@@ -8,16 +8,14 @@ pub struct PayloadFormatHex {
 impl PayloadFormatHex {
     pub fn decode_from(value: Vec<u8>) -> Result<Self, PayloadFormatError> {
         Ok(Self {
-            content: hex::decode(value)?
+            content: hex::decode(value)?,
         })
     }
 }
 
 impl From<Vec<u8>> for PayloadFormatHex {
     fn from(value: Vec<u8>) -> Self {
-        Self {
-            content: value
-        }
+        Self { content: value }
     }
 }
 
@@ -26,7 +24,7 @@ impl TryFrom<String> for PayloadFormatHex {
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Ok(Self {
-            content: hex::decode(value)?
+            content: hex::decode(value)?,
         })
     }
 }
