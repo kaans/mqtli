@@ -395,12 +395,7 @@ impl From<&args::Topic> for Topic {
                     PayloadType::from(value)
                 }
             },
-            publish: match value.publish() {
-                None => None,
-                Some(value) => {
-                    Some(Publish::from(value))
-                }
-            },
+            publish: value.publish().as_ref().map(Publish::from),
         }
     }
 }
@@ -430,8 +425,10 @@ impl From<&args::PayloadProtobuf> for PayloadProtobuf {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, ValueEnum)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, ValueEnum)]
 pub enum TlsVersion {
+    #[default]
+
     #[serde(rename = "all")]
     #[clap(name = "all")]
     All,
@@ -441,12 +438,6 @@ pub enum TlsVersion {
     #[serde(rename = "v13")]
     #[clap(name = "v13")]
     Version1_3,
-}
-
-impl Default for TlsVersion {
-    fn default() -> Self {
-        TlsVersion::All
-    }
 }
 
 #[derive(Clone, Debug, Getters, Validate)]
@@ -544,10 +535,10 @@ pub fn parse_config() -> Result<MqtliConfig, ConfigError> {
     config.merge(&config_file);
     config.merge(&args);
 
-    return match config.validate() {
+    match config.validate() {
         Ok(_) => Ok(config),
         Err(e) => Err(ConfigError::InvalidConfiguration(e))
-    };
+    }
 }
 
 fn validate_keep_alive(value: &Duration) -> Result<(), ValidationError> {

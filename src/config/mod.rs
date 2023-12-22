@@ -18,8 +18,9 @@ pub enum ConfigError {
     InvalidConfiguration(#[source] ValidationErrors),
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq)]
 pub enum OutputFormat {
+    #[default]
     #[serde(rename = "text")]
     Text,
     #[serde(rename = "json")]
@@ -32,8 +33,4 @@ pub enum OutputFormat {
     Base64,
     #[serde(rename = "raw")]
     Raw,
-}
-
-impl Default for OutputFormat {
-    fn default() -> Self { OutputFormat::Text }
 }

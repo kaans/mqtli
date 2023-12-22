@@ -1,4 +1,5 @@
 use crate::payload::{PayloadFormat, PayloadFormatError};
+use crate::payload::hex::PayloadFormatHex;
 
 #[derive(Clone, Debug)]
 pub struct PayloadFormatText {
@@ -17,15 +18,15 @@ impl TryFrom<PayloadFormatTextInput> for PayloadFormatText {
     }
 }
 
-impl Into<Vec<u8>> for PayloadFormatText {
-    fn into(self) -> Vec<u8> {
-        self.content.into_bytes()
+impl From<PayloadFormatText> for Vec<u8> {
+    fn from(val: PayloadFormatText) -> Self {
+        val.content.into_bytes()
     }
 }
 
-impl Into<String> for PayloadFormatText {
-    fn into(self) -> String {
-        self.content
+impl From<PayloadFormatText> for String {
+    fn from(val: PayloadFormatText) -> Self {
+        val.content
     }
 }
 

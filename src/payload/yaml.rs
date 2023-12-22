@@ -21,22 +21,23 @@ impl TryFrom<PayloadFormatYamlInput> for PayloadFormatYaml {
     }
 }
 
-impl TryInto<Vec<u8>> for PayloadFormatYaml {
+impl TryFrom<PayloadFormatYaml> for Vec<u8> {
     type Error = PayloadFormatError;
 
-    fn try_into(self) -> Result<Vec<u8>, Self::Error> {
-        Ok(serde_yaml::to_string(&self.content)?.into_bytes())
+    fn try_from(value: PayloadFormatYaml) -> Result<Self, Self::Error> {
+        Ok(serde_yaml::to_string(&value.content)?.into_bytes())
     }
 }
 
-impl TryInto<String> for PayloadFormatYaml {
+impl TryFrom<PayloadFormatYaml> for String {
     type Error = PayloadFormatError;
 
-    fn try_into(self) -> Result<String, Self::Error> {
-        let result: Result<Vec<u8>, Self::Error> = self.try_into();
+    fn try_from(value: PayloadFormatYaml) -> Result<Self, Self::Error> {
+        let result: Result<Vec<u8>, Self::Error> = value.try_into();
         Ok(String::from_utf8(result?)?)
     }
 }
+
 
 impl TryFrom<PayloadFormat> for PayloadFormatYaml {
     type Error = PayloadFormatError;

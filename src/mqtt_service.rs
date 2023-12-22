@@ -134,7 +134,7 @@ impl MqttService {
 
     fn configure_tls_rustls(&mut self) -> Result<TlsConfiguration, MqttServiceError> {
         fn load_private_key_from_file(path: &PathBuf) -> Result<PrivateKey, MqttServiceError> {
-            let file = match File::open(&path) {
+            let file = match File::open(path) {
                 Ok(file) => file,
                 Err(e) => return Err(MqttServiceError::PrivateKeyNotReadable(e, PathBuf::from(path)))
             };
@@ -152,7 +152,7 @@ impl MqttService {
         }
 
         fn load_certificates_from_file(path: &PathBuf) -> Result<Vec<Certificate>, MqttServiceError> {
-            let file = match File::open(&path) {
+            let file = match File::open(path) {
                 Ok(file) => file,
                 Err(e) => return Err(MqttServiceError::CertificateNotReadable(e, PathBuf::from(path)))
             };
@@ -229,11 +229,7 @@ impl MqttService {
             }
         };
 
-        let tls_config = TlsConfiguration::Rustls {
-            0: Arc::new(config),
-        };
-
-        Ok(tls_config)
+        Ok(TlsConfiguration::Rustls(Arc::new(config)))
     }
 
     async fn start_connection_task(mut event_loop: EventLoop,
@@ -248,25 +244,22 @@ impl MqttService {
 
                         match &event {
                             Event::Incoming(event) => {
-                                match event {
-                                    Incoming::ConnAck(_) => {
-                                        info!("Connected to broker");
+                                if let Incoming::ConnAck(_) = event {
+                                    info!("Connected to broker");
 
-                                        for (topic, qos) in topics.lock().await.iter() {
-                                            info!("Subscribing to topic {} with QoS {:?}", topic, qos);
-                                            if let Err(e) = client.subscribe(topic, *qos).await {
-                                                error!("Could not subscribe to topic {}: {}", topic, e);
-                                            }
+                                    for (topic, qos) in topics.lock().await.iter() {
+                                        info!("Subscribing to topic {} with QoS {:?}", topic, qos);
+                                        if let Err(e) = client.subscribe(topic, *qos).await {
+                                            error!("Could not subscribe to topic {}: {}", topic, e);
                                         }
                                     }
-                                    _ => {}
                                 }
                             }
                             Event::Outgoing(_event) => {}
                         }
 
-                        if channel.is_some() {
-                            let _ = channel.as_ref().unwrap().send(event);
+                        if let Some(channel) = &channel {
+                            let _ = channel.send(event);
                         }
                     }
                     Err(e) => {
