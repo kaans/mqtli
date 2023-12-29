@@ -3,11 +3,30 @@ use serde_json::{from_slice, from_str, Value};
 
 use crate::payload::{PayloadFormat, PayloadFormatError};
 
+/// This payload format contains a JSON payload. Its value is encoded as
+/// `serde_json::Value`.
+///
+/// If this payload is constructed from a format which cannot be converted
+/// to JSON, a JSON object is constructed with one field `content` which holds
+/// the value: `{ "content": "..." }`
 #[derive(Clone, Debug, Getters)]
 pub struct PayloadFormatJson {
     content: Value,
 }
 
+/// Decode JSON payload format from a `Vec<u8>`.
+///
+/// The `Vec<u8>` must contain a valid JSON string.
+///
+/// # Examples
+///
+/// ```
+/// let input = "{\"content\":\"INPUT\"}";
+///
+/// let payload_json = PayloadFormatJson::try_from(Vec::from(input)).unwrap();
+///
+/// assert_eq!("INPUT", result.content.get("content").unwrap().as_str());
+/// ```
 impl TryFrom<Vec<u8>> for PayloadFormatJson {
     type Error = PayloadFormatError;
 
@@ -18,6 +37,19 @@ impl TryFrom<Vec<u8>> for PayloadFormatJson {
     }
 }
 
+/// Decode JSON payload format from a `String`.
+///
+/// The `String` must contain a valid JSON string.
+///
+/// # Examples
+///
+/// ```
+/// let input = String::from("{\"content\":\"INPUT\"}");
+///
+/// let payload_json = PayloadFormatJson::try_from(input).unwrap();
+///
+/// assert_eq!("INPUT", result.content.get("content").unwrap().as_str());
+/// ```
 impl TryFrom<String> for PayloadFormatJson {
     type Error = PayloadFormatError;
 
@@ -28,24 +60,84 @@ impl TryFrom<String> for PayloadFormatJson {
     }
 }
 
+/// Decode JSON payload format from a `serde_json::Value`.
+///
+/// # Examples
+///
+/// ```
+/// let input = json!({ "content": "INPUT" });
+///
+/// let payload_json = PayloadFormatJson::from(input);
+///
+/// assert_eq!("INPUT", result.content.get("content").unwrap().as_str());
+/// ```
 impl From<Value> for PayloadFormatJson {
     fn from(val: Value) -> Self {
         Self { content: val }
     }
 }
 
+/// Decode the content of a json payload format to `Vec<u8>`.
+///
+/// The resulting `Vec<u8>` contains a valid UTF-8 encoded JSON string.
+///
+/// # Examples
+///
+/// ```
+/// let input = json!({ "content": "INPUT" });
+///
+/// let result: Vec<u8> = Vec::from(input);
+///
+/// assert_eq!("{\"content\":\"INPUT\"}", String::from(result));
+/// ```
 impl From<PayloadFormatJson> for Vec<u8> {
     fn from(val: PayloadFormatJson) -> Self {
         val.content.to_string().into_bytes()
     }
 }
 
+/// Decode the content of a json payload format to `String`.
+///
+/// The resulting `String` contains a valid UTF-8 encoded JSON string.
+///
+/// # Examples
+///
+/// ```
+/// let input = json!({ "content": "INPUT" });
+///
+/// let result: String = Vec::from(input);
+///
+/// assert_eq!("{\"content\":\"INPUT\"}", String::from(result));
+/// ```
 impl From<PayloadFormatJson> for String {
     fn from(val: PayloadFormatJson) -> Self {
         val.content.to_string()
     }
 }
 
+/// Decode JSON payload format from a another `PayloadFormat`.
+///
+/// The resulting JSON value depends on the type of the `PayloadFormat`:
+///
+/// | `PayloadFormat` | Result |
+/// |---------|---------|
+/// | Text     | `{ "content": "..." }` |
+/// | Raw     | conversion not possible (JSON only accepts UTF-8/16/32, raw can be anything) |
+/// | Protobuf     | The structure of the protobuf message as JSON Object |
+/// | Hex     | `{ "content": "..." }` |
+/// | Base64     | `{ "content": "..." }` |
+/// | JSON     | the incoming value itself (no conversion is done) |
+/// | YAML     | The structure of the YAML input as JSON |
+///
+/// # Examples
+///
+/// ```
+/// let input = PayloadFormatText::from("INPUT");
+///
+/// let payload_json = PayloadFormatJson::try_from(input).unwrap();
+///
+/// assert_eq!("INPUT", result.content.get("content").unwrap().as_str());
+/// ```
 impl TryFrom<PayloadFormat> for PayloadFormatJson {
     type Error = PayloadFormatError;
 
@@ -68,19 +160,9 @@ impl TryFrom<PayloadFormat> for PayloadFormatJson {
             }
             PayloadFormat::Json(value) => Ok(value),
             PayloadFormat::Yaml(value) => {
-                let Some(text_node) = value.content().get("content") else {
-                    return Err(PayloadFormatError::CouldNotConvertFromYaml(
-                        "Attribute \"content\" not found".to_string(),
-                    ));
-                };
-
-                let Some(text_node) = text_node.as_str() else {
-                    return Err(PayloadFormatError::CouldNotConvertFromYaml(
-                        "Could not read attribute \"content\" as string".to_string(),
-                    ));
-                };
-
-                Self::convert_from_value(text_node.to_string())
+                Ok(Self {
+                    content: serde_yaml::from_value::<Value>(value.content().clone())?
+                })
             }
         }
     }
@@ -278,7 +360,7 @@ mod tests {
     #[test]
     fn from_json() {
         let input =
-            PayloadFormatJson::try_from(Vec::<u8>::from(format!("{{\"content\": \"{}\"}}", INPUT_STRING))).unwrap();
+            PayloadFormatJson::try_from(Vec::<u8>::from(get_input_json(INPUT_STRING))).unwrap();
         let result = PayloadFormatJson::try_from(PayloadFormat::Json(input)).unwrap();
 
         assert_eq!(get_json_value(INPUT_STRING), result.content);
@@ -289,6 +371,16 @@ mod tests {
         let input = PayloadFormatYaml::try_from(Vec::<u8>::from(format!("content: \"{}\"", INPUT_STRING))).unwrap();
         let result = PayloadFormatJson::try_from(PayloadFormat::Yaml(input)).unwrap();
 
-        assert_eq!(get_json_value(INPUT_STRING), result.content);
+        assert_eq!(INPUT_STRING, result.content.get("content").unwrap().as_str().unwrap());
+    }
+
+
+    #[test]
+    fn from_yaml_complex() {
+        let input = PayloadFormatYaml::try_from(Vec::<u8>::from(format!("size: 54.3\nname: \"{}\"", INPUT_STRING))).unwrap();
+        let result = PayloadFormatJson::try_from(PayloadFormat::Yaml(input)).unwrap();
+
+        assert_eq!(54.3, result.content.get("size").unwrap().as_f64().unwrap());
+        assert_eq!(INPUT_STRING, result.content.get("name").unwrap().as_str().unwrap());
     }
 }
