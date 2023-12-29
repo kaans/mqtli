@@ -1,11 +1,12 @@
-use ::base64::DecodeError;
 use std::fs::File;
 use std::io;
 use std::io::Read;
 use std::path::PathBuf;
 use std::string::FromUtf8Error;
 
+use ::base64::DecodeError;
 use ::hex::FromHexError;
+use log::error;
 use protofish::context::ParseError;
 use thiserror::Error;
 
@@ -16,7 +17,7 @@ use crate::config::OutputFormat;
 use crate::payload::base64::PayloadFormatBase64;
 use crate::payload::hex::PayloadFormatHex;
 use crate::payload::json::PayloadFormatJson;
-use crate::payload::protobuf::{PayloadFormatProtobuf, PayloadFormatProtobufInput};
+use crate::payload::protobuf::PayloadFormatProtobuf;
 use crate::payload::raw::PayloadFormatRaw;
 use crate::payload::text::PayloadFormatText;
 use crate::payload::yaml::PayloadFormatYaml;
@@ -164,13 +165,15 @@ impl TryFrom<PayloadFormatTopic> for PayloadFormat {
             PayloadType::Text(_options) => {
                 PayloadFormat::Text(PayloadFormatText::try_from(value.content)?)
             }
-            PayloadType::Protobuf(options) => PayloadFormat::Protobuf(
-                PayloadFormatProtobuf::try_from(PayloadFormatProtobufInput::new(
-                    value.content,
-                    options.definition().clone(),
-                    options.message().clone(),
-                ))?,
-            ),
+            PayloadType::Protobuf(options) => {
+                PayloadFormat::Protobuf(
+                    PayloadFormatProtobuf::new_from_definition_file(
+                        value.content,
+                        &options.definition(),
+                        options.message().clone(),
+                    )?,
+                )
+            }
         })
     }
 }
@@ -200,14 +203,10 @@ impl PayloadFormat {
                 Ok(PayloadFormat::Text(PayloadFormatText::try_from(content)?))
             }
             PayloadType::Protobuf(options) => {
-                let param = PayloadFormatProtobufInput::new(
+                Ok(PayloadFormat::Protobuf(PayloadFormatProtobuf::new_from_definition_file(
                     content.try_into()?,
-                    options.definition().clone(),
+                    &options.definition(),
                     options.message().clone(),
-                );
-
-                Ok(PayloadFormat::Protobuf(PayloadFormatProtobuf::try_from(
-                    param,
                 )?))
             }
         }
