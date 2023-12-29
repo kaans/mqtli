@@ -170,8 +170,8 @@ impl TryFrom<PayloadFormat> for PayloadFormatJson {
 
 impl PayloadFormatJson {
     fn convert_from_value(value: String) -> Result<PayloadFormatJson, PayloadFormatError> {
-        let v: Value = from_str(format!("{{\"content\": \"{}\"}}", value).as_str())?;
-        Ok(PayloadFormatJson::from(v))
+        let json: Value = from_str(format!("{{\"content\": \"{}\"}}", value).as_str())?;
+        Ok(PayloadFormatJson::from(json))
     }
 }
 
