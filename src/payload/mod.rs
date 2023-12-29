@@ -196,6 +196,14 @@ impl PayloadFormat {
                 let c = read_input_type_content_path(input)?;
                 PayloadFormat::Hex(PayloadFormatHex::decode_from(c)?)
             }
+            PublishInputType::Json(input) => {
+                let c = read_input_type_content_path(input)?;
+                PayloadFormat::Json(PayloadFormatJson::try_from(c)?)
+            }
+            PublishInputType::Yaml(input) => {
+                let c = read_input_type_content_path(input)?;
+                PayloadFormat::Yaml(PayloadFormatYaml::try_from(c)?)
+            }
         };
 
         match output {

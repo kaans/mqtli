@@ -103,6 +103,8 @@ pub enum PublishInputType {
     Text(PublishInputTypeContentPath),
     Raw(PublishInputTypePath),
     Hex(PublishInputTypeContentPath),
+    Json(PublishInputTypeContentPath),
+    Yaml(PublishInputTypeContentPath),
 }
 
 impl Default for PublishInputType {
@@ -121,7 +123,13 @@ impl Validate for PublishInputType {
                 ValidationErrors::merge(Ok(()), "Raw", value.validate())
             }
             PublishInputType::Hex(value) => {
-                ValidationErrors::merge(Ok(()), "Text", value.validate())
+                ValidationErrors::merge(Ok(()), "Hex", value.validate())
+            }
+            PublishInputType::Json(value) => {
+                ValidationErrors::merge(Ok(()), "Json", value.validate())
+            }
+            PublishInputType::Yaml(value) => {
+                ValidationErrors::merge(Ok(()), "Yaml", value.validate())
             }
         }
     }
@@ -136,6 +144,12 @@ impl From<&args::PublishInputType> for PublishInputType {
             args::PublishInputType::Raw(value) => Self::Raw(PublishInputTypePath::from(value)),
             args::PublishInputType::Hex(value) => {
                 Self::Hex(PublishInputTypeContentPath::from(value))
+            }
+            args::PublishInputType::Json(value) => {
+                Self::Json(PublishInputTypeContentPath::from(value))
+            }
+            args::PublishInputType::Yaml(value) => {
+                Self::Yaml(PublishInputTypeContentPath::from(value))
             }
         }
     }

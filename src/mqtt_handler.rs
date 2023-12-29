@@ -76,8 +76,6 @@ impl MqttHandler {
                                     }
                                 };
                             }
-                        } else {
-                            debug!("Not subscribing to topic {}, not enabled", topic.topic())
                         }
                     }
                 }
