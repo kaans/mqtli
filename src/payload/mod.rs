@@ -169,7 +169,7 @@ impl TryFrom<PayloadFormatTopic> for PayloadFormat {
                 PayloadFormat::Protobuf(
                     PayloadFormatProtobuf::new_from_definition_file(
                         value.content,
-                        &options.definition(),
+                        options.definition(),
                         options.message().clone(),
                     )?,
                 )
@@ -205,7 +205,7 @@ impl PayloadFormat {
             PayloadType::Protobuf(options) => {
                 Ok(PayloadFormat::Protobuf(PayloadFormatProtobuf::new_from_definition_file(
                     content.try_into()?,
-                    &options.definition(),
+                    options.definition(),
                     options.message().clone(),
                 )?))
             }
