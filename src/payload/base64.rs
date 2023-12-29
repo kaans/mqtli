@@ -103,6 +103,7 @@ mod tests {
     use super::*;
 
     const INPUT_STRING: &str = "INPUT";
+    const INPUT_STRING_HEX: &str = "494E505554"; // INPUT
     const INPUT_STRING_BASE64: &str = "SU5QVVQ="; // INPUT
 
     fn get_input() -> Vec<u8> {
@@ -170,7 +171,7 @@ mod tests {
 
     #[test]
     fn from_hex() {
-        let input = PayloadFormatHex::try_from("494E505554".to_owned()).unwrap();
+        let input = PayloadFormatHex::try_from(INPUT_STRING_HEX.to_owned()).unwrap();
         let result = PayloadFormatBase64::try_from(PayloadFormat::Hex(input)).unwrap();
 
         assert_eq!(Vec::from(INPUT_STRING), result.content);
@@ -178,7 +179,7 @@ mod tests {
 
     #[test]
     fn from_base64() {
-        let input = PayloadFormatBase64::try_from("SU5QVVQ=".to_owned()).unwrap();
+        let input = PayloadFormatBase64::try_from(INPUT_STRING_BASE64.to_owned()).unwrap();
         let result = PayloadFormatBase64::try_from(PayloadFormat::Base64(input)).unwrap();
 
         assert_eq!(Vec::from(INPUT_STRING), result.content);
@@ -187,7 +188,7 @@ mod tests {
     #[test]
     fn from_json() {
         let input =
-            PayloadFormatJson::try_from(Vec::<u8>::from("{\"content\": \"SU5QVVQ=\"}")).unwrap();
+            PayloadFormatJson::try_from(Vec::<u8>::from(format!("{{\"content\": \"{}\"}}", INPUT_STRING_BASE64))).unwrap();
         let result = PayloadFormatBase64::try_from(PayloadFormat::Json(input)).unwrap();
 
         assert_eq!(Vec::from(INPUT_STRING), result.content);
@@ -195,7 +196,7 @@ mod tests {
 
     #[test]
     fn from_yaml() {
-        let input = PayloadFormatYaml::try_from(Vec::<u8>::from("content: \"SU5QVVQ=\"")).unwrap();
+        let input = PayloadFormatYaml::try_from(Vec::<u8>::from(format!("content: \"{}\"", INPUT_STRING_BASE64))).unwrap();
         let result = PayloadFormatBase64::try_from(PayloadFormat::Yaml(input)).unwrap();
 
         assert_eq!(Vec::from(INPUT_STRING), result.content);
