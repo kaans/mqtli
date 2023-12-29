@@ -174,6 +174,21 @@ impl TryFrom<PayloadFormatTopic> for PayloadFormat {
                     )?,
                 )
             }
+            PayloadType::Json(_options) => {
+                PayloadFormat::Json(PayloadFormatJson::try_from(value.content)?)
+            }
+            PayloadType::Yaml(_options) => {
+                PayloadFormat::Yaml(PayloadFormatYaml::try_from(value.content)?)
+            }
+            PayloadType::Hex(_options) => {
+                PayloadFormat::Hex(PayloadFormatHex::from(value.content))
+            }
+            PayloadType::Base64(_options) => {
+                PayloadFormat::Base64(PayloadFormatBase64::from(value.content))
+            }
+            PayloadType::Raw(_options) => {
+                PayloadFormat::Raw(PayloadFormatRaw::from(value.content))
+            }
         })
     }
 }
@@ -190,7 +205,7 @@ impl PayloadFormat {
             }
             PublishInputType::Raw(input) => {
                 let c = read_from_path(input.path())?;
-                PayloadFormat::Raw(PayloadFormatRaw::try_from(c)?)
+                PayloadFormat::Raw(PayloadFormatRaw::from(c))
             }
             PublishInputType::Hex(input) => {
                 let c = read_input_type_content_path(input)?;
@@ -204,6 +219,10 @@ impl PayloadFormat {
                 let c = read_input_type_content_path(input)?;
                 PayloadFormat::Yaml(PayloadFormatYaml::try_from(c)?)
             }
+            PublishInputType::Base64(input) => {
+                let c = read_input_type_content_path(input)?;
+                PayloadFormat::Base64(PayloadFormatBase64::try_from(String::from_utf8(c)?)?)
+            }
         };
 
         match output {
@@ -216,6 +235,21 @@ impl PayloadFormat {
                     options.definition(),
                     options.message(),
                 )?))
+            }
+            PayloadType::Json(_options) => {
+                Ok(PayloadFormat::Json(PayloadFormatJson::try_from(content)?))
+            }
+            PayloadType::Yaml(_options) => {
+                Ok(PayloadFormat::Yaml(PayloadFormatYaml::try_from(content)?))
+            }
+            PayloadType::Hex(_options) => {
+                Ok(PayloadFormat::Hex(PayloadFormatHex::try_from(content)?))
+            }
+            PayloadType::Base64(_options) => {
+                Ok(PayloadFormat::Base64(PayloadFormatBase64::try_from(content)?))
+            }
+            PayloadType::Raw(_options) => {
+                Ok(PayloadFormat::Raw(PayloadFormatRaw::try_from(content)?))
             }
         }
     }
