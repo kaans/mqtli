@@ -270,4 +270,28 @@ mod tests {
         assert_eq!(54.3, result.content.get("size").unwrap().as_f64().unwrap());
         assert_eq!(INPUT_STRING, result.content.get("name").unwrap().as_str().unwrap());
     }
+
+    #[test]
+    fn from_json_array() {
+        let input_string = r#"
+            {
+                "size": 54.3,
+                "name": "full name",
+                "colors": [
+                    "red",
+                    "blue",
+                    "green"
+                ]
+            }
+        "#;
+
+        let input = PayloadFormatJson::try_from(Vec::<u8>::from(input_string)).unwrap();
+        let result = PayloadFormatYaml::try_from(PayloadFormat::Json(input)).unwrap();
+
+        assert_eq!(54.3, result.content.get("size").unwrap().as_f64().unwrap());
+        assert_eq!("full name", result.content.get("name").unwrap().as_str().unwrap());
+        assert_eq!("red", result.content.get("colors").unwrap().as_sequence().unwrap().get(0).unwrap().as_str().unwrap());
+        assert_eq!("blue", result.content.get("colors").unwrap().as_sequence().unwrap().get(1).unwrap().as_str().unwrap());
+        assert_eq!("green", result.content.get("colors").unwrap().as_sequence().unwrap().get(2).unwrap().as_str().unwrap());
+    }
 }
