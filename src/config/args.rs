@@ -159,6 +159,8 @@ pub enum PublishInputType {
     Json(PublishInputTypeContentPath),
     #[serde(rename = "yaml")]
     Yaml(PublishInputTypeContentPath),
+    #[serde(rename = "base64")]
+    Base64(PublishInputTypeContentPath),
 }
 
 impl Default for PublishInputType {
@@ -233,7 +235,41 @@ pub enum PayloadType {
     Text(PayloadText),
     #[serde(rename = "protobuf")]
     Protobuf(PayloadProtobuf),
+    #[serde(rename = "json")]
+    Json(PayloadJson),
+    #[serde(rename = "yaml")]
+    Yaml(PayloadYaml),
+    #[serde(rename = "hex")]
+    Hex(PayloadHex),
+    #[serde(rename = "base64")]
+    Base64(PayloadBase64),
+    #[serde(rename = "raw")]
+    Raw(PayloadRaw),
 }
+
+#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
+pub struct PayloadText {}
+
+#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
+pub struct PayloadProtobuf {
+    definition: PathBuf,
+    message: String,
+}
+
+#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
+pub struct PayloadJson {}
+
+#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
+pub struct PayloadYaml {}
+
+#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
+pub struct PayloadHex {}
+
+#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
+pub struct PayloadBase64 {}
+
+#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
+pub struct PayloadRaw {}
 
 #[derive(Debug, Deserialize, PartialEq)]
 #[serde(tag = "type")]
@@ -252,15 +288,6 @@ pub struct Subscription {
     #[serde(deserialize_with = "deserialize_qos")]
     qos: QoS,
     outputs: Option<Vec<Output>>,
-}
-
-#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct PayloadText {}
-
-#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct PayloadProtobuf {
-    definition: PathBuf,
-    message: String,
 }
 
 pub fn read_config(buf: &PathBuf) -> Result<MqtliArgs, ConfigError> {

@@ -89,40 +89,6 @@ impl From<PayloadFormatProtobuf> for Vec<u8> {
     }
 }
 
-impl TryFrom<PayloadFormat> for PayloadFormatProtobuf {
-    type Error = PayloadFormatError;
-
-    fn try_from(value: PayloadFormat) -> Result<Self, Self::Error> {
-        match value {
-            PayloadFormat::Text(_) => Err(Self::Error::ConversionNotPossible(
-                String::from("text"),
-                String::from("protobuf"),
-            )),
-            PayloadFormat::Raw(_) => Err(Self::Error::ConversionNotPossible(
-                String::from("raw"),
-                String::from("protobuf"),
-            )),
-            PayloadFormat::Protobuf(value) => Ok(value),
-            PayloadFormat::Hex(_) => Err(Self::Error::ConversionNotPossible(
-                String::from("hex"),
-                String::from("protobuf"),
-            )),
-            PayloadFormat::Base64(_) => Err(Self::Error::ConversionNotPossible(
-                String::from("base64"),
-                String::from("protobuf"),
-            )),
-            PayloadFormat::Json(_) => Err(Self::Error::ConversionNotPossible(
-                String::from("json"),
-                String::from("protobuf"),
-            )),
-            PayloadFormat::Yaml(_) => Err(Self::Error::ConversionNotPossible(
-                String::from("yaml"),
-                String::from("protobuf"),
-            )),
-        }
-    }
-}
-
 fn validate_protobuf(value: &MessageValue) -> Result<(), PayloadFormatError> {
     for field in &value.fields {
         let result = match &field.value {

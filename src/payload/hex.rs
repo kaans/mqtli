@@ -48,7 +48,7 @@ impl TryFrom<PayloadFormat> for PayloadFormatHex {
         match value {
             PayloadFormat::Text(value) => {
                 let a: Vec<u8> = value.into();
-                Ok(Self::from(a))
+                Ok(Self::decode_from(a)?)
             }
             PayloadFormat::Raw(value) => {
                 let a: Vec<u8> = value.into();

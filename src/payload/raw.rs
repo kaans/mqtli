@@ -5,11 +5,10 @@ pub struct PayloadFormatRaw {
     content: Vec<u8>,
 }
 
-impl TryFrom<Vec<u8>> for PayloadFormatRaw {
-    type Error = PayloadFormatError;
+impl From<Vec<u8>> for PayloadFormatRaw {
 
-    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        Ok(Self { content: value })
+    fn from(value: Vec<u8>) -> Self {
+        Self { content: value }
     }
 }
 
@@ -26,20 +25,20 @@ impl TryFrom<PayloadFormat> for PayloadFormatRaw {
         match value {
             PayloadFormat::Text(value) => {
                 let a: Vec<u8> = value.into();
-                Self::try_from(a)
+                Ok(Self::from(a))
             }
             PayloadFormat::Raw(value) => Ok(value),
             PayloadFormat::Protobuf(value) => {
                 let a: Vec<u8> = value.into();
-                Self::try_from(a)
+                Ok(Self::from(a))
             }
             PayloadFormat::Hex(value) => {
                 let a: Vec<u8> = value.into();
-                Self::try_from(a)
+                Ok(Self::from(a))
             }
             PayloadFormat::Base64(value) => {
                 let a: Vec<u8> = value.into();
-                Self::try_from(a)
+                Ok(Self::from(a))
             }
             PayloadFormat::Json(value) => {
                 let Some(text_node) = value.content().get("content") else {
@@ -54,7 +53,7 @@ impl TryFrom<PayloadFormat> for PayloadFormatRaw {
                     ));
                 };
 
-                Self::try_from(Vec::from(text_node))
+                Ok(Self::from(Vec::from(text_node)))
             }
             PayloadFormat::Yaml(value) => {
                 let Some(text_node) = value.content().get("content") else {
@@ -69,7 +68,7 @@ impl TryFrom<PayloadFormat> for PayloadFormatRaw {
                     ));
                 };
 
-                Self::try_from(Vec::from(text_node))
+                Ok(Self::from(Vec::from(text_node)))
             }
         }
     }

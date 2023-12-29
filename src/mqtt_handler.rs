@@ -1,14 +1,14 @@
 use std::str::from_utf8;
 use std::sync::Arc;
 
-use log::{debug, error, info};
+use log::{error, info};
 use rumqttc::v5::{Event, Incoming};
 use tokio::sync::broadcast::Receiver;
 use tokio::task;
 use tokio::task::JoinHandle;
 
-use crate::config::mqtli_config::OutputTarget::Console;
 use crate::config::mqtli_config::{Output, OutputTarget, Topic};
+use crate::config::mqtli_config::OutputTarget::Console;
 use crate::output::console::ConsoleOutput;
 use crate::output::file::FileOutput;
 use crate::output::OutputError;

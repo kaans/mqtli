@@ -105,6 +105,7 @@ pub enum PublishInputType {
     Hex(PublishInputTypeContentPath),
     Json(PublishInputTypeContentPath),
     Yaml(PublishInputTypeContentPath),
+    Base64(PublishInputTypeContentPath),
 }
 
 impl Default for PublishInputType {
@@ -131,6 +132,9 @@ impl Validate for PublishInputType {
             PublishInputType::Yaml(value) => {
                 ValidationErrors::merge(Ok(()), "Yaml", value.validate())
             }
+            PublishInputType::Base64(value) => {
+                ValidationErrors::merge(Ok(()), "Base64", value.validate())
+            }
         }
     }
 }
@@ -141,7 +145,9 @@ impl From<&args::PublishInputType> for PublishInputType {
             args::PublishInputType::Text(value) => {
                 Self::Text(PublishInputTypeContentPath::from(value))
             }
-            args::PublishInputType::Raw(value) => Self::Raw(PublishInputTypePath::from(value)),
+            args::PublishInputType::Raw(value) => {
+                Self::Raw(PublishInputTypePath::from(value))
+            }
             args::PublishInputType::Hex(value) => {
                 Self::Hex(PublishInputTypeContentPath::from(value))
             }
@@ -150,6 +156,9 @@ impl From<&args::PublishInputType> for PublishInputType {
             }
             args::PublishInputType::Yaml(value) => {
                 Self::Yaml(PublishInputTypeContentPath::from(value))
+            }
+            args::PublishInputType::Base64(value) => {
+                Self::Base64(PublishInputTypeContentPath::from(value))
             }
         }
     }
@@ -293,15 +302,23 @@ impl From<&args::Output> for Output {
 pub enum PayloadType {
     Text(PayloadText),
     Protobuf(PayloadProtobuf),
+    Json(PayloadJson),
+    Yaml(PayloadYaml),
+    Hex(PayloadHex),
+    Base64(PayloadBase64),
+    Raw(PayloadRaw),
 }
 
 impl From<&args::PayloadType> for PayloadType {
     fn from(value: &args::PayloadType) -> Self {
         match value {
             args::PayloadType::Text(value) => PayloadType::Text(PayloadText::from(value)),
-            args::PayloadType::Protobuf(value) => {
-                PayloadType::Protobuf(PayloadProtobuf::from(value))
-            }
+            args::PayloadType::Protobuf(value) => PayloadType::Protobuf(PayloadProtobuf::from(value)),
+            args::PayloadType::Json(value) => PayloadType::Json(PayloadJson::from(value)),
+            args::PayloadType::Yaml(value) => PayloadType::Yaml(PayloadYaml::from(value)),
+            args::PayloadType::Hex(value) => PayloadType::Hex(PayloadHex::from(value)),
+            args::PayloadType::Base64(value) => PayloadType::Base64(PayloadBase64::from(value)),
+            args::PayloadType::Raw(value) => PayloadType::Raw(PayloadRaw::from(value)),
         }
     }
 }
@@ -439,6 +456,51 @@ impl From<&args::PayloadProtobuf> for PayloadProtobuf {
     }
 }
 
+#[derive(Clone, Debug, Default, Getters, Validate)]
+pub struct PayloadJson {}
+
+impl From<&args::PayloadJson> for PayloadJson {
+    fn from(_value: &args::PayloadJson) -> Self {
+        Self {}
+    }
+}
+
+#[derive(Clone, Debug, Default, Getters, Validate)]
+pub struct PayloadYaml {}
+
+impl From<&args::PayloadYaml> for PayloadYaml {
+    fn from(_value: &args::PayloadYaml) -> Self {
+        Self {}
+    }
+}
+
+#[derive(Clone, Debug, Default, Getters, Validate)]
+pub struct PayloadHex {}
+
+impl From<&args::PayloadHex> for PayloadHex {
+    fn from(_value: &args::PayloadHex) -> Self {
+        Self {}
+    }
+}
+
+#[derive(Clone, Debug, Default, Getters, Validate)]
+pub struct PayloadBase64 {}
+
+impl From<&args::PayloadBase64> for PayloadBase64 {
+    fn from(_value: &args::PayloadBase64) -> Self {
+        Self {}
+    }
+}
+
+#[derive(Clone, Debug, Default, Getters, Validate)]
+pub struct PayloadRaw {}
+
+impl From<&args::PayloadRaw> for PayloadRaw {
+    fn from(_value: &args::PayloadRaw) -> Self {
+        Self {}
+    }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, ValueEnum)]
 pub enum TlsVersion {
     #[default]
@@ -463,8 +525,8 @@ pub struct MqttBrokerConnectArgs {
     #[validate(length(min = 1, message = "Client id must be given"))]
     client_id: String,
     #[validate(custom(
-        function = "validate_keep_alive",
-        message = "Keep alive must be a number and at least 5 seconds"
+    function = "validate_keep_alive",
+    message = "Keep alive must be a number and at least 5 seconds"
     ))]
     keep_alive: Duration,
     username: Option<String>,
