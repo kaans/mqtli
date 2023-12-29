@@ -15,6 +15,14 @@ impl TryFrom<Vec<u8>> for PayloadFormatText {
     }
 }
 
+impl From<String> for PayloadFormatText {
+    fn from(val: String) -> Self {
+        Self {
+            content: val
+        }
+    }
+}
+
 impl From<PayloadFormatText> for Vec<u8> {
     fn from(val: PayloadFormatText) -> Self {
         val.content.into_bytes()
