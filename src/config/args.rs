@@ -155,7 +155,10 @@ pub enum PublishInputType {
     Raw(PublishInputTypePath),
     #[serde(rename = "hex")]
     Hex(PublishInputTypeContentPath),
-    // TODO add more patterns
+    #[serde(rename = "json")]
+    Json(PublishInputTypeContentPath),
+    #[serde(rename = "yaml")]
+    Yaml(PublishInputTypeContentPath),
 }
 
 impl Default for PublishInputType {
