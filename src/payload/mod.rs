@@ -203,10 +203,10 @@ impl PayloadFormat {
                 Ok(PayloadFormat::Text(PayloadFormatText::try_from(content)?))
             }
             PayloadType::Protobuf(options) => {
-                Ok(PayloadFormat::Protobuf(PayloadFormatProtobuf::new_from_definition_file(
-                    content.try_into()?,
+                Ok(PayloadFormat::Protobuf(PayloadFormatProtobuf::convert_from_definition_file(
+                    content,
                     options.definition(),
-                    options.message().clone(),
+                    options.message(),
                 )?))
             }
         }
