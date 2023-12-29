@@ -23,6 +23,14 @@ impl From<String> for PayloadFormatText {
     }
 }
 
+impl From<&str> for PayloadFormatText {
+    fn from(val: &str) -> Self {
+        Self {
+            content: val.to_string()
+        }
+    }
+}
+
 impl From<PayloadFormatText> for Vec<u8> {
     fn from(val: PayloadFormatText) -> Self {
         val.content.into_bytes()
