@@ -1,3 +1,6 @@
+use std::fmt::{Display, Formatter};
+use std::string::FromUtf8Error;
+
 use crate::payload::{PayloadFormat, PayloadFormatError};
 
 #[derive(Clone, Debug)]
@@ -5,17 +8,37 @@ pub struct PayloadFormatText {
     content: String,
 }
 
+impl PayloadFormatText {
+    fn decode_from_utf8(value: String) -> Vec<u8> {
+        value.into_bytes()
+    }
+
+    fn encode_to_utf8(value: Vec<u8>) -> Result<String, FromUtf8Error> {
+        String::from_utf8(value)
+    }
+}
+
+/// Displays the UTF-8 encoded content.
+impl Display for PayloadFormatText {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.content)
+    }
+}
+
+/// Encodes the given bytes as UTF-8 string.
 impl TryFrom<Vec<u8>> for PayloadFormatText {
     type Error = PayloadFormatError;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
         Ok(Self {
-            content: String::from_utf8(value)?,
+            content: Self::encode_to_utf8(value)?,
         })
     }
 }
 
-impl From<String> for PayloadFormatText {
+/// Creates a new instance with the given UTF-8 encoded string as content.
+/// The value is not modified, only moved to the new instance.
+impl From<String> for PayloadFormatText where {
     fn from(val: String) -> Self {
         Self {
             content: val
@@ -23,17 +46,26 @@ impl From<String> for PayloadFormatText {
     }
 }
 
-impl From<&str> for PayloadFormatText {
+/// Creates a new instance with the given UTF-8 encoded string as content.
+/// The value is not modified, only moved to the new instance.
+impl From<&str> for PayloadFormatText where {
     fn from(val: &str) -> Self {
-        Self {
-            content: val.to_string()
-        }
+        Self::from(val.to_string())
     }
 }
 
+/// Converts the utf-8 encoded content to its bytes.
+///
+/// # Examples
+/// ```
+/// let input = PayloadFormatText::from(String::from("INPUT"));
+/// let v: Vec<u8> = Vec::from(input);
+///
+/// assert_eq!(vec![0x49, 0x4e, 0x50, 0x55, 0x54], v);
+/// ```
 impl From<PayloadFormatText> for Vec<u8> {
     fn from(val: PayloadFormatText) -> Self {
-        val.content.into_bytes()
+        PayloadFormatText::decode_from_utf8(<PayloadFormatText as Into<String>>::into(val))
     }
 }
 
@@ -62,11 +94,11 @@ impl TryFrom<PayloadFormat> for PayloadFormatText {
                 )?,
             }),
             PayloadFormat::Hex(value) => {
-                let a: Vec<u8> = value.into();
+                let a: Vec<u8> = value.try_into()?;
                 Self::try_from(a)
             }
             PayloadFormat::Base64(value) => {
-                let a: Vec<u8> = value.into();
+                let a: Vec<u8> = value.try_into()?;
                 Self::try_from(a)
             }
             PayloadFormat::Json(value) => {
@@ -82,7 +114,7 @@ impl TryFrom<PayloadFormat> for PayloadFormatText {
                     ));
                 };
 
-                Self::try_from(Vec::<u8>::from(text_node))
+                Ok(Self::from(text_node))
             }
             PayloadFormat::Yaml(value) => {
                 let Some(text_node) = value.content().get("content") else {
@@ -97,7 +129,7 @@ impl TryFrom<PayloadFormat> for PayloadFormatText {
                     ));
                 };
 
-                Self::try_from(Vec::<u8>::from(text_node))
+                Ok(Self::from(text_node))
             }
         }
     }
@@ -121,12 +153,12 @@ mod protobuf {
 
         let message_text = match parent_field {
             None => {
-                format!("{}\n", message_info.full_name)
+                format!("{} (Message)\n", message_info.full_name)
             }
             Some(parent_field) => {
                 let indent_spaces = (0..indent_level).map(|_| "  ").collect::<String>();
                 format!(
-                    "{indent_spaces}[{}] {}\n",
+                    "{indent_spaces}[{}] {} (Message)\n",
                     parent_field, message_info.full_name
                 )
             }
@@ -251,6 +283,7 @@ mod protobuf {
                         get_message_value(context, value, indent_level, Some(field.number))?
                     }
                     value => {
+                        // TODO implement missing protobuf values for text conversion
                         format!(
                             "{indent_spaces}[{}] Unknown value encountered: {:?}\n",
                             field.number, value
@@ -284,8 +317,29 @@ mod tests {
     }
 
     #[test]
-    fn from_vec_u8() {
+    fn from_valid_vec_u8() {
         let result = PayloadFormatText::try_from(get_input()).unwrap();
+
+        assert_eq!(INPUT_STRING.to_owned(), result.content);
+    }
+
+    #[test]
+    fn from_invalid_vec_u8() {
+        let result = PayloadFormatText::try_from(vec![0xc3, 0x28]);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn from_string() {
+        let result = PayloadFormatText::from(INPUT_STRING.to_string());
+
+        assert_eq!(INPUT_STRING.to_owned(), result.content);
+    }
+
+    #[test]
+    fn from_string_ref() {
+        let result = PayloadFormatText::from(INPUT_STRING);
 
         assert_eq!(INPUT_STRING.to_owned(), result.content);
     }

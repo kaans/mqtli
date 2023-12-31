@@ -1,4 +1,6 @@
+use std::fmt::{Display, Formatter};
 use derive_getters::Getters;
+use log::error;
 use serde_yaml::{from_slice, from_str, Value};
 
 use crate::payload::{PayloadFormat, PayloadFormatError};
@@ -8,13 +10,33 @@ pub struct PayloadFormatYaml {
     content: Value,
 }
 
+impl PayloadFormatYaml {
+    fn decode_from_yaml_payload(value: &PayloadFormatYaml) -> serde_yaml::Result<String> {
+        serde_yaml::to_string(&value.content)
+    }
+
+    fn encode_to_yaml(value: Vec<u8>) -> serde_yaml::Result<Value> {
+        from_slice(value.as_slice())
+    }
+}
+
+/// Displays the hex encoded content.
+impl Display for PayloadFormatYaml {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", Self::decode_from_yaml_payload(self).map_err(|e| {
+            error!("Cannot display yaml, error while decoding: {:?}", e);
+            ""
+        }).unwrap())
+    }
+}
+
 impl TryFrom<Vec<u8>> for PayloadFormatYaml {
     type Error = PayloadFormatError;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        let content = from_slice(value.as_slice())?;
-
-        Ok(Self { content })
+        Ok(Self {
+            content: Self::encode_to_yaml(value)?
+        })
     }
 }
 
@@ -22,9 +44,7 @@ impl TryFrom<String> for PayloadFormatYaml {
     type Error = PayloadFormatError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        let content = from_slice(value.as_bytes())?;
-
-        Ok(Self { content })
+        Self::try_from(value.into_bytes())
     }
 }
 
@@ -38,7 +58,7 @@ impl TryFrom<PayloadFormatYaml> for Vec<u8> {
     type Error = PayloadFormatError;
 
     fn try_from(value: PayloadFormatYaml) -> Result<Self, Self::Error> {
-        Ok(serde_yaml::to_string(&value.content)?.into_bytes())
+        Ok(<PayloadFormatYaml as TryInto<String>>::try_into(value)?.into_bytes())
     }
 }
 
@@ -46,8 +66,7 @@ impl TryFrom<PayloadFormatYaml> for String {
     type Error = PayloadFormatError;
 
     fn try_from(value: PayloadFormatYaml) -> Result<Self, Self::Error> {
-        let result: Result<Vec<u8>, Self::Error> = value.try_into();
-        Ok(String::from_utf8(result?)?)
+        Ok(PayloadFormatYaml::decode_from_yaml_payload(&value)?)
     }
 }
 
@@ -55,9 +74,14 @@ impl TryFrom<PayloadFormat> for PayloadFormatYaml {
     type Error = PayloadFormatError;
 
     fn try_from(value: PayloadFormat) -> Result<Self, Self::Error> {
+        fn convert_from_value(value: String) -> Result<PayloadFormatYaml, PayloadFormatError> {
+            let yaml: Value = from_str(format!("content: {}", value).as_str())?;
+            Ok(PayloadFormatYaml::from(yaml))
+        }
+
         match value {
             PayloadFormat::Text(value) => {
-                Self::convert_from_value(value.into())
+                convert_from_value(value.into())
             }
             PayloadFormat::Raw(_value) => {
                 Err(PayloadFormatError::ConversionNotPossible("raw".to_string(), "yaml".to_string()))
@@ -66,10 +90,10 @@ impl TryFrom<PayloadFormat> for PayloadFormatYaml {
                 content: protobuf::get_message_value(value.context(), value.message_value())?,
             }),
             PayloadFormat::Hex(value) => {
-                Self::convert_from_value(value.into())
+                convert_from_value(value.into())
             }
             PayloadFormat::Base64(value) => {
-                Self::convert_from_value(value.into())
+                convert_from_value(value.into())
             }
             PayloadFormat::Yaml(value) => Ok(value),
             PayloadFormat::Json(value) => {
@@ -78,13 +102,6 @@ impl TryFrom<PayloadFormat> for PayloadFormatYaml {
                 })
             }
         }
-    }
-}
-
-impl PayloadFormatYaml {
-    fn convert_from_value(value: String) -> Result<PayloadFormatYaml, PayloadFormatError> {
-        let yaml: Value = from_str(format!("content: {}", value).as_str())?;
-        Ok(PayloadFormatYaml::from(yaml))
     }
 }
 
@@ -138,7 +155,10 @@ mod protobuf {
             Value::Bool(value) => serde_yaml::Value::Bool(*value),
             Value::String(value) => serde_yaml::Value::String(value.clone()),
             Value::Message(value) => get_message_value(context, value)?,
-            value => serde_yaml::Value::String(format!("Unknown: {:?}", value)),
+            value => {
+                // TODO implement missing protobuf values for yaml conversion
+                serde_yaml::Value::String(format!("Unknown: {:?}", value))
+            }
         };
 
         Ok(result)
@@ -169,6 +189,7 @@ mod tests {
     fn get_input_yaml(value: &str) -> String {
         format!("content: {}\n", value)
     }
+
     fn get_yaml_value(value: &str) -> Value {
         from_str(get_input_yaml(value).as_str()).unwrap()
     }
