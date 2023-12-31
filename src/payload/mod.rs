@@ -64,6 +64,10 @@ pub enum PayloadFormatError {
     CouldNotConvertToHex(#[source] FromHexError),
     #[error("Could not convert payload to base64")]
     CouldNotConvertToBase64(#[source] DecodeError),
+    #[error("The value is not valid hex formatted: {0}")]
+    ValueIsNotValidHex(String),
+    #[error("The value is not valid base64 formatted: {0}")]
+    ValueIsNotValidBase64(String),
 }
 
 impl From<FromUtf8Error> for PayloadFormatError {
@@ -115,8 +119,8 @@ impl TryInto<Vec<u8>> for PayloadFormat {
             PayloadFormat::Text(value) => Ok(value.into()),
             PayloadFormat::Raw(value) => Ok(value.into()),
             PayloadFormat::Protobuf(value) => Ok(value.into()),
-            PayloadFormat::Hex(value) => Ok(value.into()),
-            PayloadFormat::Base64(value) => Ok(value.into()),
+            PayloadFormat::Hex(value) => Ok(value.try_into()?),
+            PayloadFormat::Base64(value) => Ok(value.try_into()?),
             PayloadFormat::Json(value) => Ok(value.into()),
             PayloadFormat::Yaml(value) => value.try_into(),
         }
@@ -209,7 +213,7 @@ impl PayloadFormat {
             }
             PublishInputType::Hex(input) => {
                 let c = read_input_type_content_path(input)?;
-                PayloadFormat::Hex(PayloadFormatHex::decode_from(c)?)
+                PayloadFormat::Hex(PayloadFormatHex::try_from(String::from_utf8(c)?)?)
             }
             PublishInputType::Json(input) => {
                 let c = read_input_type_content_path(input)?;

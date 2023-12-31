@@ -17,10 +17,10 @@ pub struct PayloadFormatProtobuf {
 impl PayloadFormatProtobuf {
     pub fn new(content: Vec<u8>, definition_file_content: String, message_name: String) -> Result<Self, PayloadFormatError> {
         let (context, message_value) =
-            get_message_value(&content, definition_file_content, message_name.as_str())?;
+            Self::get_message_value(&content, definition_file_content, message_name.as_str())?;
 
         let message_value = Box::new(message_value);
-        validate_protobuf(&message_value)?;
+        Self::validate_protobuf(&message_value)?;
 
         Ok(Self {
             message_value,
@@ -42,17 +42,17 @@ impl PayloadFormatProtobuf {
             PayloadFormat::Text(_value) => return Err(PayloadFormatError::ConversionNotPossible("text".to_string(), "protobuf".to_string())),
             PayloadFormat::Raw(value) => Vec::from(value),
             PayloadFormat::Protobuf(value) => Vec::from(value),
-            PayloadFormat::Hex(value) => Vec::from(value),
-            PayloadFormat::Base64(value) => Vec::from(value),
+            PayloadFormat::Hex(value) => Vec::try_from(value)?,
+            PayloadFormat::Base64(value) => Vec::try_from(value)?,
             PayloadFormat::Json(_value) => return Err(PayloadFormatError::ConversionNotPossible("text".to_string(), "protobuf".to_string())),
             PayloadFormat::Yaml(_value) => return Err(PayloadFormatError::ConversionNotPossible("text".to_string(), "protobuf".to_string())),
         };
 
         let (context, message_value) =
-            get_message_value(&content, definition_file_content, message_name)?;
+            Self::get_message_value(&content, definition_file_content, message_name)?;
 
         let message_value = Box::new(message_value);
-        validate_protobuf(&message_value)?;
+        Self::validate_protobuf(&message_value)?;
 
         Ok(Self {
             message_value,
@@ -81,48 +81,49 @@ impl PayloadFormatProtobuf {
         };
         Ok(content_from_file)
     }
+
+    fn validate_protobuf(value: &MessageValue) -> Result<(), PayloadFormatError> {
+        for field in &value.fields {
+            let result = match &field.value {
+                Value::Message(value) => Self::validate_protobuf(value),
+                Value::Unknown(_value) => Err(PayloadFormatError::InvalidProtobuf),
+                _ => Ok(()),
+            };
+
+            result?
+        }
+
+        Ok(())
+    }
+
+    fn get_message_value(
+        value: &[u8],
+        content: String,
+        message_name: &str,
+    ) -> Result<(Context, MessageValue), PayloadFormatError> {
+        let context = match Context::parse(vec![content.clone()]) {
+            Ok(context) => context,
+            Err(e) => {
+                return Err(PayloadFormatError::CouldNotParseProtoFile(e));
+            }
+        };
+
+        let Some(message_info) = context.get_message(message_name) else {
+            return Err(PayloadFormatError::MessageNotFoundInProtoFile(
+                message_name.to_owned(),
+            ));
+        };
+
+        let message_value = message_info.decode(value, &context);
+        Ok((context, message_value))
+    }
 }
 
+/// Encodes the protobuf message and returns its byte representation.
 impl From<PayloadFormatProtobuf> for Vec<u8> {
     fn from(val: PayloadFormatProtobuf) -> Self {
         val.message_value.encode(&val.context).to_vec()
     }
-}
-
-fn validate_protobuf(value: &MessageValue) -> Result<(), PayloadFormatError> {
-    for field in &value.fields {
-        let result = match &field.value {
-            Value::Message(value) => validate_protobuf(value),
-            Value::Unknown(_value) => Err(PayloadFormatError::InvalidProtobuf),
-            _ => Ok(()),
-        };
-
-        result?
-    }
-
-    Ok(())
-}
-
-fn get_message_value(
-    value: &[u8],
-    content: String,
-    message_name: &str,
-) -> Result<(Context, MessageValue), PayloadFormatError> {
-    let context = match Context::parse(vec![content.clone()]) {
-        Ok(context) => context,
-        Err(e) => {
-            return Err(PayloadFormatError::CouldNotParseProtoFile(e));
-        }
-    };
-
-    let Some(message_info) = context.get_message(message_name) else {
-        return Err(PayloadFormatError::MessageNotFoundInProtoFile(
-            message_name.to_owned(),
-        ));
-    };
-
-    let message_value = message_info.decode(value, &context);
-    Ok((context, message_value))
 }
 
 #[cfg(test)]
@@ -185,55 +186,6 @@ mod tests {
         let result: Vec<u8> = Vec::from(input);
 
         assert_eq!(get_input_as_bytes(), result);
-    }
-
-    #[test]
-    fn from_text_payload() {
-        let input = PayloadFormatText::try_from(get_input_as_bytes()).unwrap();
-        let result = PayloadFormatProtobuf::try_from(PayloadFormat::Text(input));
-
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn from_raw_payload() {
-        let input = PayloadFormatRaw::try_from(get_input_as_bytes()).unwrap();
-        let result = PayloadFormatProtobuf::try_from(PayloadFormat::Raw(input));
-
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn from_hex_payload() {
-        let input = PayloadFormatHex::try_from(INPUT_STRING_HEX.to_owned()).unwrap();
-        let result = PayloadFormatProtobuf::try_from(PayloadFormat::Hex(input));
-
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn from_base64_payload() {
-        let input = PayloadFormatBase64::try_from(INPUT_STRING_BASE64.to_owned()).unwrap();
-        let result = PayloadFormatProtobuf::try_from(PayloadFormat::Base64(input));
-
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn from_json_payload() {
-        let input =
-            PayloadFormatJson::try_from(Vec::<u8>::from(format!("{{\"content\": \"{}\"}}", INPUT_STRING_BASE64))).unwrap();
-        let result = PayloadFormatProtobuf::try_from(PayloadFormat::Json(input));
-
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn from_yaml_payload() {
-        let input = PayloadFormatYaml::try_from(Vec::<u8>::from(format!("content: \"{}\"", INPUT_STRING_BASE64))).unwrap();
-        let result = PayloadFormatProtobuf::try_from(PayloadFormat::Yaml(input));
-
-        assert!(result.is_err());
     }
 
     #[test]

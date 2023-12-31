@@ -1,5 +1,7 @@
+use std::fmt::{Display, Formatter};
+
 use derive_getters::Getters;
-use serde_json::{from_slice, from_str, Value};
+use serde_json::{from_slice, Value};
 
 use crate::payload::{PayloadFormat, PayloadFormatError};
 
@@ -12,6 +14,23 @@ use crate::payload::{PayloadFormat, PayloadFormatError};
 #[derive(Clone, Debug, Getters)]
 pub struct PayloadFormatJson {
     content: Value,
+}
+
+impl PayloadFormatJson {
+    fn decode_from_json_payload(value: &PayloadFormatJson) -> String {
+        value.content.to_string()
+    }
+
+    fn encode_to_json(value: Vec<u8>) -> serde_json::Result<Value> {
+        from_slice(value.as_slice())
+    }
+}
+
+/// Displays the hex encoded content.
+impl Display for PayloadFormatJson {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.content)
+    }
 }
 
 /// Decode JSON payload format from a `Vec<u8>`.
@@ -31,9 +50,9 @@ impl TryFrom<Vec<u8>> for PayloadFormatJson {
     type Error = PayloadFormatError;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        let content = from_slice(value.as_slice())?;
-
-        Ok(Self { content })
+        Ok(Self {
+            content: Self::encode_to_json(value)?
+        })
     }
 }
 
@@ -54,9 +73,7 @@ impl TryFrom<String> for PayloadFormatJson {
     type Error = PayloadFormatError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        let content = from_slice(value.as_bytes())?;
-
-        Ok(Self { content })
+        Self::try_from(value.into_bytes())
     }
 }
 
@@ -92,7 +109,7 @@ impl From<Value> for PayloadFormatJson {
 /// ```
 impl From<PayloadFormatJson> for Vec<u8> {
     fn from(val: PayloadFormatJson) -> Self {
-        val.content.to_string().into_bytes()
+        <PayloadFormatJson as Into<String>>::into(val).into_bytes()
     }
 }
 
@@ -111,7 +128,7 @@ impl From<PayloadFormatJson> for Vec<u8> {
 /// ```
 impl From<PayloadFormatJson> for String {
     fn from(val: PayloadFormatJson) -> Self {
-        val.content.to_string()
+        PayloadFormatJson::decode_from_json_payload(&val)
     }
 }
 
@@ -142,9 +159,13 @@ impl TryFrom<PayloadFormat> for PayloadFormatJson {
     type Error = PayloadFormatError;
 
     fn try_from(value: PayloadFormat) -> Result<Self, Self::Error> {
+        fn encode_to_json_with_string_content(value: String) -> Result<PayloadFormatJson, PayloadFormatError> {
+            Ok(PayloadFormatJson::from(PayloadFormatJson::encode_to_json(format!("{{\"content\": \"{}\"}}", value).into_bytes())?))
+        }
+
         match value {
             PayloadFormat::Text(value) => {
-                Self::convert_from_value(value.into())
+                encode_to_json_with_string_content(value.into())
             }
             PayloadFormat::Raw(_value) => {
                 Err(PayloadFormatError::ConversionNotPossible("raw".to_string(), "json".to_string()))
@@ -153,10 +174,10 @@ impl TryFrom<PayloadFormat> for PayloadFormatJson {
                 content: protobuf::get_message_value(value.context(), value.message_value())?,
             }),
             PayloadFormat::Hex(value) => {
-                Self::convert_from_value(value.into())
+                encode_to_json_with_string_content(value.into())
             }
             PayloadFormat::Base64(value) => {
-                Self::convert_from_value(value.into())
+                encode_to_json_with_string_content(value.into())
             }
             PayloadFormat::Json(value) => Ok(value),
             PayloadFormat::Yaml(value) => {
@@ -165,13 +186,6 @@ impl TryFrom<PayloadFormat> for PayloadFormatJson {
                 })
             }
         }
-    }
-}
-
-impl PayloadFormatJson {
-    fn convert_from_value(value: String) -> Result<PayloadFormatJson, PayloadFormatError> {
-        let json: Value = from_str(format!("{{\"content\": \"{}\"}}", value).as_str())?;
-        Ok(PayloadFormatJson::from(json))
     }
 }
 
@@ -251,6 +265,7 @@ mod protobuf {
             }
             Value::Message(value) => get_message_value(context, value)?,
             value => {
+                // TODO implement missing protobuf values for json conversion
                 json!(format!("Unknown: {:?}", value))
             }
         };
@@ -261,6 +276,7 @@ mod protobuf {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::from_str;
     use crate::payload::base64::PayloadFormatBase64;
     use crate::payload::hex::PayloadFormatHex;
     use crate::payload::json::PayloadFormatJson;
@@ -282,6 +298,7 @@ mod tests {
     fn get_input_json(value: &str) -> String {
         format!("{{\"content\":\"{}\"}}", value)
     }
+
     fn get_json_value(value: &str) -> Value {
         from_str(get_input_json(value).as_str()).unwrap()
     }
