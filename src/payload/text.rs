@@ -136,7 +136,7 @@ impl TryFrom<PayloadFormat> for PayloadFormatText {
 }
 
 mod protobuf {
-    use protofish::context::{Context, MessageInfo};
+    use protofish::context::{Context, EnumField, MessageInfo};
     use protofish::decode::{FieldValue, MessageValue, Value};
 
     use crate::payload::PayloadFormatError;
@@ -282,8 +282,29 @@ mod protobuf {
                     Value::Message(value) => {
                         get_message_value(context, value, indent_level, Some(field.number))?
                     }
-                    value => {
-                        // TODO implement missing protobuf values for text conversion
+                    Value::Packed(value) => {
+                        format!(
+                            "{indent_spaces}[{}] Unknown value encountered: {:?}\n",
+                            field.number, value
+                        )
+                    }
+                    Value::Enum(value) => {
+                        let enum_value = context.resolve_enum(value.enum_ref);
+
+                        format!(
+                            "{indent_spaces}[{}] {type_name} = {:?} (Enum {})\n",
+                            field.number,
+                            enum_value.get_field_by_value(value.value).unwrap_or(&EnumField::new("INVALID_VALUE".to_string(), 0)).name,
+                            enum_value.full_name
+                        )
+                    }
+                    Value::Incomplete(number, value) => {
+                        format!(
+                            "{indent_spaces}[{}] Incomplete value encountered: {}: {:?}\n",
+                            field.number, number, value
+                        )
+                    }
+                    Value::Unknown(value) => {
                         format!(
                             "{indent_spaces}[{}] Unknown value encountered: {:?}\n",
                             field.number, value
@@ -302,6 +323,7 @@ mod tests {
     use crate::payload::base64::PayloadFormatBase64;
     use crate::payload::hex::PayloadFormatHex;
     use crate::payload::json::PayloadFormatJson;
+    use crate::payload::protobuf::PayloadFormatProtobuf;
     use crate::payload::raw::PayloadFormatRaw;
     use crate::payload::yaml::PayloadFormatYaml;
 
@@ -309,8 +331,27 @@ mod tests {
 
     const INPUT_STRING: &str = "INPUT";
     const INPUT_STRING_HEX: &str = "494E505554";
-    // INPUT
-    const INPUT_STRING_BASE64: &str = "SU5QVVQ="; // INPUT
+    const INPUT_STRING_BASE64: &str = "SU5QVVQ=";
+    const INPUT_STRING_PROTOBUF_AS_HEX: &str = "082012080a066b696e646f661801";
+    const INPUT_STRING_MESSAGE: &str = r#"
+    syntax = "proto3";
+    package Proto;
+
+    enum Position {
+        POSITION_UNSPECIFIED = 0;
+        POSITION_INSIDE = 1;
+        POSITION_OUTSIDE = 2;
+    }
+
+    message Inner { string kind = 1; }
+
+    message Response {
+      int32 distance = 1;
+      Inner inside = 2;
+      Position position = 3;
+    }
+    "#;
+    const MESSAGE_NAME: &str = "Proto.Response";
 
     fn get_input() -> Vec<u8> {
         INPUT_STRING.into()
@@ -423,5 +464,15 @@ mod tests {
         let result = PayloadFormatText::try_from(PayloadFormat::Yaml(input)).unwrap();
 
         assert_eq!(INPUT_STRING.to_owned(), result.content);
+    }
+
+    #[test]
+    fn from_protobuf() {
+        let input = PayloadFormatProtobuf::new(
+            hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(), String::from(INPUT_STRING_MESSAGE), MESSAGE_NAME.to_string());
+        eprintln!("input = {:?}", input);
+        let result = PayloadFormatText::try_from(PayloadFormat::Protobuf(input.unwrap())).unwrap();
+
+        assert_eq!("Proto.Response (Message)\n  [1] distance = 32 (Int32)\n  [2] Proto.Inner (Message)\n    [1] kind = kindof (String)\n  [3] position = \"POSITION_INSIDE\" (Enum Proto.Position)\n".to_owned(), result.content);
     }
 }
