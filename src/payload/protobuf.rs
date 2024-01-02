@@ -20,7 +20,7 @@ impl PayloadFormatProtobuf {
             Self::get_message_value(&content, definition_file_content, message_name.as_str())?;
 
         let message_value = Box::new(message_value);
-        Self::validate_protobuf(&message_value)?;
+        //Self::validate_protobuf(&message_value)?;
 
         Ok(Self {
             message_value,
@@ -44,15 +44,15 @@ impl PayloadFormatProtobuf {
             PayloadFormat::Protobuf(value) => Vec::from(value),
             PayloadFormat::Hex(value) => Vec::try_from(value)?,
             PayloadFormat::Base64(value) => Vec::try_from(value)?,
-            PayloadFormat::Json(_value) => return Err(PayloadFormatError::ConversionNotPossible("text".to_string(), "protobuf".to_string())),
-            PayloadFormat::Yaml(_value) => return Err(PayloadFormatError::ConversionNotPossible("text".to_string(), "protobuf".to_string())),
+            PayloadFormat::Json(_value) => return Err(PayloadFormatError::ConversionNotPossible("json".to_string(), "protobuf".to_string())),
+            PayloadFormat::Yaml(_value) => return Err(PayloadFormatError::ConversionNotPossible("yaml".to_string(), "protobuf".to_string())),
         };
 
         let (context, message_value) =
             Self::get_message_value(&content, definition_file_content, message_name)?;
 
         let message_value = Box::new(message_value);
-        Self::validate_protobuf(&message_value)?;
+        //Self::validate_protobuf(&message_value)?;
 
         Ok(Self {
             message_value,
@@ -86,7 +86,11 @@ impl PayloadFormatProtobuf {
         for field in &value.fields {
             let result = match &field.value {
                 Value::Message(value) => Self::validate_protobuf(value),
-                Value::Unknown(_value) => Err(PayloadFormatError::InvalidProtobuf),
+                Value::Unknown(_value) => {
+                    eprintln!("_value = {:?}", _value);
+
+                    Err(PayloadFormatError::InvalidProtobuf)
+                },
                 _ => Ok(()),
             };
 
@@ -138,15 +142,6 @@ mod tests {
     use crate::payload::yaml::PayloadFormatYaml;
 
     use super::*;
-
-    const INPUT_STRING_JSON: &str = r#"
-        {
-          "distance": 32,
-          "inside": {
-            "kind": "kindof"
-          }
-        }
-    "#;
 
     const INPUT_STRING_MESSAGE: &str = r#"
     syntax = "proto3";

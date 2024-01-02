@@ -264,6 +264,16 @@ mod protobuf {
                 json!(value)
             }
             Value::Message(value) => get_message_value(context, value)?,
+            Value::Bytes(value) => json!(String::from_utf8(value.to_vec())?),
+            Value::Enum(value) => {
+                let enum_ref = value.enum_ref;
+                let enum_value = match context.resolve_enum(enum_ref).get_field_by_value(value.value) {
+                    None => "Unknown".to_string(),
+                    Some(value) => value.name.clone()
+                };
+
+                json!(enum_value)
+            }
             value => {
                 // TODO implement missing protobuf values for json conversion
                 json!(format!("Unknown: {:?}", value))
@@ -280,6 +290,7 @@ mod tests {
     use crate::payload::base64::PayloadFormatBase64;
     use crate::payload::hex::PayloadFormatHex;
     use crate::payload::json::PayloadFormatJson;
+    use crate::payload::protobuf::PayloadFormatProtobuf;
     use crate::payload::raw::PayloadFormatRaw;
     use crate::payload::text::PayloadFormatText;
     use crate::payload::yaml::PayloadFormatYaml;
@@ -288,8 +299,27 @@ mod tests {
 
     const INPUT_STRING: &str = "INPUT";
     const INPUT_STRING_HEX: &str = "494e505554";
-    // INPUT
-    const INPUT_STRING_BASE64: &str = "SU5QVVQ="; // INPUT
+    const INPUT_STRING_BASE64: &str = "SU5QVVQ=";
+    const INPUT_STRING_PROTOBUF_AS_HEX: &str = "082012080a066b696e646f661801";
+    const INPUT_STRING_MESSAGE: &str = r#"
+    syntax = "proto3";
+    package Proto;
+
+    enum Position {
+        POSITION_UNSPECIFIED = 0;
+        POSITION_INSIDE = 1;
+        POSITION_OUTSIDE = 2;
+    }
+
+    message Inner { string kind = 1; }
+
+    message Response {
+      int32 distance = 1;
+      Inner inside = 2;
+      Position position = 3;
+    }
+    "#;
+    const MESSAGE_NAME: &str = "Proto.Response";
 
     fn get_input() -> Vec<u8> {
         get_input_json(INPUT_STRING).into()
@@ -420,5 +450,17 @@ mod tests {
         assert_eq!("red", result.content.get("colors").unwrap().as_array().unwrap().get(0).unwrap().as_str().unwrap());
         assert_eq!("blue", result.content.get("colors").unwrap().as_array().unwrap().get(1).unwrap().as_str().unwrap());
         assert_eq!("green", result.content.get("colors").unwrap().as_array().unwrap().get(2).unwrap().as_str().unwrap());
+    }
+
+    #[test]
+    fn from_protobuf() {
+        let input = PayloadFormatProtobuf::new(
+            hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(), String::from(INPUT_STRING_MESSAGE), MESSAGE_NAME.to_string());
+        eprintln!("input = {:?}", input);
+        let result = PayloadFormatJson::try_from(PayloadFormat::Protobuf(input.unwrap())).unwrap();
+
+        assert_eq!(32, result.content.get("distance").unwrap().as_i64().unwrap());
+        assert_eq!("POSITION_INSIDE", result.content.get("position").unwrap().as_str().unwrap());
+        assert_eq!("kindof", result.content.get("inside").unwrap().as_object().unwrap().get("kind").unwrap().as_str().unwrap());
     }
 }
