@@ -1,6 +1,10 @@
 use std::fmt::{Display, Formatter};
 use std::string::FromUtf8Error;
 
+use base64::Engine;
+use base64::engine::general_purpose;
+
+use crate::config::{PayloadOptionRawFormat, PayloadText};
 use crate::payload::{PayloadFormat, PayloadFormatError};
 
 #[derive(Clone, Debug)]
@@ -15,6 +19,13 @@ impl PayloadFormatText {
 
     fn encode_to_utf8(value: Vec<u8>) -> Result<String, FromUtf8Error> {
         String::from_utf8(value)
+    }
+
+    fn convert_raw_type(options: &PayloadText, value: Vec<u8>) -> String {
+        match options.raw_as_type() {
+            PayloadOptionRawFormat::Hex => hex::encode(value),
+            PayloadOptionRawFormat::Base64 => general_purpose::STANDARD.encode(value),
+        }
     }
 }
 
@@ -77,11 +88,20 @@ impl TryFrom<PayloadFormat> for PayloadFormatText {
     type Error = PayloadFormatError;
 
     fn try_from(value: PayloadFormat) -> Result<Self, Self::Error> {
+        Self::try_from((value, &PayloadText::default()))
+    }
+}
+
+impl TryFrom<(PayloadFormat, &PayloadText)> for PayloadFormatText {
+    type Error = PayloadFormatError;
+
+    fn try_from((value, options): (PayloadFormat, &PayloadText)) -> Result<Self, Self::Error> {
         match value {
             PayloadFormat::Text(value) => Ok(value),
             PayloadFormat::Raw(value) => {
-                let a: Vec<u8> = value.into();
-                Self::try_from(a)
+                Ok(Self {
+                    content: Self::convert_raw_type(options, value.into())
+                })
             }
             PayloadFormat::Protobuf(value) => Ok(Self {
                 content: protobuf::get_message_value(
@@ -89,6 +109,7 @@ impl TryFrom<PayloadFormat> for PayloadFormatText {
                     value.message_value(),
                     0,
                     None,
+                    options
                 )?,
             }),
             PayloadFormat::Hex(value) => {
@@ -136,14 +157,17 @@ impl TryFrom<PayloadFormat> for PayloadFormatText {
 mod protobuf {
     use protofish::context::{Context, EnumField, MessageInfo};
     use protofish::decode::{FieldValue, MessageValue, Value};
+    use crate::config::PayloadText;
 
     use crate::payload::PayloadFormatError;
+    use crate::payload::text::PayloadFormatText;
 
     pub(super) fn get_message_value(
         context: &Context,
         message_value: &MessageValue,
         indent_level: u16,
         parent_field: Option<u64>,
+        options: &PayloadText,
     ) -> Result<String, PayloadFormatError> {
         let mut result = String::new();
 
@@ -164,7 +188,7 @@ mod protobuf {
         result.push_str(&message_text);
 
         for field in &message_value.fields {
-            let result_field = get_field_value(context, message_info, field, indent_level + 1)?;
+            let result_field = get_field_value(context, message_info, field, indent_level + 1, options)?;
             result.push_str(&result_field);
         }
 
@@ -176,6 +200,7 @@ mod protobuf {
         message_response: &MessageInfo,
         field_value: &FieldValue,
         indent_level: u16,
+        options: &PayloadText,
     ) -> Result<String, PayloadFormatError> {
         let indent_spaces = (0..indent_level).map(|_| "  ").collect::<String>();
 
@@ -274,11 +299,11 @@ mod protobuf {
                     Value::Bytes(value) => {
                         format!(
                             "{indent_spaces}[{}] {type_name} = {:?} (Bytes)\n",
-                            field.number, value
+                            field.number, PayloadFormatText::convert_raw_type(options, value.to_vec())
                         )
                     }
                     Value::Message(value) => {
-                        get_message_value(context, value, indent_level, Some(field.number))?
+                        get_message_value(context, value, indent_level, Some(field.number), options)?
                     }
                     Value::Packed(value) => {
                         format!(
@@ -331,9 +356,9 @@ mod tests {
     use super::*;
 
     const INPUT_STRING: &str = "INPUT";
-    const INPUT_STRING_HEX: &str = "494E505554";
+    const INPUT_STRING_HEX: &str = "494e505554";
     const INPUT_STRING_BASE64: &str = "SU5QVVQ=";
-    const INPUT_STRING_PROTOBUF_AS_HEX: &str = "082012080a066b696e646f661801";
+    const INPUT_STRING_PROTOBUF_AS_HEX: &str = "082012080a066b696e646f6618012202c328";
     const INPUT_STRING_MESSAGE: &str = r#"
     syntax = "proto3";
     package Proto;
@@ -350,6 +375,7 @@ mod tests {
       int32 distance = 1;
       Inner inside = 2;
       Position position = 3;
+      bytes raw = 4;
     }
     "#;
     const MESSAGE_NAME: &str = "Proto.Response";
@@ -427,11 +453,21 @@ mod tests {
     }
 
     #[test]
-    fn from_raw() {
-        let input = PayloadFormatRaw::try_from(get_input()).unwrap();
-        let result = PayloadFormatText::try_from(PayloadFormat::Raw(input)).unwrap();
+    fn from_raw_as_hex() {
+        let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
+        let options = PayloadText::default();
+        let result = PayloadFormatText::try_from((PayloadFormat::Raw(input), &options)).unwrap();
 
-        assert_eq!(INPUT_STRING.to_owned(), result.content);
+        assert_eq!(INPUT_STRING_HEX.to_string(), result.content);
+    }
+
+    #[test]
+    fn from_raw_as_base64() {
+        let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
+        let options = PayloadText::new(PayloadOptionRawFormat::Base64);
+        let result = PayloadFormatText::try_from((PayloadFormat::Raw(input), &options)).unwrap();
+
+        assert_eq!(INPUT_STRING_BASE64.to_string(), result.content);
     }
 
     #[test]
@@ -456,7 +492,7 @@ mod tests {
             "{{\"content\": \"{}\"}}",
             INPUT_STRING
         )))
-        .unwrap();
+            .unwrap();
         let result = PayloadFormatText::try_from(PayloadFormat::Json(input)).unwrap();
 
         assert_eq!(INPUT_STRING.to_owned(), result.content);
@@ -482,6 +518,40 @@ mod tests {
         eprintln!("input = {:?}", input);
         let result = PayloadFormatText::try_from(PayloadFormat::Protobuf(input.unwrap())).unwrap();
 
-        assert_eq!("Proto.Response (Message)\n  [1] distance = 32 (Int32)\n  [2] Proto.Inner (Message)\n    [1] kind = kindof (String)\n  [3] position = \"POSITION_INSIDE\" (Enum Proto.Position)\n".to_owned(), result.content);
+        assert_eq!("Proto.Response (Message)\n  [1] distance = 32 (Int32)\n  [2] Proto.Inner (Message)\n    [1] kind = kindof (String)\n  [3] position = \"POSITION_INSIDE\" (Enum Proto.Position)\n  [4] raw = \"c328\" (Bytes)\n".to_owned(), result.content);
+    }
+
+    #[test]
+    fn from_protobuf_raw_as_hex() {
+        let input = PayloadFormatProtobuf::new(
+            hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(),
+            String::from(INPUT_STRING_MESSAGE),
+            MESSAGE_NAME.to_string(),
+        );
+        let options = PayloadText::default();
+        let result =
+            PayloadFormatText::try_from((PayloadFormat::Protobuf(input.unwrap()), &options))
+                .unwrap();
+
+        assert!(
+            result.content.contains("raw = \"c328\"")
+        );
+    }
+
+    #[test]
+    fn from_protobuf_raw_as_base64() {
+        let input = PayloadFormatProtobuf::new(
+            hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(),
+            String::from(INPUT_STRING_MESSAGE),
+            MESSAGE_NAME.to_string(),
+        );
+        let options = PayloadText::new(PayloadOptionRawFormat::Base64);
+        let result =
+            PayloadFormatText::try_from((PayloadFormat::Protobuf(input.unwrap()), &options))
+                .unwrap();
+
+        assert!(
+            result.content.contains("raw = \"wyg=\"")
+        );
     }
 }

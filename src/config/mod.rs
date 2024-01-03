@@ -46,7 +46,17 @@ impl Default for PayloadType {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct PayloadText {}
+pub struct PayloadText {
+    #[serde(default)]
+    #[serde(rename = "raw_as")]
+    raw_as_type: PayloadOptionRawFormat,
+}
+
+impl PayloadText {
+    pub fn new(raw_as_type: PayloadOptionRawFormat) -> Self {
+        Self { raw_as_type }
+    }
+}
 
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct PayloadProtobuf {
@@ -68,6 +78,7 @@ pub enum PayloadOptionRawFormat {
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct PayloadJson {
     #[serde(default)]
+    #[serde(rename = "raw_as")]
     raw_as_type: PayloadOptionRawFormat,
 }
 
@@ -80,6 +91,7 @@ impl PayloadJson {
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct PayloadYaml {
     #[serde(default)]
+    #[serde(rename = "raw_as")]
     raw_as_type: PayloadOptionRawFormat,
 }
 
