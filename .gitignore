@@ -1,6 +1,9 @@
 /target
 
-/config*.yaml
+/config.*.yaml
+!/config.default.yaml
+!/config.example.yaml
+
 /tmp
 
 .idea

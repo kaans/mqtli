@@ -4,14 +4,15 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
 
-use clap::{Args, Parser, ValueEnum};
+use clap::{Args, Parser};
 use derive_getters::Getters;
 use log::LevelFilter;
 use rumqttc::v5::mqttbytes::QoS;
-use serde::{Deserialize, Deserializer};
 use serde::de::{Error, Unexpected};
+use serde::{Deserialize, Deserializer};
 
-use crate::config::{args, ConfigError, OutputFormat};
+use crate::config::mqtli_config::TlsVersion;
+use crate::config::{args, ConfigError, PayloadType, PublishInputType};
 
 #[derive(Debug, Deserialize, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -21,7 +22,12 @@ pub struct MqtliArgs {
 
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_level_filter")]
-    #[arg(short = 'l', long = "log-level", env = "LOG_LEVEL", help_heading = "Logging")]
+    #[arg(
+        short = 'l',
+        long = "log-level",
+        env = "LOG_LEVEL",
+        help_heading = "Logging"
+    )]
     pub log_level: Option<LevelFilter>,
 
     #[arg(long = "config-file", env = "CONFIG_FILE_PATH")]
@@ -45,7 +51,7 @@ pub struct MqttBrokerConnectArgs {
     pub client_id: Option<String>,
 
     #[serde(default)]
-    #[serde(deserialize_with = "deserialize_keep_alive")]
+    #[serde(deserialize_with = "deserialize_duration_seconds")]
     #[arg(long = "keep-alive", env = "BROKER_KEEP_ALIVE", value_parser = parse_keep_alive)]
     pub keep_alive: Option<Duration>,
 
@@ -61,13 +67,26 @@ pub struct MqttBrokerConnectArgs {
     #[arg(long = "ca-file", env = "BROKER_TLS_CA_FILE", help_heading = "TLS")]
     pub tls_ca_file: Option<PathBuf>,
 
-    #[arg(long = "client-cert", env = "BROKER_TLS_CLIENT_CERTIFICATE_FILE", help_heading = "TLS")]
+    #[arg(
+        long = "client-cert",
+        env = "BROKER_TLS_CLIENT_CERTIFICATE_FILE",
+        help_heading = "TLS"
+    )]
     pub tls_client_certificate: Option<PathBuf>,
 
-    #[arg(long = "client-key", env = "BROKER_TLS_CLIENT_KEY_FILE", help_heading = "TLS")]
+    #[arg(
+        long = "client-key",
+        env = "BROKER_TLS_CLIENT_KEY_FILE",
+        help_heading = "TLS"
+    )]
     pub tls_client_key: Option<PathBuf>,
 
-    #[arg(long = "tls-version", env = "BROKER_TLS_VERSION", value_enum, help_heading = "TLS")]
+    #[arg(
+        long = "tls-version",
+        env = "BROKER_TLS_VERSION",
+        value_enum,
+        help_heading = "TLS"
+    )]
     pub tls_version: Option<TlsVersion>,
 
     #[command(flatten)]
@@ -76,10 +95,18 @@ pub struct MqttBrokerConnectArgs {
 
 #[derive(Args, Debug, Default, Deserialize, Getters)]
 pub struct LastWillConfig {
-    #[arg(long = "last-will-payload", env = "BROKER_LAST_WILL_PAYLOAD", help_heading = "Last will")]
+    #[arg(
+        long = "last-will-payload",
+        env = "BROKER_LAST_WILL_PAYLOAD",
+        help_heading = "Last will"
+    )]
     pub payload: Option<String>,
 
-    #[arg(long = "last-will-topic", env = "BROKER_LAST_WILL_TOPIC", help_heading = "Last will")]
+    #[arg(
+        long = "last-will-topic",
+        env = "BROKER_LAST_WILL_TOPIC",
+        help_heading = "Last will"
+    )]
     pub topic: Option<String>,
 
     #[serde(default)]
@@ -87,23 +114,61 @@ pub struct LastWillConfig {
     #[arg(long = "last-will-qos", env = "BROKER_LAST_WILL_QOS", value_parser = parse_qos, help_heading = "Last will", help = "0 = at most once; 1 = at least once; 2 = exactly once")]
     pub qos: Option<QoS>,
 
-    #[arg(long = "last-will-retain", env = "BROKER_LAST_WILL_RETAIN", help_heading = "Last will")]
+    #[arg(
+        long = "last-will-retain",
+        env = "BROKER_LAST_WILL_RETAIN",
+        help_heading = "Last will"
+    )]
     pub retain: Option<bool>,
 }
 
-#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
+#[derive(Debug, Default, Deserialize, Getters)]
 pub struct Topic {
     pub topic: String,
     pub subscription: Option<Subscription>,
     pub payload: Option<PayloadType>,
+    pub publish: Option<Publish>,
+}
+
+#[derive(Debug, Default, Deserialize, Getters)]
+pub struct Publish {
+    #[serde(default)]
+    enabled: bool,
+
+    #[serde(default)]
+    retain: bool,
+
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_qos")]
+    qos: QoS,
+    trigger: Option<Vec<PublishTriggerType>>,
+
+    input: PublishInputType,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(tag = "type")]
+pub enum PublishTriggerType {
+    #[serde(rename = "periodic")]
+    Periodic(PublishTriggerTypePeriodic),
+}
+
+#[derive(Debug, Default, Deserialize, Getters)]
+pub struct PublishTriggerTypePeriodic {
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_duration_milliseconds")]
+    interval: Option<Duration>,
+    count: Option<u32>,
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_duration_milliseconds")]
+    initial_delay: Option<Duration>,
 }
 
 #[derive(Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct Output {
-    format: Option<OutputFormat>,
+    format: Option<PayloadType>,
     target: Option<OutputTarget>,
 }
-
 
 #[derive(Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct OutputTargetConsole {}
@@ -129,34 +194,6 @@ impl Default for OutputTargetFile {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, ValueEnum)]
-pub enum TlsVersion {
-    #[serde(rename = "all")]
-    #[clap(name = "all")]
-    All,
-    #[serde(rename = "v12")]
-    #[clap(name = "v12")]
-    Version1_2,
-    #[serde(rename = "v13")]
-    #[clap(name = "v13")]
-    Version1_3,
-}
-
-impl Default for TlsVersion {
-    fn default() -> Self {
-        TlsVersion::All
-    }
-}
-
-#[derive(Debug, Deserialize, PartialEq)]
-#[serde(tag = "type")]
-pub enum PayloadType {
-    #[serde(rename = "text")]
-    Text(PayloadText),
-    #[serde(rename = "protobuf")]
-    Protobuf(PayloadProtobuf),
-}
-
 #[derive(Debug, Deserialize, PartialEq)]
 #[serde(tag = "type")]
 pub enum OutputTarget {
@@ -174,15 +211,6 @@ pub struct Subscription {
     #[serde(deserialize_with = "deserialize_qos")]
     qos: QoS,
     outputs: Option<Vec<Output>>,
-}
-
-#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct PayloadText {}
-
-#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct PayloadProtobuf {
-    definition: PathBuf,
-    message: String,
 }
 
 pub fn read_config(buf: &PathBuf) -> Result<MqtliArgs, ConfigError> {
@@ -207,17 +235,26 @@ pub fn read_cli_args() -> MqtliArgs {
     args::MqtliArgs::parse()
 }
 
-fn deserialize_keep_alive<'a, D>(deserializer: D) -> Result<Option<Duration>, D::Error> where D: Deserializer<'a> {
-    let value: &str = Deserialize::deserialize(deserializer)?;
-
-    if let Ok(value) = value.parse() {
-        return Ok(Some(Duration::from_secs(value)));
-    }
-
-    Err(Error::invalid_value(Unexpected::Other(value), &"unsigned integer between 0 and 65535"))
+fn deserialize_duration_seconds<'a, D>(deserializer: D) -> Result<Option<Duration>, D::Error>
+where
+    D: Deserializer<'a>,
+{
+    let value: u64 = Deserialize::deserialize(deserializer)?;
+    Ok(Some(Duration::from_secs(value)))
 }
 
-fn deserialize_qos<'a, D>(deserializer: D) -> Result<QoS, D::Error> where D: Deserializer<'a> {
+fn deserialize_duration_milliseconds<'a, D>(deserializer: D) -> Result<Option<Duration>, D::Error>
+where
+    D: Deserializer<'a>,
+{
+    let value: u64 = Deserialize::deserialize(deserializer)?;
+    Ok(Some(Duration::from_millis(value)))
+}
+
+fn deserialize_qos<'a, D>(deserializer: D) -> Result<QoS, D::Error>
+where
+    D: Deserializer<'a>,
+{
     let value: &str = Deserialize::deserialize(deserializer)?;
 
     if let Ok(int_value) = value.parse::<u8>() {
@@ -229,16 +266,22 @@ fn deserialize_qos<'a, D>(deserializer: D) -> Result<QoS, D::Error> where D: Des
         });
     }
 
-    Err(Error::invalid_value(Unexpected::Other(value), &"unsigned integer between 0 and 2"))
+    Err(Error::invalid_value(
+        Unexpected::Other(value),
+        &"unsigned integer between 0 and 2",
+    ))
 }
 
-fn deserialize_qos_option<'a, D>(deserializer: D) -> Result<Option<QoS>, D::Error> where D: Deserializer<'a> {
+fn deserialize_qos_option<'a, D>(deserializer: D) -> Result<Option<QoS>, D::Error>
+where
+    D: Deserializer<'a>,
+{
     Ok(Some(deserialize_qos(deserializer)?))
 }
 
-
 fn parse_keep_alive(input: &str) -> Result<Duration, String> {
-    let duration_in_seconds: u64 = input.parse()
+    let duration_in_seconds: u64 = input
+        .parse()
         .map_err(|_| format!("{input} is not a valid duration in seconds"))?;
 
     Ok(Duration::from_secs(duration_in_seconds))
@@ -249,18 +292,26 @@ fn parse_qos(input: &str) -> Result<QoS, String> {
         "0" => QoS::AtMostOnce,
         "1" => QoS::AtLeastOnce,
         "2" => QoS::ExactlyOnce,
-        _ => return Err("QoS value must be 0, 1 or 2".to_string())
+        _ => return Err("QoS value must be 0, 1 or 2".to_string()),
     };
 
     Ok(qos)
 }
 
-fn deserialize_level_filter<'a, D>(deserializer: D) -> Result<Option<LevelFilter>, D::Error> where D: Deserializer<'a> {
+fn deserialize_level_filter<'a, D>(deserializer: D) -> Result<Option<LevelFilter>, D::Error>
+where
+    D: Deserializer<'a>,
+{
     let value: &str = Deserialize::deserialize(deserializer)?;
 
     let level = match LevelFilter::from_str(value) {
         Ok(level) => level,
-        Err(_) => return Err(Error::invalid_value(Unexpected::Other(value), &"unsigned integer between 0 and 2"))
+        Err(_) => {
+            return Err(Error::invalid_value(
+                Unexpected::Other(value),
+                &"unsigned integer between 0 and 2",
+            ));
+        }
     };
 
     Ok(Some(level))
