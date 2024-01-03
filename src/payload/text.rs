@@ -38,17 +38,15 @@ impl TryFrom<Vec<u8>> for PayloadFormatText {
 
 /// Creates a new instance with the given UTF-8 encoded string as content.
 /// The value is not modified, only moved to the new instance.
-impl From<String> for PayloadFormatText where {
+impl From<String> for PayloadFormatText {
     fn from(val: String) -> Self {
-        Self {
-            content: val
-        }
+        Self { content: val }
     }
 }
 
 /// Creates a new instance with the given UTF-8 encoded string as content.
 /// The value is not modified, only moved to the new instance.
-impl From<&str> for PayloadFormatText where {
+impl From<&str> for PayloadFormatText {
     fn from(val: &str) -> Self {
         Self::from(val.to_string())
     }
@@ -294,7 +292,10 @@ mod protobuf {
                         format!(
                             "{indent_spaces}[{}] {type_name} = {:?} (Enum {})\n",
                             field.number,
-                            enum_value.get_field_by_value(value.value).unwrap_or(&EnumField::new("INVALID_VALUE".to_string(), 0)).name,
+                            enum_value
+                                .get_field_by_value(value.value)
+                                .unwrap_or(&EnumField::new("INVALID_VALUE".to_string(), 0))
+                                .name,
                             enum_value.full_name
                         )
                     }
@@ -451,8 +452,11 @@ mod tests {
 
     #[test]
     fn from_json() {
-        let input =
-            PayloadFormatJson::try_from(Vec::<u8>::from(format!("{{\"content\": \"{}\"}}", INPUT_STRING))).unwrap();
+        let input = PayloadFormatJson::try_from(Vec::<u8>::from(format!(
+            "{{\"content\": \"{}\"}}",
+            INPUT_STRING
+        )))
+        .unwrap();
         let result = PayloadFormatText::try_from(PayloadFormat::Json(input)).unwrap();
 
         assert_eq!(INPUT_STRING.to_owned(), result.content);
@@ -460,7 +464,9 @@ mod tests {
 
     #[test]
     fn from_yaml() {
-        let input = PayloadFormatYaml::try_from(Vec::<u8>::from(format!("content: \"{}\"", INPUT_STRING))).unwrap();
+        let input =
+            PayloadFormatYaml::try_from(Vec::<u8>::from(format!("content: \"{}\"", INPUT_STRING)))
+                .unwrap();
         let result = PayloadFormatText::try_from(PayloadFormat::Yaml(input)).unwrap();
 
         assert_eq!(INPUT_STRING.to_owned(), result.content);
@@ -469,7 +475,10 @@ mod tests {
     #[test]
     fn from_protobuf() {
         let input = PayloadFormatProtobuf::new(
-            hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(), String::from(INPUT_STRING_MESSAGE), MESSAGE_NAME.to_string());
+            hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(),
+            String::from(INPUT_STRING_MESSAGE),
+            MESSAGE_NAME.to_string(),
+        );
         eprintln!("input = {:?}", input);
         let result = PayloadFormatText::try_from(PayloadFormat::Protobuf(input.unwrap())).unwrap();
 

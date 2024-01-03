@@ -256,8 +256,19 @@ pub struct PayloadProtobuf {
     message: String,
 }
 
+/// The format to which bytes get decoded to.
+/// Default is hex.
+#[derive(Clone, Debug, Default, Deserialize, PartialEq)]
+pub enum PayloadJsonOptionRawFormat {
+    #[default]
+    Hex,
+    Base64,
+}
+
 #[derive(Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct PayloadJson {}
+pub struct PayloadJson {
+    raw_as_type: PayloadJsonOptionRawFormat,
+}
 
 #[derive(Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct PayloadYaml {}
@@ -387,7 +398,7 @@ where
             return Err(Error::invalid_value(
                 Unexpected::Other(value),
                 &"unsigned integer between 0 and 2",
-            ))
+            ));
         }
     };
 

@@ -7,8 +7,8 @@ use tokio::sync::broadcast::Receiver;
 use tokio::task;
 use tokio::task::JoinHandle;
 
-use crate::config::mqtli_config::{Output, OutputTarget, Topic};
 use crate::config::mqtli_config::OutputTarget::Console;
+use crate::config::mqtli_config::{Output, OutputTarget, Topic};
 use crate::output::console::ConsoleOutput;
 use crate::output::file::FileOutput;
 use crate::output::OutputError;

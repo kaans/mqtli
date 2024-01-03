@@ -24,14 +24,10 @@ mod publish;
 
 #[tokio::main]
 async fn main() {
-    let config = match parse_config() {
-        Ok(config) => config,
-        Err(e) => {
-            println!("Error while parsing configuration:\n\n{:#}", anyhow!(e));
-            exit(1);
-        }
-    };
-
+    let config = parse_config().unwrap_or_else(|e| {
+        println!("Error while parsing configuration:\n\n{:#}", anyhow!(e));
+        exit(1);
+    });
     init_logger(config.log_level());
 
     let (sender_exit, receiver_exit) = broadcast::channel(1);

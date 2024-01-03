@@ -170,13 +170,11 @@ impl TryFrom<PayloadFormatTopic> for PayloadFormat {
                 PayloadFormat::Text(PayloadFormatText::try_from(value.content)?)
             }
             PayloadType::Protobuf(options) => {
-                PayloadFormat::Protobuf(
-                    PayloadFormatProtobuf::new_from_definition_file(
-                        value.content,
-                        options.definition(),
-                        options.message().clone(),
-                    )?,
-                )
+                PayloadFormat::Protobuf(PayloadFormatProtobuf::new_from_definition_file(
+                    value.content,
+                    options.definition(),
+                    options.message().clone(),
+                )?)
             }
             PayloadType::Json(_options) => {
                 PayloadFormat::Json(PayloadFormatJson::try_from(value.content)?)
@@ -184,15 +182,11 @@ impl TryFrom<PayloadFormatTopic> for PayloadFormat {
             PayloadType::Yaml(_options) => {
                 PayloadFormat::Yaml(PayloadFormatYaml::try_from(value.content)?)
             }
-            PayloadType::Hex(_options) => {
-                PayloadFormat::Hex(PayloadFormatHex::from(value.content))
-            }
+            PayloadType::Hex(_options) => PayloadFormat::Hex(PayloadFormatHex::from(value.content)),
             PayloadType::Base64(_options) => {
                 PayloadFormat::Base64(PayloadFormatBase64::from(value.content))
             }
-            PayloadType::Raw(_options) => {
-                PayloadFormat::Raw(PayloadFormatRaw::from(value.content))
-            }
+            PayloadType::Raw(_options) => PayloadFormat::Raw(PayloadFormatRaw::from(value.content)),
         })
     }
 }
@@ -233,13 +227,13 @@ impl PayloadFormat {
             PayloadType::Text(_options) => {
                 Ok(PayloadFormat::Text(PayloadFormatText::try_from(content)?))
             }
-            PayloadType::Protobuf(options) => {
-                Ok(PayloadFormat::Protobuf(PayloadFormatProtobuf::convert_from_definition_file(
+            PayloadType::Protobuf(options) => Ok(PayloadFormat::Protobuf(
+                PayloadFormatProtobuf::convert_from_definition_file(
                     content,
                     options.definition(),
                     options.message(),
-                )?))
-            }
+                )?,
+            )),
             PayloadType::Json(_options) => {
                 Ok(PayloadFormat::Json(PayloadFormatJson::try_from(content)?))
             }
@@ -249,9 +243,9 @@ impl PayloadFormat {
             PayloadType::Hex(_options) => {
                 Ok(PayloadFormat::Hex(PayloadFormatHex::try_from(content)?))
             }
-            PayloadType::Base64(_options) => {
-                Ok(PayloadFormat::Base64(PayloadFormatBase64::try_from(content)?))
-            }
+            PayloadType::Base64(_options) => Ok(PayloadFormat::Base64(
+                PayloadFormatBase64::try_from(content)?,
+            )),
             PayloadType::Raw(_options) => {
                 Ok(PayloadFormat::Raw(PayloadFormatRaw::try_from(content)?))
             }
