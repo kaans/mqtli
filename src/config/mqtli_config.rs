@@ -458,11 +458,11 @@ impl From<&args::PayloadProtobuf> for PayloadProtobuf {
 
 #[derive(Clone, Debug, Default, Getters, Validate)]
 pub struct PayloadJson {
-    raw_as_type: PayloadJsonOptionRawFormat,
+    raw_as_type: PayloadOptionRawFormat,
 }
 
 impl PayloadJson {
-    pub fn new(raw_as_type: PayloadJsonOptionRawFormat) -> Self {
+    pub fn new(raw_as_type: PayloadOptionRawFormat) -> Self {
         Self { raw_as_type }
     }
 }
@@ -470,7 +470,7 @@ impl PayloadJson {
 impl From<&args::PayloadJson> for PayloadJson {
     fn from(value: &args::PayloadJson) -> Self {
         Self {
-            raw_as_type: PayloadJsonOptionRawFormat::from(value.raw_as_type()),
+            raw_as_type: PayloadOptionRawFormat::from(value.raw_as_type()),
         }
     }
 }
@@ -478,27 +478,37 @@ impl From<&args::PayloadJson> for PayloadJson {
 /// The format to which bytes get decoded to.
 /// Default is hex.
 #[derive(Clone, Debug, Default)]
-pub enum PayloadJsonOptionRawFormat {
+pub enum PayloadOptionRawFormat {
     #[default]
     Hex,
     Base64,
 }
 
-impl From<&args::PayloadJsonOptionRawFormat> for PayloadJsonOptionRawFormat {
-    fn from(value: &args::PayloadJsonOptionRawFormat) -> Self {
+impl From<&args::PayloadOptionRawFormat> for PayloadOptionRawFormat {
+    fn from(value: &args::PayloadOptionRawFormat) -> Self {
         match value {
-            args::PayloadJsonOptionRawFormat::Hex => PayloadJsonOptionRawFormat::Hex,
-            args::PayloadJsonOptionRawFormat::Base64 => PayloadJsonOptionRawFormat::Base64,
+            args::PayloadOptionRawFormat::Hex => PayloadOptionRawFormat::Hex,
+            args::PayloadOptionRawFormat::Base64 => PayloadOptionRawFormat::Base64,
         }
     }
 }
 
 #[derive(Clone, Debug, Default, Getters, Validate)]
-pub struct PayloadYaml {}
+pub struct PayloadYaml {
+    raw_as_type: PayloadOptionRawFormat,
+}
+
+impl PayloadYaml {
+    pub fn new(raw_as_type: PayloadOptionRawFormat) -> Self {
+        Self { raw_as_type }
+    }
+}
 
 impl From<&args::PayloadYaml> for PayloadYaml {
-    fn from(_value: &args::PayloadYaml) -> Self {
-        Self {}
+    fn from(value: &args::PayloadYaml) -> Self {
+        Self {
+            raw_as_type: PayloadOptionRawFormat::from(value.raw_as_type()),
+        }
     }
 }
 

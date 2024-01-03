@@ -5,7 +5,7 @@ use base64::Engine;
 use derive_getters::Getters;
 use serde_json::{from_slice, Value};
 
-use crate::config::mqtli_config::{PayloadJson, PayloadJsonOptionRawFormat};
+use crate::config::mqtli_config::{PayloadJson, PayloadOptionRawFormat};
 use crate::payload::{PayloadFormat, PayloadFormatError};
 
 /// This payload format contains a JSON payload. Its value is encoded as
@@ -30,8 +30,8 @@ impl PayloadFormatJson {
 
     fn convert_raw_type(options: &PayloadJson, value: Vec<u8>) -> String {
         match options.raw_as_type() {
-            PayloadJsonOptionRawFormat::Hex => hex::encode(value),
-            PayloadJsonOptionRawFormat::Base64 => general_purpose::STANDARD.encode(value),
+            PayloadOptionRawFormat::Hex => hex::encode(value),
+            PayloadOptionRawFormat::Base64 => general_purpose::STANDARD.encode(value),
         }
     }
 }
@@ -423,7 +423,7 @@ mod tests {
     #[test]
     fn from_raw_as_base64() {
         let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
-        let options = PayloadJson::new(PayloadJsonOptionRawFormat::Base64);
+        let options = PayloadJson::new(PayloadOptionRawFormat::Base64);
         let result = PayloadFormatJson::try_from((PayloadFormat::Raw(input), options)).unwrap();
 
         assert_eq!(get_json_value(INPUT_STRING_BASE64), result.content);
@@ -600,7 +600,7 @@ mod tests {
             String::from(INPUT_STRING_MESSAGE),
             MESSAGE_NAME.to_string(),
         );
-        let options = PayloadJson::new(PayloadJsonOptionRawFormat::Base64);
+        let options = PayloadJson::new(PayloadOptionRawFormat::Base64);
         let result =
             PayloadFormatJson::try_from((PayloadFormat::Protobuf(input.unwrap()), options))
                 .unwrap();
