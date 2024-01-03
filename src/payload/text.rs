@@ -1,8 +1,8 @@
 use std::fmt::{Display, Formatter};
 use std::string::FromUtf8Error;
 
-use base64::Engine;
 use base64::engine::general_purpose;
+use base64::Engine;
 
 use crate::config::{PayloadOptionRawFormat, PayloadText};
 use crate::payload::{PayloadFormat, PayloadFormatError};
@@ -98,18 +98,16 @@ impl TryFrom<(PayloadFormat, &PayloadText)> for PayloadFormatText {
     fn try_from((value, options): (PayloadFormat, &PayloadText)) -> Result<Self, Self::Error> {
         match value {
             PayloadFormat::Text(value) => Ok(value),
-            PayloadFormat::Raw(value) => {
-                Ok(Self {
-                    content: Self::convert_raw_type(options, value.into())
-                })
-            }
+            PayloadFormat::Raw(value) => Ok(Self {
+                content: Self::convert_raw_type(options, value.into()),
+            }),
             PayloadFormat::Protobuf(value) => Ok(Self {
                 content: protobuf::get_message_value(
                     value.context(),
                     value.message_value(),
                     0,
                     None,
-                    options
+                    options,
                 )?,
             }),
             PayloadFormat::Hex(value) => {
@@ -155,12 +153,12 @@ impl TryFrom<(PayloadFormat, &PayloadText)> for PayloadFormatText {
 }
 
 mod protobuf {
+    use crate::config::PayloadText;
     use protofish::context::{Context, EnumField, MessageInfo};
     use protofish::decode::{FieldValue, MessageValue, Value};
-    use crate::config::PayloadText;
 
-    use crate::payload::PayloadFormatError;
     use crate::payload::text::PayloadFormatText;
+    use crate::payload::PayloadFormatError;
 
     pub(super) fn get_message_value(
         context: &Context,
@@ -188,7 +186,8 @@ mod protobuf {
         result.push_str(&message_text);
 
         for field in &message_value.fields {
-            let result_field = get_field_value(context, message_info, field, indent_level + 1, options)?;
+            let result_field =
+                get_field_value(context, message_info, field, indent_level + 1, options)?;
             result.push_str(&result_field);
         }
 
@@ -299,12 +298,17 @@ mod protobuf {
                     Value::Bytes(value) => {
                         format!(
                             "{indent_spaces}[{}] {type_name} = {:?} (Bytes)\n",
-                            field.number, PayloadFormatText::convert_raw_type(options, value.to_vec())
+                            field.number,
+                            PayloadFormatText::convert_raw_type(options, value.to_vec())
                         )
                     }
-                    Value::Message(value) => {
-                        get_message_value(context, value, indent_level, Some(field.number), options)?
-                    }
+                    Value::Message(value) => get_message_value(
+                        context,
+                        value,
+                        indent_level,
+                        Some(field.number),
+                        options,
+                    )?,
                     Value::Packed(value) => {
                         format!(
                             "{indent_spaces}[{}] Unknown value encountered: {:?}\n",
@@ -492,7 +496,7 @@ mod tests {
             "{{\"content\": \"{}\"}}",
             INPUT_STRING
         )))
-            .unwrap();
+        .unwrap();
         let result = PayloadFormatText::try_from(PayloadFormat::Json(input)).unwrap();
 
         assert_eq!(INPUT_STRING.to_owned(), result.content);
@@ -532,9 +536,7 @@ mod tests {
             PayloadFormatText::try_from((PayloadFormat::Protobuf(input.unwrap()), &options))
                 .unwrap();
 
-        assert!(
-            result.content.contains("raw = \"c328\"")
-        );
+        assert!(result.content.contains("raw = \"c328\""));
     }
 
     #[test]
@@ -549,8 +551,6 @@ mod tests {
             PayloadFormatText::try_from((PayloadFormat::Protobuf(input.unwrap()), &options))
                 .unwrap();
 
-        assert!(
-            result.content.contains("raw = \"wyg=\"")
-        );
+        assert!(result.content.contains("raw = \"wyg=\""));
     }
 }

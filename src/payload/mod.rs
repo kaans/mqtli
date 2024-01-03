@@ -163,13 +163,21 @@ impl TryFrom<(PayloadFormat, &PayloadType)> for PayloadFormat {
 
     fn try_from((value, payload_type): (PayloadFormat, &PayloadType)) -> Result<Self, Self::Error> {
         Ok(match payload_type {
-            PayloadType::Text(options) => PayloadFormat::Text(PayloadFormatText::try_from((value, options))?),
-            PayloadType::Json(options) => PayloadFormat::Json(PayloadFormatJson::try_from((value, options))?),
-            PayloadType::Yaml(options) => PayloadFormat::Yaml(PayloadFormatYaml::try_from((value, options))?),
+            PayloadType::Text(options) => {
+                PayloadFormat::Text(PayloadFormatText::try_from((value, options))?)
+            }
+            PayloadType::Json(options) => {
+                PayloadFormat::Json(PayloadFormatJson::try_from((value, options))?)
+            }
+            PayloadType::Yaml(options) => {
+                PayloadFormat::Yaml(PayloadFormatYaml::try_from((value, options))?)
+            }
             PayloadType::Hex(_) => PayloadFormat::Hex(PayloadFormatHex::try_from(value)?),
             PayloadType::Base64(_) => PayloadFormat::Base64(PayloadFormatBase64::try_from(value)?),
             PayloadType::Raw(_) => PayloadFormat::Raw(PayloadFormatRaw::try_from(value)?),
-            PayloadType::Protobuf(_) => PayloadFormat::Protobuf(PayloadFormatProtobuf::try_from(value)?)
+            PayloadType::Protobuf(_) => {
+                PayloadFormat::Protobuf(PayloadFormatProtobuf::try_from(value)?)
+            }
         })
     }
 }
