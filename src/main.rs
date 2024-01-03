@@ -28,6 +28,7 @@ async fn main() {
         println!("Error while parsing configuration:\n\n{:#}", anyhow!(e));
         exit(1);
     });
+
     init_logger(config.log_level());
 
     let (sender_exit, receiver_exit) = broadcast::channel(1);

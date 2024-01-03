@@ -12,7 +12,7 @@ use serde::de::{Error, Unexpected};
 use serde::{Deserialize, Deserializer};
 
 use crate::config::mqtli_config::TlsVersion;
-use crate::config::{args, ConfigError, OutputFormat};
+use crate::config::{args, ConfigError, PayloadType, PublishInputType};
 
 #[derive(Debug, Deserialize, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -148,40 +148,6 @@ pub struct Publish {
 
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type")]
-pub enum PublishInputType {
-    #[serde(rename = "text")]
-    Text(PublishInputTypeContentPath),
-    #[serde(rename = "raw")]
-    Raw(PublishInputTypePath),
-    #[serde(rename = "hex")]
-    Hex(PublishInputTypeContentPath),
-    #[serde(rename = "json")]
-    Json(PublishInputTypeContentPath),
-    #[serde(rename = "yaml")]
-    Yaml(PublishInputTypeContentPath),
-    #[serde(rename = "base64")]
-    Base64(PublishInputTypeContentPath),
-}
-
-impl Default for PublishInputType {
-    fn default() -> Self {
-        Self::Text(PublishInputTypeContentPath::default())
-    }
-}
-
-#[derive(Debug, Default, Deserialize, Getters)]
-pub struct PublishInputTypeContentPath {
-    content: Option<String>,
-    path: Option<PathBuf>,
-}
-
-#[derive(Debug, Default, Deserialize, Getters)]
-pub struct PublishInputTypePath {
-    path: PathBuf,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(tag = "type")]
 pub enum PublishTriggerType {
     #[serde(rename = "periodic")]
     Periodic(PublishTriggerTypePeriodic),
@@ -200,7 +166,7 @@ pub struct PublishTriggerTypePeriodic {
 
 #[derive(Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct Output {
-    format: Option<OutputFormat>,
+    format: Option<PayloadType>,
     target: Option<OutputTarget>,
 }
 
@@ -227,62 +193,6 @@ impl Default for OutputTargetFile {
         }
     }
 }
-
-#[derive(Debug, Deserialize, PartialEq)]
-#[serde(tag = "type")]
-pub enum PayloadType {
-    #[serde(rename = "text")]
-    Text(PayloadText),
-    #[serde(rename = "protobuf")]
-    Protobuf(PayloadProtobuf),
-    #[serde(rename = "json")]
-    Json(PayloadJson),
-    #[serde(rename = "yaml")]
-    Yaml(PayloadYaml),
-    #[serde(rename = "hex")]
-    Hex(PayloadHex),
-    #[serde(rename = "base64")]
-    Base64(PayloadBase64),
-    #[serde(rename = "raw")]
-    Raw(PayloadRaw),
-}
-
-#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct PayloadText {}
-
-#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct PayloadProtobuf {
-    definition: PathBuf,
-    message: String,
-}
-
-/// The format to which bytes get decoded to.
-/// Default is hex.
-#[derive(Clone, Debug, Default, Deserialize, PartialEq)]
-pub enum PayloadOptionRawFormat {
-    #[default]
-    Hex,
-    Base64,
-}
-
-#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct PayloadJson {
-    raw_as_type: PayloadOptionRawFormat,
-}
-
-#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct PayloadYaml {
-    raw_as_type: PayloadOptionRawFormat,
-}
-
-#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct PayloadHex {}
-
-#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct PayloadBase64 {}
-
-#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct PayloadRaw {}
 
 #[derive(Debug, Deserialize, PartialEq)]
 #[serde(tag = "type")]

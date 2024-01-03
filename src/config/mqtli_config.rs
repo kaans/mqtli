@@ -8,11 +8,11 @@ use derive_getters::Getters;
 use log::LevelFilter;
 use rumqttc::v5::mqttbytes::QoS;
 use serde::Deserialize;
-use validator::{Validate, ValidationError, ValidationErrors};
+use validator::{Validate, ValidationError};
 
+use crate::config::args;
 use crate::config::args::{read_cli_args, read_config};
-use crate::config::ConfigError;
-use crate::config::{args, OutputFormat};
+use crate::config::{ConfigError, PayloadType, PublishInputType};
 
 #[derive(Debug, Getters, Validate)]
 pub struct MqtliConfig {
@@ -93,119 +93,8 @@ impl From<&args::Publish> for Publish {
             qos: *value.qos(),
             retain: *value.retain(),
             trigger,
-            input: PublishInputType::from(value.input()),
+            input: (*value.input()).clone(),
         }
-    }
-}
-
-#[derive(Debug)]
-pub enum PublishInputType {
-    Text(PublishInputTypeContentPath),
-    Raw(PublishInputTypePath),
-    Hex(PublishInputTypeContentPath),
-    Json(PublishInputTypeContentPath),
-    Yaml(PublishInputTypeContentPath),
-    Base64(PublishInputTypeContentPath),
-}
-
-impl Default for PublishInputType {
-    fn default() -> Self {
-        Self::Text(PublishInputTypeContentPath::default())
-    }
-}
-
-impl Validate for PublishInputType {
-    fn validate(&self) -> Result<(), ValidationErrors> {
-        match self {
-            PublishInputType::Text(value) => {
-                ValidationErrors::merge(Ok(()), "Text", value.validate())
-            }
-            PublishInputType::Raw(value) => {
-                ValidationErrors::merge(Ok(()), "Raw", value.validate())
-            }
-            PublishInputType::Hex(value) => {
-                ValidationErrors::merge(Ok(()), "Hex", value.validate())
-            }
-            PublishInputType::Json(value) => {
-                ValidationErrors::merge(Ok(()), "Json", value.validate())
-            }
-            PublishInputType::Yaml(value) => {
-                ValidationErrors::merge(Ok(()), "Yaml", value.validate())
-            }
-            PublishInputType::Base64(value) => {
-                ValidationErrors::merge(Ok(()), "Base64", value.validate())
-            }
-        }
-    }
-}
-
-impl From<&args::PublishInputType> for PublishInputType {
-    fn from(value: &args::PublishInputType) -> Self {
-        match value {
-            args::PublishInputType::Text(value) => {
-                Self::Text(PublishInputTypeContentPath::from(value))
-            }
-            args::PublishInputType::Raw(value) => Self::Raw(PublishInputTypePath::from(value)),
-            args::PublishInputType::Hex(value) => {
-                Self::Hex(PublishInputTypeContentPath::from(value))
-            }
-            args::PublishInputType::Json(value) => {
-                Self::Json(PublishInputTypeContentPath::from(value))
-            }
-            args::PublishInputType::Yaml(value) => {
-                Self::Yaml(PublishInputTypeContentPath::from(value))
-            }
-            args::PublishInputType::Base64(value) => {
-                Self::Base64(PublishInputTypeContentPath::from(value))
-            }
-        }
-    }
-}
-
-#[derive(Debug, Default, Getters, Validate)]
-pub struct PublishInputTypePath {
-    path: PathBuf,
-}
-
-impl From<&args::PublishInputTypePath> for PublishInputTypePath {
-    fn from(value: &args::PublishInputTypePath) -> Self {
-        Self {
-            path: value.path().clone(),
-        }
-    }
-}
-
-#[derive(Debug, Default, Getters)]
-pub struct PublishInputTypeContentPath {
-    content: Option<String>,
-    path: Option<PathBuf>,
-}
-
-impl From<&args::PublishInputTypeContentPath> for PublishInputTypeContentPath {
-    fn from(value: &args::PublishInputTypeContentPath) -> Self {
-        Self {
-            content: value.content().clone(),
-            path: value.path().clone(),
-        }
-    }
-}
-
-impl Validate for PublishInputTypeContentPath {
-    fn validate(&self) -> Result<(), ValidationErrors> {
-        let mut err = ValidationError::new("invalid_publish_input");
-
-        if (self.path.is_none() && self.content.is_none())
-            || (self.path.is_some() && self.content.is_some())
-        {
-            err.message = Some(Cow::from(
-                "Exactly one of path or content must be given for publish input",
-            ));
-            let mut errors = ValidationErrors::new();
-            errors.add("content", err);
-            return Err(errors);
-        }
-
-        Ok(())
     }
 }
 
@@ -270,7 +159,7 @@ impl Default for PublishTriggerType {
 
 #[derive(Debug, Default, Getters, Validate)]
 pub struct Output {
-    format: OutputFormat,
+    format: PayloadType,
     target: OutputTarget,
 }
 
@@ -278,7 +167,7 @@ impl From<&args::Output> for Output {
     fn from(value: &args::Output) -> Self {
         Output {
             format: match value.format() {
-                None => OutputFormat::Text,
+                None => PayloadType::default(),
                 Some(value) => value.clone(),
             },
             target: match value.target() {
@@ -293,39 +182,6 @@ impl From<&args::Output> for Output {
                 },
             },
         }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum PayloadType {
-    Text(PayloadText),
-    Protobuf(PayloadProtobuf),
-    Json(PayloadJson),
-    Yaml(PayloadYaml),
-    Hex(PayloadHex),
-    Base64(PayloadBase64),
-    Raw(PayloadRaw),
-}
-
-impl From<&args::PayloadType> for PayloadType {
-    fn from(value: &args::PayloadType) -> Self {
-        match value {
-            args::PayloadType::Text(value) => PayloadType::Text(PayloadText::from(value)),
-            args::PayloadType::Protobuf(value) => {
-                PayloadType::Protobuf(PayloadProtobuf::from(value))
-            }
-            args::PayloadType::Json(value) => PayloadType::Json(PayloadJson::from(value)),
-            args::PayloadType::Yaml(value) => PayloadType::Yaml(PayloadYaml::from(value)),
-            args::PayloadType::Hex(value) => PayloadType::Hex(PayloadHex::from(value)),
-            args::PayloadType::Base64(value) => PayloadType::Base64(PayloadBase64::from(value)),
-            args::PayloadType::Raw(value) => PayloadType::Raw(PayloadRaw::from(value)),
-        }
-    }
-}
-
-impl Default for PayloadType {
-    fn default() -> Self {
-        PayloadType::Text(PayloadText::default())
     }
 }
 
@@ -424,118 +280,10 @@ impl From<&args::Topic> for Topic {
             },
             payload: match value.payload() {
                 None => PayloadType::default(),
-                Some(value) => PayloadType::from(value),
+                Some(value) => value.clone(),
             },
             publish: value.publish().as_ref().map(Publish::from),
         }
-    }
-}
-
-#[derive(Clone, Debug, Default, Getters, Validate)]
-pub struct PayloadText {}
-
-impl From<&args::PayloadText> for PayloadText {
-    fn from(_value: &args::PayloadText) -> Self {
-        Self {}
-    }
-}
-
-#[derive(Clone, Debug, Default, Getters, Validate)]
-pub struct PayloadProtobuf {
-    definition: PathBuf,
-    #[validate(length(min = 1, message = "Message must be given"))]
-    message: String,
-}
-
-impl From<&args::PayloadProtobuf> for PayloadProtobuf {
-    fn from(value: &args::PayloadProtobuf) -> Self {
-        Self {
-            definition: PathBuf::from(value.definition()),
-            message: String::from(value.message()),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Default, Getters, Validate)]
-pub struct PayloadJson {
-    raw_as_type: PayloadOptionRawFormat,
-}
-
-impl PayloadJson {
-    pub fn new(raw_as_type: PayloadOptionRawFormat) -> Self {
-        Self { raw_as_type }
-    }
-}
-
-impl From<&args::PayloadJson> for PayloadJson {
-    fn from(value: &args::PayloadJson) -> Self {
-        Self {
-            raw_as_type: PayloadOptionRawFormat::from(value.raw_as_type()),
-        }
-    }
-}
-
-/// The format to which bytes get decoded to.
-/// Default is hex.
-#[derive(Clone, Debug, Default)]
-pub enum PayloadOptionRawFormat {
-    #[default]
-    Hex,
-    Base64,
-}
-
-impl From<&args::PayloadOptionRawFormat> for PayloadOptionRawFormat {
-    fn from(value: &args::PayloadOptionRawFormat) -> Self {
-        match value {
-            args::PayloadOptionRawFormat::Hex => PayloadOptionRawFormat::Hex,
-            args::PayloadOptionRawFormat::Base64 => PayloadOptionRawFormat::Base64,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Default, Getters, Validate)]
-pub struct PayloadYaml {
-    raw_as_type: PayloadOptionRawFormat,
-}
-
-impl PayloadYaml {
-    pub fn new(raw_as_type: PayloadOptionRawFormat) -> Self {
-        Self { raw_as_type }
-    }
-}
-
-impl From<&args::PayloadYaml> for PayloadYaml {
-    fn from(value: &args::PayloadYaml) -> Self {
-        Self {
-            raw_as_type: PayloadOptionRawFormat::from(value.raw_as_type()),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Default, Getters, Validate)]
-pub struct PayloadHex {}
-
-impl From<&args::PayloadHex> for PayloadHex {
-    fn from(_value: &args::PayloadHex) -> Self {
-        Self {}
-    }
-}
-
-#[derive(Clone, Debug, Default, Getters, Validate)]
-pub struct PayloadBase64 {}
-
-impl From<&args::PayloadBase64> for PayloadBase64 {
-    fn from(_value: &args::PayloadBase64) -> Self {
-        Self {}
-    }
-}
-
-#[derive(Clone, Debug, Default, Getters, Validate)]
-pub struct PayloadRaw {}
-
-impl From<&args::PayloadRaw> for PayloadRaw {
-    fn from(_value: &args::PayloadRaw) -> Self {
-        Self {}
     }
 }
 

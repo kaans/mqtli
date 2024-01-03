@@ -1,12 +1,12 @@
 use std::fmt::{Display, Formatter};
 
-use base64::Engine;
+use crate::config::{PayloadOptionRawFormat, PayloadYaml};
 use base64::engine::general_purpose;
+use base64::Engine;
 use derive_getters::Getters;
 use log::error;
 use serde_yaml::{from_slice, from_str, Value};
 
-use crate::config::mqtli_config::{PayloadOptionRawFormat, PayloadYaml};
 use crate::payload::{PayloadFormat, PayloadFormatError};
 
 #[derive(Clone, Debug, Getters)]
@@ -24,6 +24,8 @@ impl PayloadFormatYaml {
     }
 
     fn convert_raw_type(options: &PayloadYaml, value: Vec<u8>) -> String {
+        eprintln!("options = {:?}", options);
+
         match options.raw_as_type() {
             PayloadOptionRawFormat::Hex => hex::encode(value),
             PayloadOptionRawFormat::Base64 => general_purpose::STANDARD.encode(value),
@@ -91,14 +93,14 @@ impl TryFrom<PayloadFormat> for PayloadFormatYaml {
     type Error = PayloadFormatError;
 
     fn try_from(value: PayloadFormat) -> Result<Self, Self::Error> {
-        Self::try_from((value, PayloadYaml::default()))
+        Self::try_from((value, &PayloadYaml::default()))
     }
 }
 
-impl TryFrom<(PayloadFormat, PayloadYaml)> for PayloadFormatYaml {
+impl TryFrom<(PayloadFormat, &PayloadYaml)> for PayloadFormatYaml {
     type Error = PayloadFormatError;
 
-    fn try_from(value: (PayloadFormat, PayloadYaml)) -> Result<Self, Self::Error> {
+    fn try_from(value: (PayloadFormat, &PayloadYaml)) -> Result<Self, Self::Error> {
         fn convert_from_value(value: String) -> Result<PayloadFormatYaml, PayloadFormatError> {
             let yaml: Value = from_str(format!("content: {}", value).as_str())?;
             Ok(PayloadFormatYaml::from(yaml))
@@ -109,13 +111,13 @@ impl TryFrom<(PayloadFormat, PayloadYaml)> for PayloadFormatYaml {
         match value.0 {
             PayloadFormat::Text(value) => convert_from_value(value.into()),
             PayloadFormat::Raw(value) => {
-                convert_from_value(PayloadFormatYaml::convert_raw_type(&options, value.into()))
+                convert_from_value(PayloadFormatYaml::convert_raw_type(options, value.into()))
             }
             PayloadFormat::Protobuf(value) => Ok(Self {
                 content: protobuf::get_message_value(
                     value.context(),
                     value.message_value(),
-                    &options,
+                    options,
                 )?,
             }),
             PayloadFormat::Hex(value) => convert_from_value(value.into()),
@@ -129,13 +131,13 @@ impl TryFrom<(PayloadFormat, PayloadYaml)> for PayloadFormatYaml {
 }
 
 mod protobuf {
+    use crate::config::PayloadYaml;
     use protofish::context::Context;
     use protofish::decode::{FieldValue, MessageValue, Value};
     use serde_yaml::value;
 
-    use crate::config::mqtli_config::PayloadYaml;
-    use crate::payload::PayloadFormatError;
     use crate::payload::yaml::PayloadFormatYaml;
+    use crate::payload::PayloadFormatError;
 
     pub(super) fn get_message_value(
         context: &Context,
@@ -212,7 +214,6 @@ mod protobuf {
 mod tests {
     use serde_yaml::from_str;
 
-    use crate::config::mqtli_config::{PayloadOptionRawFormat, PayloadYaml};
     use crate::payload::base64::PayloadFormatBase64;
     use crate::payload::hex::PayloadFormatHex;
     use crate::payload::json::PayloadFormatJson;

@@ -1,11 +1,11 @@
 use std::fmt::{Display, Formatter};
 
+use crate::config::{PayloadJson, PayloadOptionRawFormat};
 use base64::engine::general_purpose;
 use base64::Engine;
 use derive_getters::Getters;
 use serde_json::{from_slice, Value};
 
-use crate::config::mqtli_config::{PayloadJson, PayloadOptionRawFormat};
 use crate::payload::{PayloadFormat, PayloadFormatError};
 
 /// This payload format contains a JSON payload. Its value is encoded as
@@ -169,14 +169,14 @@ impl TryFrom<PayloadFormat> for PayloadFormatJson {
     type Error = PayloadFormatError;
 
     fn try_from(value: PayloadFormat) -> Result<Self, Self::Error> {
-        Self::try_from((value, PayloadJson::default()))
+        Self::try_from((value, &PayloadJson::default()))
     }
 }
 
-impl TryFrom<(PayloadFormat, PayloadJson)> for PayloadFormatJson {
+impl TryFrom<(PayloadFormat, &PayloadJson)> for PayloadFormatJson {
     type Error = PayloadFormatError;
 
-    fn try_from(value: (PayloadFormat, PayloadJson)) -> Result<Self, Self::Error> {
+    fn try_from(value: (PayloadFormat, &PayloadJson)) -> Result<Self, Self::Error> {
         fn encode_to_json_with_string_content(
             value: String,
         ) -> Result<PayloadFormatJson, PayloadFormatError> {
@@ -190,13 +190,13 @@ impl TryFrom<(PayloadFormat, PayloadJson)> for PayloadFormatJson {
         match value.0 {
             PayloadFormat::Text(value) => encode_to_json_with_string_content(value.into()),
             PayloadFormat::Raw(value) => encode_to_json_with_string_content(
-                PayloadFormatJson::convert_raw_type(&options, value.into()),
+                PayloadFormatJson::convert_raw_type(options, value.into()),
             ),
             PayloadFormat::Protobuf(value) => Ok(Self {
                 content: protobuf::get_message_value(
                     value.context(),
                     value.message_value(),
-                    &options,
+                    options,
                 )?,
             }),
             PayloadFormat::Hex(value) => encode_to_json_with_string_content(value.into()),
@@ -210,11 +210,11 @@ impl TryFrom<(PayloadFormat, PayloadJson)> for PayloadFormatJson {
 }
 
 mod protobuf {
+    use crate::config::PayloadJson;
     use protofish::context::Context;
     use protofish::decode::{FieldValue, MessageValue, Value};
     use serde_json::json;
 
-    use crate::config::mqtli_config::PayloadJson;
     use crate::payload::json::PayloadFormatJson;
     use crate::payload::PayloadFormatError;
 
