@@ -120,8 +120,6 @@ impl PayloadFormatProtobuf {
             let result = match &field.value {
                 Value::Message(value) => Self::validate_protobuf(value),
                 Value::Unknown(_value) => {
-                    eprintln!("_value = {:?}", _value);
-
                     Err(PayloadFormatError::InvalidProtobuf)
                 }
                 _ => Ok(()),
