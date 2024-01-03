@@ -24,8 +24,6 @@ impl PayloadFormatYaml {
     }
 
     fn convert_raw_type(options: &PayloadYaml, value: Vec<u8>) -> String {
-        eprintln!("options = {:?}", options);
-
         match options.raw_as_type() {
             PayloadOptionRawFormat::Hex => hex::encode(value),
             PayloadOptionRawFormat::Base64 => general_purpose::STANDARD.encode(value),
@@ -100,15 +98,13 @@ impl TryFrom<PayloadFormat> for PayloadFormatYaml {
 impl TryFrom<(PayloadFormat, &PayloadYaml)> for PayloadFormatYaml {
     type Error = PayloadFormatError;
 
-    fn try_from(value: (PayloadFormat, &PayloadYaml)) -> Result<Self, Self::Error> {
+    fn try_from((value, options): (PayloadFormat, &PayloadYaml)) -> Result<Self, Self::Error> {
         fn convert_from_value(value: String) -> Result<PayloadFormatYaml, PayloadFormatError> {
             let yaml: Value = from_str(format!("content: {}", value).as_str())?;
             Ok(PayloadFormatYaml::from(yaml))
         }
 
-        let options = value.1;
-
-        match value.0 {
+        match value {
             PayloadFormat::Text(value) => convert_from_value(value.into()),
             PayloadFormat::Raw(value) => {
                 convert_from_value(PayloadFormatYaml::convert_raw_type(options, value.into()))
@@ -312,7 +308,7 @@ mod tests {
     fn from_raw_as_hex() {
         let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
         let options = PayloadYaml::default();
-        let result = PayloadFormatYaml::try_from((PayloadFormat::Raw(input), options)).unwrap();
+        let result = PayloadFormatYaml::try_from((PayloadFormat::Raw(input), &options)).unwrap();
 
         assert_eq!(get_yaml_value(INPUT_STRING_HEX), result.content);
     }
@@ -321,7 +317,7 @@ mod tests {
     fn from_raw_as_base64() {
         let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
         let options = PayloadYaml::new(PayloadOptionRawFormat::Base64);
-        let result = PayloadFormatYaml::try_from((PayloadFormat::Raw(input), options)).unwrap();
+        let result = PayloadFormatYaml::try_from((PayloadFormat::Raw(input), &options)).unwrap();
 
         assert_eq!(get_yaml_value(INPUT_STRING_BASE64), result.content);
     }
@@ -486,7 +482,7 @@ mod tests {
         );
         let options = PayloadYaml::default();
         let result =
-            PayloadFormatYaml::try_from((PayloadFormat::Protobuf(input.unwrap()), options))
+            PayloadFormatYaml::try_from((PayloadFormat::Protobuf(input.unwrap()), &options))
                 .unwrap();
 
         assert_eq!(
@@ -504,7 +500,7 @@ mod tests {
         );
         let options = PayloadYaml::new(PayloadOptionRawFormat::Base64);
         let result =
-            PayloadFormatYaml::try_from((PayloadFormat::Protobuf(input.unwrap()), options))
+            PayloadFormatYaml::try_from((PayloadFormat::Protobuf(input.unwrap()), &options))
                 .unwrap();
 
         assert_eq!(

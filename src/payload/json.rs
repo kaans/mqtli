@@ -176,7 +176,7 @@ impl TryFrom<PayloadFormat> for PayloadFormatJson {
 impl TryFrom<(PayloadFormat, &PayloadJson)> for PayloadFormatJson {
     type Error = PayloadFormatError;
 
-    fn try_from(value: (PayloadFormat, &PayloadJson)) -> Result<Self, Self::Error> {
+    fn try_from((value, options): (PayloadFormat, &PayloadJson)) -> Result<Self, Self::Error> {
         fn encode_to_json_with_string_content(
             value: String,
         ) -> Result<PayloadFormatJson, PayloadFormatError> {
@@ -185,9 +185,7 @@ impl TryFrom<(PayloadFormat, &PayloadJson)> for PayloadFormatJson {
             )?))
         }
 
-        let options = value.1;
-
-        match value.0 {
+        match value {
             PayloadFormat::Text(value) => encode_to_json_with_string_content(value.into()),
             PayloadFormat::Raw(value) => encode_to_json_with_string_content(
                 PayloadFormatJson::convert_raw_type(options, value.into()),
@@ -415,7 +413,7 @@ mod tests {
     fn from_raw_as_hex() {
         let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
         let options = PayloadJson::default();
-        let result = PayloadFormatJson::try_from((PayloadFormat::Raw(input), options)).unwrap();
+        let result = PayloadFormatJson::try_from((PayloadFormat::Raw(input), &options)).unwrap();
 
         assert_eq!(get_json_value(INPUT_STRING_HEX), result.content);
     }
@@ -424,7 +422,7 @@ mod tests {
     fn from_raw_as_base64() {
         let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
         let options = PayloadJson::new(PayloadOptionRawFormat::Base64);
-        let result = PayloadFormatJson::try_from((PayloadFormat::Raw(input), options)).unwrap();
+        let result = PayloadFormatJson::try_from((PayloadFormat::Raw(input), &options)).unwrap();
 
         assert_eq!(get_json_value(INPUT_STRING_BASE64), result.content);
     }
@@ -584,7 +582,7 @@ mod tests {
         );
         let options = PayloadJson::default();
         let result =
-            PayloadFormatJson::try_from((PayloadFormat::Protobuf(input.unwrap()), options))
+            PayloadFormatJson::try_from((PayloadFormat::Protobuf(input.unwrap()), &options))
                 .unwrap();
 
         assert_eq!(
@@ -602,7 +600,7 @@ mod tests {
         );
         let options = PayloadJson::new(PayloadOptionRawFormat::Base64);
         let result =
-            PayloadFormatJson::try_from((PayloadFormat::Protobuf(input.unwrap()), options))
+            PayloadFormatJson::try_from((PayloadFormat::Protobuf(input.unwrap()), &options))
                 .unwrap();
 
         assert_eq!(
