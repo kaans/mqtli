@@ -259,7 +259,7 @@ pub struct PayloadProtobuf {
 /// The format to which bytes get decoded to.
 /// Default is hex.
 #[derive(Clone, Debug, Default, Deserialize, PartialEq)]
-pub enum PayloadJsonOptionRawFormat {
+pub enum PayloadOptionRawFormat {
     #[default]
     Hex,
     Base64,
@@ -267,11 +267,13 @@ pub enum PayloadJsonOptionRawFormat {
 
 #[derive(Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct PayloadJson {
-    raw_as_type: PayloadJsonOptionRawFormat,
+    raw_as_type: PayloadOptionRawFormat,
 }
 
 #[derive(Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct PayloadYaml {}
+pub struct PayloadYaml {
+    raw_as_type: PayloadOptionRawFormat,
+}
 
 #[derive(Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct PayloadHex {}

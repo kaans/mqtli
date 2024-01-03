@@ -1,9 +1,12 @@
 use std::fmt::{Display, Formatter};
 
+use base64::Engine;
+use base64::engine::general_purpose;
 use derive_getters::Getters;
 use log::error;
 use serde_yaml::{from_slice, from_str, Value};
 
+use crate::config::mqtli_config::{PayloadOptionRawFormat, PayloadYaml};
 use crate::payload::{PayloadFormat, PayloadFormatError};
 
 #[derive(Clone, Debug, Getters)]
@@ -18,6 +21,13 @@ impl PayloadFormatYaml {
 
     fn encode_to_yaml(value: Vec<u8>) -> serde_yaml::Result<Value> {
         from_slice(value.as_slice())
+    }
+
+    fn convert_raw_type(options: &PayloadYaml, value: Vec<u8>) -> String {
+        match options.raw_as_type() {
+            PayloadOptionRawFormat::Hex => hex::encode(value),
+            PayloadOptionRawFormat::Base64 => general_purpose::STANDARD.encode(value),
+        }
     }
 }
 
@@ -81,19 +91,32 @@ impl TryFrom<PayloadFormat> for PayloadFormatYaml {
     type Error = PayloadFormatError;
 
     fn try_from(value: PayloadFormat) -> Result<Self, Self::Error> {
+        Self::try_from((value, PayloadYaml::default()))
+    }
+}
+
+impl TryFrom<(PayloadFormat, PayloadYaml)> for PayloadFormatYaml {
+    type Error = PayloadFormatError;
+
+    fn try_from(value: (PayloadFormat, PayloadYaml)) -> Result<Self, Self::Error> {
         fn convert_from_value(value: String) -> Result<PayloadFormatYaml, PayloadFormatError> {
             let yaml: Value = from_str(format!("content: {}", value).as_str())?;
             Ok(PayloadFormatYaml::from(yaml))
         }
 
-        match value {
+        let options = value.1;
+
+        match value.0 {
             PayloadFormat::Text(value) => convert_from_value(value.into()),
-            PayloadFormat::Raw(_value) => Err(PayloadFormatError::ConversionNotPossible(
-                "raw".to_string(),
-                "yaml".to_string(),
-            )),
+            PayloadFormat::Raw(value) => {
+                convert_from_value(PayloadFormatYaml::convert_raw_type(&options, value.into()))
+            }
             PayloadFormat::Protobuf(value) => Ok(Self {
-                content: protobuf::get_message_value(value.context(), value.message_value())?,
+                content: protobuf::get_message_value(
+                    value.context(),
+                    value.message_value(),
+                    &options,
+                )?,
             }),
             PayloadFormat::Hex(value) => convert_from_value(value.into()),
             PayloadFormat::Base64(value) => convert_from_value(value.into()),
@@ -110,18 +133,21 @@ mod protobuf {
     use protofish::decode::{FieldValue, MessageValue, Value};
     use serde_yaml::value;
 
+    use crate::config::mqtli_config::PayloadYaml;
     use crate::payload::PayloadFormatError;
+    use crate::payload::yaml::PayloadFormatYaml;
 
     pub(super) fn get_message_value(
         context: &Context,
         message_value: &MessageValue,
+        options: &PayloadYaml,
     ) -> Result<serde_yaml::Value, PayloadFormatError> {
         let message_info = context.resolve_message(message_value.msg_ref);
 
         let mut map_fields = serde_yaml::Mapping::new();
 
         for field in &message_value.fields {
-            let result_field = get_field_value(context, field)?;
+            let result_field = get_field_value(context, field, options)?;
             let field_name = match &message_info.get_field(field.number) {
                 None => "unknown",
                 Some(value) => value.name.as_str(),
@@ -138,6 +164,7 @@ mod protobuf {
     fn get_field_value(
         context: &Context,
         field_value: &FieldValue,
+        options: &PayloadYaml,
     ) -> Result<serde_yaml::Value, PayloadFormatError> {
         let result = match &field_value.value {
             Value::Double(value) => serde_yaml::Value::Number(value::Number::from(*value)),
@@ -154,8 +181,11 @@ mod protobuf {
             Value::SFixed64(value) => serde_yaml::Value::Number(value::Number::from(*value)),
             Value::Bool(value) => serde_yaml::Value::Bool(*value),
             Value::String(value) => serde_yaml::Value::String(value.clone()),
-            Value::Message(value) => get_message_value(context, value)?,
-            Value::Bytes(value) => serde_yaml::Value::String(String::from_utf8(value.to_vec())?),
+            Value::Message(value) => get_message_value(context, value, options)?,
+            Value::Bytes(value) => serde_yaml::Value::String(PayloadFormatYaml::convert_raw_type(
+                options,
+                value.to_vec(),
+            )),
             Value::Enum(value) => {
                 let enum_ref = value.enum_ref;
                 let enum_value = match context
@@ -182,6 +212,7 @@ mod protobuf {
 mod tests {
     use serde_yaml::from_str;
 
+    use crate::config::mqtli_config::{PayloadOptionRawFormat, PayloadYaml};
     use crate::payload::base64::PayloadFormatBase64;
     use crate::payload::hex::PayloadFormatHex;
     use crate::payload::json::PayloadFormatJson;
@@ -195,7 +226,7 @@ mod tests {
     const INPUT_STRING: &str = "INPUT";
     const INPUT_STRING_HEX: &str = "494e505554";
     const INPUT_STRING_BASE64: &str = "SU5QVVQ=";
-    const INPUT_STRING_PROTOBUF_AS_HEX: &str = "082012080a066b696e646f661801";
+    const INPUT_STRING_PROTOBUF_AS_HEX: &str = "082012080a066b696e646f6618012202c328";
     const INPUT_STRING_MESSAGE: &str = r#"
     syntax = "proto3";
     package Proto;
@@ -212,6 +243,7 @@ mod tests {
       int32 distance = 1;
       Inner inside = 2;
       Position position = 3;
+      bytes raw = 4;
     }
     "#;
     const MESSAGE_NAME: &str = "Proto.Response";
@@ -276,11 +308,21 @@ mod tests {
     }
 
     #[test]
-    fn from_raw() {
+    fn from_raw_as_hex() {
         let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
-        let result = PayloadFormatYaml::try_from(PayloadFormat::Raw(input));
+        let options = PayloadYaml::default();
+        let result = PayloadFormatYaml::try_from((PayloadFormat::Raw(input), options)).unwrap();
 
-        assert!(result.is_err());
+        assert_eq!(get_yaml_value(INPUT_STRING_HEX), result.content);
+    }
+
+    #[test]
+    fn from_raw_as_base64() {
+        let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
+        let options = PayloadYaml::new(PayloadOptionRawFormat::Base64);
+        let result = PayloadFormatYaml::try_from((PayloadFormat::Raw(input), options)).unwrap();
+
+        assert_eq!(get_yaml_value(INPUT_STRING_BASE64), result.content);
     }
 
     #[test]
@@ -409,7 +451,6 @@ mod tests {
             String::from(INPUT_STRING_MESSAGE),
             MESSAGE_NAME.to_string(),
         );
-        eprintln!("input = {:?}", input);
         let result = PayloadFormatYaml::try_from(PayloadFormat::Protobuf(input.unwrap())).unwrap();
 
         assert_eq!(
@@ -432,6 +473,42 @@ mod tests {
                 .unwrap()
                 .as_str()
                 .unwrap()
+        );
+    }
+
+    #[test]
+    fn from_protobuf_raw_as_hex() {
+        let input = PayloadFormatProtobuf::new(
+            hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(),
+            String::from(INPUT_STRING_MESSAGE),
+            MESSAGE_NAME.to_string(),
+        );
+        let options = PayloadYaml::default();
+        let result =
+            PayloadFormatYaml::try_from((PayloadFormat::Protobuf(input.unwrap()), options))
+                .unwrap();
+
+        assert_eq!(
+            "c328".to_string(),
+            result.content.get("raw").unwrap().as_str().unwrap()
+        );
+    }
+
+    #[test]
+    fn from_protobuf_raw_as_base64() {
+        let input = PayloadFormatProtobuf::new(
+            hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(),
+            String::from(INPUT_STRING_MESSAGE),
+            MESSAGE_NAME.to_string(),
+        );
+        let options = PayloadYaml::new(PayloadOptionRawFormat::Base64);
+        let result =
+            PayloadFormatYaml::try_from((PayloadFormat::Protobuf(input.unwrap()), options))
+                .unwrap();
+
+        assert_eq!(
+            "wyg=".to_string(),
+            result.content.get("raw").unwrap().as_str().unwrap()
         );
     }
 }
