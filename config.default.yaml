@@ -1,0 +1,60 @@
+#broker:
+#  host: "localhost"
+#  port: 1883
+#  client_id: "mqtcli"
+#  keep_alive: 5 # in seconds
+#  username: ""
+#  password: ""
+#
+#  use_tls: false
+#  tls_ca_file: ""
+#  tls_client_certificate: ""
+#  tls_client_key: ""
+#  tls_version: all #all, v12, v13
+#
+#  last_will:
+#    topic: ""
+#    payload: []
+#    qos: 0
+#    retain: false
+#
+#log_level: info # off, error, warn, info, debug, trace
+#
+# no topics are defined by default
+#
+#topics:
+#  - topic: mqtli/topic
+#    subscription:
+#      enabled: false
+#      qos: 0
+#      outputs: # by default no output is defined
+#        - format:
+#            type: yaml
+#            raw_as: hex # defines how raw binary data is converted to utf-8 (hex or base64)
+#          target:
+#            type: console # console is default and can be omitted
+#        - format:
+#            type: raw
+#          target:
+#            type: file
+#            path: "log.txt"
+#            overwrite: false # true only saves the latest message, false appends to the end
+#            prepend: "BEGIN " # prepends a string to the beginning of each message
+#            append: " END\n" # appends a string to each end of the message
+#    payload:
+#      type: protobuf
+#      definition: "messages.proto"
+#      message: "Proto.Response"
+#    publish:
+#      enabled: false
+#      retain: false
+#      qos: 0
+#      input:
+#        type: text # text, raw, hex, base64, json, yaml
+#        content: "content_to_send"
+#        path: content.txt
+#      trigger:
+#        - type: periodic # default trigger: periodic with no count (indefinitely) and interval 1 second
+#          #count: 1 # 0 is indefinitely
+#          interval: 1000 # in ms
+#          initial_delay: 0 # in ms

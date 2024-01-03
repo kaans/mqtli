@@ -42,3 +42,15 @@ topics:
       message: "Proto.Response"
     # payload:
       # type: text
+    publish:
+      enabled: false
+      retain: false
+      qos: 0
+      input:
+        type: text # text, raw, hex, base64, json, yaml
+        content: "content_to_send"
+      trigger:
+        - type: periodic # default trigger: periodic with no count (indefinitely) and interval 1 second
+          #count: 1 # 0 is indefinitely
+          interval: 1000 # in ms
+          initial_delay: 0 # in ms
