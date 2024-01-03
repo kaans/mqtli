@@ -145,9 +145,7 @@ impl From<&args::PublishInputType> for PublishInputType {
             args::PublishInputType::Text(value) => {
                 Self::Text(PublishInputTypeContentPath::from(value))
             }
-            args::PublishInputType::Raw(value) => {
-                Self::Raw(PublishInputTypePath::from(value))
-            }
+            args::PublishInputType::Raw(value) => Self::Raw(PublishInputTypePath::from(value)),
             args::PublishInputType::Hex(value) => {
                 Self::Hex(PublishInputTypeContentPath::from(value))
             }
@@ -313,7 +311,9 @@ impl From<&args::PayloadType> for PayloadType {
     fn from(value: &args::PayloadType) -> Self {
         match value {
             args::PayloadType::Text(value) => PayloadType::Text(PayloadText::from(value)),
-            args::PayloadType::Protobuf(value) => PayloadType::Protobuf(PayloadProtobuf::from(value)),
+            args::PayloadType::Protobuf(value) => {
+                PayloadType::Protobuf(PayloadProtobuf::from(value))
+            }
             args::PayloadType::Json(value) => PayloadType::Json(PayloadJson::from(value)),
             args::PayloadType::Yaml(value) => PayloadType::Yaml(PayloadYaml::from(value)),
             args::PayloadType::Hex(value) => PayloadType::Hex(PayloadHex::from(value)),
@@ -457,11 +457,39 @@ impl From<&args::PayloadProtobuf> for PayloadProtobuf {
 }
 
 #[derive(Clone, Debug, Default, Getters, Validate)]
-pub struct PayloadJson {}
+pub struct PayloadJson {
+    raw_as_type: PayloadJsonOptionRawFormat,
+}
+
+impl PayloadJson {
+    pub fn new(raw_as_type: PayloadJsonOptionRawFormat) -> Self {
+        Self { raw_as_type }
+    }
+}
 
 impl From<&args::PayloadJson> for PayloadJson {
-    fn from(_value: &args::PayloadJson) -> Self {
-        Self {}
+    fn from(value: &args::PayloadJson) -> Self {
+        Self {
+            raw_as_type: PayloadJsonOptionRawFormat::from(value.raw_as_type()),
+        }
+    }
+}
+
+/// The format to which bytes get decoded to.
+/// Default is hex.
+#[derive(Clone, Debug, Default)]
+pub enum PayloadJsonOptionRawFormat {
+    #[default]
+    Hex,
+    Base64,
+}
+
+impl From<&args::PayloadJsonOptionRawFormat> for PayloadJsonOptionRawFormat {
+    fn from(value: &args::PayloadJsonOptionRawFormat) -> Self {
+        match value {
+            args::PayloadJsonOptionRawFormat::Hex => PayloadJsonOptionRawFormat::Hex,
+            args::PayloadJsonOptionRawFormat::Base64 => PayloadJsonOptionRawFormat::Base64,
+        }
     }
 }
 
@@ -525,8 +553,8 @@ pub struct MqttBrokerConnectArgs {
     #[validate(length(min = 1, message = "Client id must be given"))]
     client_id: String,
     #[validate(custom(
-    function = "validate_keep_alive",
-    message = "Keep alive must be a number and at least 5 seconds"
+        function = "validate_keep_alive",
+        message = "Keep alive must be a number and at least 5 seconds"
     ))]
     keep_alive: Duration,
     username: Option<String>,

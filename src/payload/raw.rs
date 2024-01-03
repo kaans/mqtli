@@ -6,7 +6,6 @@ pub struct PayloadFormatRaw {
 }
 
 impl From<Vec<u8>> for PayloadFormatRaw {
-
     fn from(value: Vec<u8>) -> Self {
         Self { content: value }
     }
@@ -160,8 +159,11 @@ mod tests {
 
     #[test]
     fn from_json() {
-        let input =
-            PayloadFormatJson::try_from(Vec::<u8>::from(format!("{{\"content\": \"{}\"}}", INPUT_STRING))).unwrap();
+        let input = PayloadFormatJson::try_from(Vec::<u8>::from(format!(
+            "{{\"content\": \"{}\"}}",
+            INPUT_STRING
+        )))
+        .unwrap();
         let result = PayloadFormatRaw::try_from(PayloadFormat::Json(input)).unwrap();
 
         assert_eq!(get_input(), result.content);
@@ -169,7 +171,9 @@ mod tests {
 
     #[test]
     fn from_yaml() {
-        let input = PayloadFormatYaml::try_from(Vec::<u8>::from(format!("content: \"{}\"", INPUT_STRING))).unwrap();
+        let input =
+            PayloadFormatYaml::try_from(Vec::<u8>::from(format!("content: \"{}\"", INPUT_STRING)))
+                .unwrap();
         let result = PayloadFormatRaw::try_from(PayloadFormat::Yaml(input)).unwrap();
 
         assert_eq!(get_input(), result.content);

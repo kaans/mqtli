@@ -15,12 +15,16 @@ pub struct PayloadFormatProtobuf {
 }
 
 impl PayloadFormatProtobuf {
-    pub fn new(content: Vec<u8>, definition_file_content: String, message_name: String) -> Result<Self, PayloadFormatError> {
+    pub fn new(
+        content: Vec<u8>,
+        definition_file_content: String,
+        message_name: String,
+    ) -> Result<Self, PayloadFormatError> {
         let (context, message_value) =
             Self::get_message_value(&content, definition_file_content, message_name.as_str())?;
 
         let message_value = Box::new(message_value);
-        //Self::validate_protobuf(&message_value)?;
+        Self::validate_protobuf(&message_value)?;
 
         Ok(Self {
             message_value,
@@ -28,7 +32,11 @@ impl PayloadFormatProtobuf {
         })
     }
 
-    pub fn new_from_definition_file(content: Vec<u8>, definition_file: &PathBuf, message_name: String) -> Result<Self, PayloadFormatError> {
+    pub fn new_from_definition_file(
+        content: Vec<u8>,
+        definition_file: &PathBuf,
+        message_name: String,
+    ) -> Result<Self, PayloadFormatError> {
         let content_from_file = match Self::read_definition_file(definition_file) {
             Ok(value) => value,
             Err(value) => return value,
@@ -37,22 +45,41 @@ impl PayloadFormatProtobuf {
         PayloadFormatProtobuf::new(content, content_from_file.to_string(), message_name)
     }
 
-    pub fn convert_from(payload: PayloadFormat, definition_file_content: String, message_name: &str) -> Result<Self, PayloadFormatError> {
+    pub fn convert_from(
+        payload: PayloadFormat,
+        definition_file_content: String,
+        message_name: &str,
+    ) -> Result<Self, PayloadFormatError> {
         let content: Vec<u8> = match payload {
-            PayloadFormat::Text(_value) => return Err(PayloadFormatError::ConversionNotPossible("text".to_string(), "protobuf".to_string())),
+            PayloadFormat::Text(_value) => {
+                return Err(PayloadFormatError::ConversionNotPossible(
+                    "text".to_string(),
+                    "protobuf".to_string(),
+                ))
+            }
             PayloadFormat::Raw(value) => Vec::from(value),
             PayloadFormat::Protobuf(value) => Vec::from(value),
             PayloadFormat::Hex(value) => Vec::try_from(value)?,
             PayloadFormat::Base64(value) => Vec::try_from(value)?,
-            PayloadFormat::Json(_value) => return Err(PayloadFormatError::ConversionNotPossible("json".to_string(), "protobuf".to_string())),
-            PayloadFormat::Yaml(_value) => return Err(PayloadFormatError::ConversionNotPossible("yaml".to_string(), "protobuf".to_string())),
+            PayloadFormat::Json(_value) => {
+                return Err(PayloadFormatError::ConversionNotPossible(
+                    "json".to_string(),
+                    "protobuf".to_string(),
+                ))
+            }
+            PayloadFormat::Yaml(_value) => {
+                return Err(PayloadFormatError::ConversionNotPossible(
+                    "yaml".to_string(),
+                    "protobuf".to_string(),
+                ))
+            }
         };
 
         let (context, message_value) =
             Self::get_message_value(&content, definition_file_content, message_name)?;
 
         let message_value = Box::new(message_value);
-        //Self::validate_protobuf(&message_value)?;
+        Self::validate_protobuf(&message_value)?;
 
         Ok(Self {
             message_value,
@@ -60,7 +87,11 @@ impl PayloadFormatProtobuf {
         })
     }
 
-    pub fn convert_from_definition_file(payload: PayloadFormat, definition_file: &PathBuf, message_name: &str) -> Result<Self, PayloadFormatError> {
+    pub fn convert_from_definition_file(
+        payload: PayloadFormat,
+        definition_file: &PathBuf,
+        message_name: &str,
+    ) -> Result<Self, PayloadFormatError> {
         let definition_file_content = match Self::read_definition_file(definition_file) {
             Ok(value) => value,
             Err(value) => return value,
@@ -69,7 +100,9 @@ impl PayloadFormatProtobuf {
         Self::convert_from(payload, definition_file_content, message_name)
     }
 
-    fn read_definition_file(definition_file: &PathBuf) -> Result<String, Result<PayloadFormatProtobuf, PayloadFormatError>> {
+    fn read_definition_file(
+        definition_file: &PathBuf,
+    ) -> Result<String, Result<PayloadFormatProtobuf, PayloadFormatError>> {
         let Ok(content_from_file) = read_to_string(definition_file) else {
             error!("Could not open definition file {definition_file:?}");
             return Err(Err(PayloadFormatError::CouldNotOpenDefinitionFile(
@@ -90,7 +123,7 @@ impl PayloadFormatProtobuf {
                     eprintln!("_value = {:?}", _value);
 
                     Err(PayloadFormatError::InvalidProtobuf)
-                },
+                }
                 _ => Ok(()),
             };
 
@@ -167,7 +200,11 @@ mod tests {
     #[test]
     fn from_vec_u8() {
         let result = PayloadFormatProtobuf::new(
-            get_input_as_bytes(), String::from(INPUT_STRING_MESSAGE), MESSAGE_NAME.to_string()).unwrap();
+            get_input_as_bytes(),
+            String::from(INPUT_STRING_MESSAGE),
+            MESSAGE_NAME.to_string(),
+        )
+        .unwrap();
 
         assert_eq!(32, extract_distance(&result));
         assert_eq!("kindof".to_string(), extract_kind(&result));
@@ -176,7 +213,11 @@ mod tests {
     #[test]
     fn to_vec_u8() {
         let input = PayloadFormatProtobuf::new(
-            get_input_as_bytes(), String::from(INPUT_STRING_MESSAGE), MESSAGE_NAME.to_string()).unwrap();
+            get_input_as_bytes(),
+            String::from(INPUT_STRING_MESSAGE),
+            MESSAGE_NAME.to_string(),
+        )
+        .unwrap();
 
         let result: Vec<u8> = Vec::from(input);
 
@@ -186,20 +227,23 @@ mod tests {
     #[test]
     fn from_text() {
         let input = PayloadFormatText::from("not possible");
-        let result =
-            PayloadFormatProtobuf::convert_from(PayloadFormat::Text(input),
-                                                String::from(INPUT_STRING_MESSAGE),
-                                                MESSAGE_NAME);
+        let result = PayloadFormatProtobuf::convert_from(
+            PayloadFormat::Text(input),
+            String::from(INPUT_STRING_MESSAGE),
+            MESSAGE_NAME,
+        );
         assert!(result.is_err());
     }
 
     #[test]
     fn from_raw() {
         let input = PayloadFormatRaw::try_from(get_input_as_bytes()).unwrap();
-        let result =
-            PayloadFormatProtobuf::convert_from(PayloadFormat::Raw(input),
-                                                String::from(INPUT_STRING_MESSAGE),
-                                                MESSAGE_NAME).unwrap();
+        let result = PayloadFormatProtobuf::convert_from(
+            PayloadFormat::Raw(input),
+            String::from(INPUT_STRING_MESSAGE),
+            MESSAGE_NAME,
+        )
+        .unwrap();
 
         assert_eq!(32, extract_distance(&result));
         assert_eq!("kindof".to_string(), extract_kind(&result));
@@ -208,10 +252,12 @@ mod tests {
     #[test]
     fn from_hex() {
         let input = PayloadFormatHex::try_from(INPUT_STRING_HEX.to_owned()).unwrap();
-        let result =
-            PayloadFormatProtobuf::convert_from(PayloadFormat::Hex(input),
-                                                String::from(INPUT_STRING_MESSAGE),
-                                                MESSAGE_NAME).unwrap();
+        let result = PayloadFormatProtobuf::convert_from(
+            PayloadFormat::Hex(input),
+            String::from(INPUT_STRING_MESSAGE),
+            MESSAGE_NAME,
+        )
+        .unwrap();
 
         assert_eq!(32, extract_distance(&result));
         assert_eq!("kindof".to_string(), extract_kind(&result));
@@ -220,10 +266,12 @@ mod tests {
     #[test]
     fn from_base64() {
         let input = PayloadFormatBase64::try_from(INPUT_STRING_BASE64.to_owned()).unwrap();
-        let result =
-            PayloadFormatProtobuf::convert_from(PayloadFormat::Base64(input),
-                                                String::from(INPUT_STRING_MESSAGE),
-                                                MESSAGE_NAME).unwrap();
+        let result = PayloadFormatProtobuf::convert_from(
+            PayloadFormat::Base64(input),
+            String::from(INPUT_STRING_MESSAGE),
+            MESSAGE_NAME,
+        )
+        .unwrap();
 
         assert_eq!(32, extract_distance(&result));
         assert_eq!("kindof".to_string(), extract_kind(&result));
@@ -231,33 +279,50 @@ mod tests {
 
     #[test]
     fn from_yaml() {
-        let input =
-            PayloadFormatYaml::try_from(Vec::<u8>::from("content: input")).unwrap();
-        let result =
-            PayloadFormatProtobuf::convert_from(PayloadFormat::Yaml(input),
-                                                String::from(INPUT_STRING_MESSAGE),
-                                                MESSAGE_NAME);
+        let input = PayloadFormatYaml::try_from(Vec::<u8>::from("content: input")).unwrap();
+        let result = PayloadFormatProtobuf::convert_from(
+            PayloadFormat::Yaml(input),
+            String::from(INPUT_STRING_MESSAGE),
+            MESSAGE_NAME,
+        );
         assert!(result.is_err());
     }
 
     #[test]
     fn from_json() {
-        let input = PayloadFormatJson::try_from(Vec::<u8>::from("{\"content\":\"input\"}")).unwrap();
-        let result =
-            PayloadFormatProtobuf::convert_from(PayloadFormat::Json(input),
-                                                String::from(INPUT_STRING_MESSAGE),
-                                                MESSAGE_NAME);
+        let input =
+            PayloadFormatJson::try_from(Vec::<u8>::from("{\"content\":\"input\"}")).unwrap();
+        let result = PayloadFormatProtobuf::convert_from(
+            PayloadFormat::Json(input),
+            String::from(INPUT_STRING_MESSAGE),
+            MESSAGE_NAME,
+        );
         assert!(result.is_err());
     }
 
     fn extract_kind(result: &PayloadFormatProtobuf) -> String {
-        let inner_message: &Value = &result.message_value.fields.iter().filter(|v| v.number == 2).collect::<Vec<&FieldValue>>().get(0).unwrap().value;
+        let inner_message: &Value = &result
+            .message_value
+            .fields
+            .iter()
+            .filter(|v| v.number == 2)
+            .collect::<Vec<&FieldValue>>()
+            .get(0)
+            .unwrap()
+            .value;
 
         let Value::Message(inner_message) = inner_message else {
             panic!("Inner message not found");
         };
 
-        let kind: &Value = &inner_message.fields.iter().filter(|v| v.number == 1).collect::<Vec<&FieldValue>>().get(0).unwrap().value;
+        let kind: &Value = &inner_message
+            .fields
+            .iter()
+            .filter(|v| v.number == 1)
+            .collect::<Vec<&FieldValue>>()
+            .get(0)
+            .unwrap()
+            .value;
 
         let Value::String(kind) = kind else {
             panic!("Kind is not string");
@@ -267,7 +332,15 @@ mod tests {
     }
 
     fn extract_distance(result: &PayloadFormatProtobuf) -> i32 {
-        let distance: &Value = &result.message_value.fields.iter().filter(|v| v.number == 1).collect::<Vec<&FieldValue>>().get(0).unwrap().value;
+        let distance: &Value = &result
+            .message_value
+            .fields
+            .iter()
+            .filter(|v| v.number == 1)
+            .collect::<Vec<&FieldValue>>()
+            .get(0)
+            .unwrap()
+            .value;
         let Value::Int32(distance) = distance else {
             panic!("Distance is not i32");
         };

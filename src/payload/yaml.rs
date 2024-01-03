@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+
 use derive_getters::Getters;
 use log::error;
 use serde_yaml::{from_slice, from_str, Value};
@@ -23,10 +24,16 @@ impl PayloadFormatYaml {
 /// Displays the hex encoded content.
 impl Display for PayloadFormatYaml {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", Self::decode_from_yaml_payload(self).map_err(|e| {
-            error!("Cannot display yaml, error while decoding: {:?}", e);
-            ""
-        }).unwrap())
+        write!(
+            f,
+            "{}",
+            Self::decode_from_yaml_payload(self)
+                .map_err(|e| {
+                    error!("Cannot display yaml, error while decoding: {:?}", e);
+                    ""
+                })
+                .unwrap()
+        )
     }
 }
 
@@ -35,7 +42,7 @@ impl TryFrom<Vec<u8>> for PayloadFormatYaml {
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
         Ok(Self {
-            content: Self::encode_to_yaml(value)?
+            content: Self::encode_to_yaml(value)?,
         })
     }
 }
@@ -80,33 +87,26 @@ impl TryFrom<PayloadFormat> for PayloadFormatYaml {
         }
 
         match value {
-            PayloadFormat::Text(value) => {
-                convert_from_value(value.into())
-            }
-            PayloadFormat::Raw(_value) => {
-                Err(PayloadFormatError::ConversionNotPossible("raw".to_string(), "yaml".to_string()))
-            }
+            PayloadFormat::Text(value) => convert_from_value(value.into()),
+            PayloadFormat::Raw(_value) => Err(PayloadFormatError::ConversionNotPossible(
+                "raw".to_string(),
+                "yaml".to_string(),
+            )),
             PayloadFormat::Protobuf(value) => Ok(Self {
                 content: protobuf::get_message_value(value.context(), value.message_value())?,
             }),
-            PayloadFormat::Hex(value) => {
-                convert_from_value(value.into())
-            }
-            PayloadFormat::Base64(value) => {
-                convert_from_value(value.into())
-            }
+            PayloadFormat::Hex(value) => convert_from_value(value.into()),
+            PayloadFormat::Base64(value) => convert_from_value(value.into()),
             PayloadFormat::Yaml(value) => Ok(value),
-            PayloadFormat::Json(value) => {
-                Ok(Self {
-                    content: serde_json::from_value::<Value>(value.content().clone())?
-                })
-            }
+            PayloadFormat::Json(value) => Ok(Self {
+                content: serde_json::from_value::<Value>(value.content().clone())?,
+            }),
         }
     }
 }
 
 mod protobuf {
-    use protofish::context::{Context, EnumField};
+    use protofish::context::Context;
     use protofish::decode::{FieldValue, MessageValue, Value};
     use serde_yaml::value;
 
@@ -158,13 +158,16 @@ mod protobuf {
             Value::Bytes(value) => serde_yaml::Value::String(String::from_utf8(value.to_vec())?),
             Value::Enum(value) => {
                 let enum_ref = value.enum_ref;
-                let enum_value = match context.resolve_enum(enum_ref).get_field_by_value(value.value) {
+                let enum_value = match context
+                    .resolve_enum(enum_ref)
+                    .get_field_by_value(value.value)
+                {
                     None => "Unknown".to_string(),
-                    Some(value) => value.name.clone()
+                    Some(value) => value.name.clone(),
                 };
 
                 serde_yaml::Value::String(enum_value)
-            },
+            }
             value => {
                 // TODO implement missing protobuf values for yaml conversion
                 serde_yaml::Value::String(format!("Unknown: {:?}", value))
@@ -178,6 +181,7 @@ mod protobuf {
 #[cfg(test)]
 mod tests {
     use serde_yaml::from_str;
+
     use crate::payload::base64::PayloadFormatBase64;
     use crate::payload::hex::PayloadFormatHex;
     use crate::payload::json::PayloadFormatJson;
@@ -306,20 +310,33 @@ mod tests {
 
     #[test]
     fn from_json() {
-        let input = PayloadFormatJson::try_from(Vec::<u8>::from(format!("{{\"content\":\"{}\"}}", INPUT_STRING))).unwrap();
+        let input = PayloadFormatJson::try_from(Vec::<u8>::from(format!(
+            "{{\"content\":\"{}\"}}",
+            INPUT_STRING
+        )))
+        .unwrap();
         let result = PayloadFormatYaml::try_from(PayloadFormat::Json(input)).unwrap();
 
-        assert_eq!(INPUT_STRING, result.content.get("content").unwrap().as_str().unwrap());
+        assert_eq!(
+            INPUT_STRING,
+            result.content.get("content").unwrap().as_str().unwrap()
+        );
     }
-
 
     #[test]
     fn from_json_complex() {
-        let input = PayloadFormatJson::try_from(Vec::<u8>::from(format!("{{\"size\": 54.3, \"name\":\"{}\"}}", INPUT_STRING))).unwrap();
+        let input = PayloadFormatJson::try_from(Vec::<u8>::from(format!(
+            "{{\"size\": 54.3, \"name\":\"{}\"}}",
+            INPUT_STRING
+        )))
+        .unwrap();
         let result = PayloadFormatYaml::try_from(PayloadFormat::Json(input)).unwrap();
 
         assert_eq!(54.3, result.content.get("size").unwrap().as_f64().unwrap());
-        assert_eq!(INPUT_STRING, result.content.get("name").unwrap().as_str().unwrap());
+        assert_eq!(
+            INPUT_STRING,
+            result.content.get("name").unwrap().as_str().unwrap()
+        );
     }
 
     #[test]
@@ -340,21 +357,81 @@ mod tests {
         let result = PayloadFormatYaml::try_from(PayloadFormat::Json(input)).unwrap();
 
         assert_eq!(54.3, result.content.get("size").unwrap().as_f64().unwrap());
-        assert_eq!("full name", result.content.get("name").unwrap().as_str().unwrap());
-        assert_eq!("red", result.content.get("colors").unwrap().as_sequence().unwrap().get(0).unwrap().as_str().unwrap());
-        assert_eq!("blue", result.content.get("colors").unwrap().as_sequence().unwrap().get(1).unwrap().as_str().unwrap());
-        assert_eq!("green", result.content.get("colors").unwrap().as_sequence().unwrap().get(2).unwrap().as_str().unwrap());
+        assert_eq!(
+            "full name",
+            result.content.get("name").unwrap().as_str().unwrap()
+        );
+        assert_eq!(
+            "red",
+            result
+                .content
+                .get("colors")
+                .unwrap()
+                .as_sequence()
+                .unwrap()
+                .get(0)
+                .unwrap()
+                .as_str()
+                .unwrap()
+        );
+        assert_eq!(
+            "blue",
+            result
+                .content
+                .get("colors")
+                .unwrap()
+                .as_sequence()
+                .unwrap()
+                .get(1)
+                .unwrap()
+                .as_str()
+                .unwrap()
+        );
+        assert_eq!(
+            "green",
+            result
+                .content
+                .get("colors")
+                .unwrap()
+                .as_sequence()
+                .unwrap()
+                .get(2)
+                .unwrap()
+                .as_str()
+                .unwrap()
+        );
     }
+
     #[test]
     fn from_protobuf() {
         let input = PayloadFormatProtobuf::new(
-            hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(), String::from(INPUT_STRING_MESSAGE), MESSAGE_NAME.to_string());
+            hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(),
+            String::from(INPUT_STRING_MESSAGE),
+            MESSAGE_NAME.to_string(),
+        );
         eprintln!("input = {:?}", input);
         let result = PayloadFormatYaml::try_from(PayloadFormat::Protobuf(input.unwrap())).unwrap();
 
-        assert_eq!(32, result.content.get("distance").unwrap().as_i64().unwrap());
-        assert_eq!("POSITION_INSIDE", result.content.get("position").unwrap().as_str().unwrap());
-        assert_eq!("kindof", result.content.get("inside").unwrap().as_mapping().unwrap().get("kind").unwrap().as_str().unwrap());
+        assert_eq!(
+            32,
+            result.content.get("distance").unwrap().as_i64().unwrap()
+        );
+        assert_eq!(
+            "POSITION_INSIDE",
+            result.content.get("position").unwrap().as_str().unwrap()
+        );
+        assert_eq!(
+            "kindof",
+            result
+                .content
+                .get("inside")
+                .unwrap()
+                .as_mapping()
+                .unwrap()
+                .get("kind")
+                .unwrap()
+                .as_str()
+                .unwrap()
+        );
     }
-
 }

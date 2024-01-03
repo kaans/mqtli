@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 
-use base64::Engine;
 use base64::engine::general_purpose;
+use base64::Engine;
 
 use crate::payload::{PayloadFormat, PayloadFormatError};
 
@@ -30,7 +30,9 @@ impl Display for PayloadFormatBase64 {
 /// Converts the given `Vec<u8>` value to a base64 encoded string.
 impl From<Vec<u8>> for PayloadFormatBase64 {
     fn from(value: Vec<u8>) -> Self {
-        Self { content: Self::encode_to_base64(value) }
+        Self {
+            content: Self::encode_to_base64(value),
+        }
     }
 }
 
@@ -45,9 +47,7 @@ impl TryFrom<String> for PayloadFormatBase64 {
             return Err(PayloadFormatError::ValueIsNotValidHex(value));
         }
 
-        Ok(Self {
-            content: value,
-        })
+        Ok(Self { content: value })
     }
 }
 
@@ -251,8 +251,11 @@ mod tests {
 
     #[test]
     fn from_json() {
-        let input =
-            PayloadFormatJson::try_from(Vec::<u8>::from(format!("{{\"content\": \"{}\"}}", INPUT_STRING_BASE64))).unwrap();
+        let input = PayloadFormatJson::try_from(Vec::<u8>::from(format!(
+            "{{\"content\": \"{}\"}}",
+            INPUT_STRING_BASE64
+        )))
+        .unwrap();
         let result = PayloadFormatBase64::try_from(PayloadFormat::Json(input)).unwrap();
 
         assert_eq!(INPUT_STRING_BASE64, result.content);
@@ -260,7 +263,11 @@ mod tests {
 
     #[test]
     fn from_yaml() {
-        let input = PayloadFormatYaml::try_from(Vec::<u8>::from(format!("content: \"{}\"", INPUT_STRING_BASE64))).unwrap();
+        let input = PayloadFormatYaml::try_from(Vec::<u8>::from(format!(
+            "content: \"{}\"",
+            INPUT_STRING_BASE64
+        )))
+        .unwrap();
         let result = PayloadFormatBase64::try_from(PayloadFormat::Yaml(input)).unwrap();
 
         assert_eq!(INPUT_STRING_BASE64, result.content);

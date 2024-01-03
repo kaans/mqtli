@@ -30,7 +30,9 @@ impl Display for PayloadFormatHex {
 /// Converts the given `Vec<u8>` value to a hex encoded string.
 impl From<Vec<u8>> for PayloadFormatHex {
     fn from(value: Vec<u8>) -> Self {
-        Self { content: Self::encode_to_hex(value) }
+        Self {
+            content: Self::encode_to_hex(value),
+        }
     }
 }
 
@@ -49,9 +51,7 @@ impl TryFrom<String> for PayloadFormatHex {
             return Err(PayloadFormatError::ValueIsNotValidHex(value));
         }
 
-        Ok(Self {
-            content: value,
-        })
+        Ok(Self { content: value })
     }
 }
 
@@ -145,7 +145,6 @@ impl TryFrom<PayloadFormat> for PayloadFormatHex {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -257,8 +256,11 @@ mod tests {
 
     #[test]
     fn from_json() {
-        let input =
-            PayloadFormatJson::try_from(Vec::<u8>::from(format!("{{\"content\": \"{}\"}}", INPUT_STRING_HEX))).unwrap();
+        let input = PayloadFormatJson::try_from(Vec::<u8>::from(format!(
+            "{{\"content\": \"{}\"}}",
+            INPUT_STRING_HEX
+        )))
+        .unwrap();
         let result = PayloadFormatHex::try_from(PayloadFormat::Json(input)).unwrap();
 
         assert_eq!(INPUT_STRING_HEX, result.content);
@@ -266,7 +268,11 @@ mod tests {
 
     #[test]
     fn from_yaml() {
-        let input = PayloadFormatYaml::try_from(Vec::<u8>::from(format!("content: \"{}\"", INPUT_STRING_HEX))).unwrap();
+        let input = PayloadFormatYaml::try_from(Vec::<u8>::from(format!(
+            "content: \"{}\"",
+            INPUT_STRING_HEX
+        )))
+        .unwrap();
         let result = PayloadFormatHex::try_from(PayloadFormat::Yaml(input)).unwrap();
 
         assert_eq!(INPUT_STRING_HEX, result.content);
