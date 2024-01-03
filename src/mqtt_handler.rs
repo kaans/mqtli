@@ -85,7 +85,7 @@ impl MqttHandler {
     }
 
     fn forward_to_output(output: &Output, content: PayloadFormat) -> Result<(), OutputError> {
-        let conv = content.convert_for_output(output)?;
+        let conv = PayloadFormat::try_from((content, output.format()))?;
 
         let result = match output.target() {
             Console(_options) => ConsoleOutput::output(conv.try_into()?),

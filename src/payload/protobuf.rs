@@ -163,6 +163,17 @@ impl From<PayloadFormatProtobuf> for Vec<u8> {
     }
 }
 
+impl TryFrom<PayloadFormat> for PayloadFormatProtobuf {
+    type Error = PayloadFormatError;
+
+    fn try_from(_value: PayloadFormat) -> Result<Self, Self::Error> {
+        Err(PayloadFormatError::ConversionNotPossible(
+            "any".to_string(),
+            "protobuf".to_string(),
+        ))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use protofish::decode::FieldValue;

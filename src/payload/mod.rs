@@ -10,10 +10,7 @@ use log::error;
 use protofish::context::ParseError;
 use thiserror::Error;
 
-use crate::config::mqtli_config::{
-    Output, PayloadType, PublishInputType, PublishInputTypeContentPath,
-};
-use crate::config::OutputFormat;
+use crate::config::{PayloadType, PublishInputType, PublishInputTypeContentPath};
 use crate::payload::base64::PayloadFormatBase64;
 use crate::payload::hex::PayloadFormatHex;
 use crate::payload::json::PayloadFormatJson;
@@ -161,6 +158,30 @@ impl PayloadFormatTopic {
     }
 }
 
+impl TryFrom<(PayloadFormat, &PayloadType)> for PayloadFormat {
+    type Error = PayloadFormatError;
+
+    fn try_from(value: (PayloadFormat, &PayloadType)) -> Result<Self, Self::Error> {
+        Ok(match value.1 {
+            PayloadType::Text(_) => PayloadFormat::Text(PayloadFormatText::try_from(value.0)?),
+            PayloadType::Json(options) => {
+                PayloadFormat::Json(PayloadFormatJson::try_from((value.0, options))?)
+            }
+            PayloadType::Yaml(options) => {
+                PayloadFormat::Yaml(PayloadFormatYaml::try_from((value.0, options))?)
+            }
+            PayloadType::Hex(_) => PayloadFormat::Hex(PayloadFormatHex::try_from(value.0)?),
+            PayloadType::Base64(_) => {
+                PayloadFormat::Base64(PayloadFormatBase64::try_from(value.0)?)
+            }
+            PayloadType::Raw(_) => PayloadFormat::Raw(PayloadFormatRaw::try_from(value.0)?),
+            PayloadType::Protobuf(_) => {
+                PayloadFormat::Protobuf(PayloadFormatProtobuf::try_from(value.0)?)
+            }
+        })
+    }
+}
+
 impl TryFrom<PayloadFormatTopic> for PayloadFormat {
     type Error = PayloadFormatError;
 
@@ -250,17 +271,6 @@ impl PayloadFormat {
                 Ok(PayloadFormat::Raw(PayloadFormatRaw::try_from(content)?))
             }
         }
-    }
-
-    pub fn convert_for_output(self, output: &Output) -> Result<PayloadFormat, PayloadFormatError> {
-        Ok(match output.format() {
-            OutputFormat::Text => PayloadFormat::Text(PayloadFormatText::try_from(self)?),
-            OutputFormat::Json => PayloadFormat::Json(PayloadFormatJson::try_from(self)?),
-            OutputFormat::Yaml => PayloadFormat::Yaml(PayloadFormatYaml::try_from(self)?),
-            OutputFormat::Hex => PayloadFormat::Hex(PayloadFormatHex::try_from(self)?),
-            OutputFormat::Base64 => PayloadFormat::Base64(PayloadFormatBase64::try_from(self)?),
-            OutputFormat::Raw => PayloadFormat::Raw(PayloadFormatRaw::try_from(self)?),
-        })
     }
 }
 
