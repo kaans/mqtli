@@ -166,7 +166,6 @@ mod tests {
     #[test]
     fn from_vec_u8() {
         let result = PayloadFormatBase64::from(get_input());
-        eprintln!("result = {:?}", result);
 
         assert_eq!(INPUT_STRING_BASE64, result.content);
     }

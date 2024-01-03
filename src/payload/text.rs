@@ -515,7 +515,6 @@ mod tests {
             String::from(INPUT_STRING_MESSAGE),
             MESSAGE_NAME.to_string(),
         );
-        eprintln!("input = {:?}", input);
         let result = PayloadFormatText::try_from(PayloadFormat::Protobuf(input.unwrap())).unwrap();
 
         assert_eq!("Proto.Response (Message)\n  [1] distance = 32 (Int32)\n  [2] Proto.Inner (Message)\n    [1] kind = kindof (String)\n  [3] position = \"POSITION_INSIDE\" (Enum Proto.Position)\n  [4] raw = \"c328\" (Bytes)\n".to_owned(), result.content);
