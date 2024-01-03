@@ -1,130 +1,556 @@
-use std::str::from_utf8;
+use std::fmt::{Display, Formatter};
+use std::string::FromUtf8Error;
 
-use base64::Engine;
 use base64::engine::general_purpose;
-use bytes::Bytes;
-use rumqttc::v5::mqttbytes::v5::Publish;
-use serde_json::json;
-use crate::config::OutputFormat;
+use base64::Engine;
 
-use crate::payload::PayloadError;
+use crate::config::{PayloadOptionRawFormat, PayloadText};
+use crate::payload::{PayloadFormat, PayloadFormatError};
 
-pub struct PayloadTextHandler {}
+#[derive(Clone, Debug)]
+pub struct PayloadFormatText {
+    content: String,
+}
 
-impl PayloadTextHandler {
-    pub fn handle_publish(value: &Publish, output_format: &OutputFormat) -> Result<Vec<u8>, PayloadError> {
-        Self::encode_to_output_format(&value.payload, output_format)
+impl PayloadFormatText {
+    fn decode_from_utf8(value: String) -> Vec<u8> {
+        value.into_bytes()
     }
 
-    fn encode_to_output_format(content: &Bytes, output_format: &OutputFormat) -> Result<Vec<u8>, PayloadError> {
-        match output_format {
-            OutputFormat::Text => {
-                Self::convert_to_text(content)
+    fn encode_to_utf8(value: Vec<u8>) -> Result<String, FromUtf8Error> {
+        String::from_utf8(value)
+    }
+
+    fn convert_raw_type(options: &PayloadText, value: Vec<u8>) -> String {
+        match options.raw_as_type() {
+            PayloadOptionRawFormat::Hex => hex::encode(value),
+            PayloadOptionRawFormat::Base64 => general_purpose::STANDARD.encode(value),
+        }
+    }
+}
+
+/// Displays the UTF-8 encoded content.
+impl Display for PayloadFormatText {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.content)
+    }
+}
+
+/// Encodes the given bytes as UTF-8 string.
+impl TryFrom<Vec<u8>> for PayloadFormatText {
+    type Error = PayloadFormatError;
+
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        Ok(Self {
+            content: Self::encode_to_utf8(value)?,
+        })
+    }
+}
+
+/// Creates a new instance with the given UTF-8 encoded string as content.
+/// The value is not modified, only moved to the new instance.
+impl From<String> for PayloadFormatText {
+    fn from(val: String) -> Self {
+        Self { content: val }
+    }
+}
+
+/// Creates a new instance with the given UTF-8 encoded string as content.
+/// The value is not modified, only moved to the new instance.
+impl From<&str> for PayloadFormatText {
+    fn from(val: &str) -> Self {
+        Self::from(val.to_string())
+    }
+}
+
+/// Converts the utf-8 encoded content to its bytes.
+///
+/// # Examples
+/// ```
+/// let input = PayloadFormatText::from(String::from("INPUT"));
+/// let v: Vec<u8> = Vec::from(input);
+///
+/// assert_eq!(vec![0x49, 0x4e, 0x50, 0x55, 0x54], v);
+/// ```
+impl From<PayloadFormatText> for Vec<u8> {
+    fn from(val: PayloadFormatText) -> Self {
+        PayloadFormatText::decode_from_utf8(<PayloadFormatText as Into<String>>::into(val))
+    }
+}
+
+impl From<PayloadFormatText> for String {
+    fn from(val: PayloadFormatText) -> Self {
+        val.content
+    }
+}
+
+impl TryFrom<PayloadFormat> for PayloadFormatText {
+    type Error = PayloadFormatError;
+
+    fn try_from(value: PayloadFormat) -> Result<Self, Self::Error> {
+        Self::try_from((value, &PayloadText::default()))
+    }
+}
+
+impl TryFrom<(PayloadFormat, &PayloadText)> for PayloadFormatText {
+    type Error = PayloadFormatError;
+
+    fn try_from((value, options): (PayloadFormat, &PayloadText)) -> Result<Self, Self::Error> {
+        match value {
+            PayloadFormat::Text(value) => Ok(value),
+            PayloadFormat::Raw(value) => Ok(Self {
+                content: Self::convert_raw_type(options, value.into()),
+            }),
+            PayloadFormat::Protobuf(value) => Ok(Self {
+                content: protobuf::get_message_value(
+                    value.context(),
+                    value.message_value(),
+                    0,
+                    None,
+                    options,
+                )?,
+            }),
+            PayloadFormat::Hex(value) => {
+                let a: Vec<u8> = value.try_into()?;
+                Self::try_from(a)
             }
-            OutputFormat::Json => {
-                Self::convert_to_json(content)
+            PayloadFormat::Base64(value) => {
+                let a: Vec<u8> = value.try_into()?;
+                Self::try_from(a)
             }
-            OutputFormat::Yaml => {
-                Self::convert_to_yaml(content)
+            PayloadFormat::Json(value) => {
+                let Some(text_node) = value.content().get("content") else {
+                    return Err(PayloadFormatError::CouldNotConvertFromJson(
+                        "Attribute \"content\" not found".to_string(),
+                    ));
+                };
+
+                let Some(text_node) = text_node.as_str() else {
+                    return Err(PayloadFormatError::CouldNotConvertFromJson(
+                        "Could not read attribute \"content\" as string".to_string(),
+                    ));
+                };
+
+                Ok(Self::from(text_node))
             }
-            OutputFormat::Hex => {
-                Self::convert_to_hex(content)
-            }
-            OutputFormat::Base64 => {
-                Self::convert_to_base64(content)
-            }
-            OutputFormat::Raw => {
-                Ok(content.to_vec())
+            PayloadFormat::Yaml(value) => {
+                let Some(text_node) = value.content().get("content") else {
+                    return Err(PayloadFormatError::CouldNotConvertFromYaml(
+                        "Attribute \"content\" not found".to_string(),
+                    ));
+                };
+
+                let Some(text_node) = text_node.as_str() else {
+                    return Err(PayloadFormatError::CouldNotConvertFromYaml(
+                        "Could not read attribute \"content\" as string".to_string(),
+                    ));
+                };
+
+                Ok(Self::from(text_node))
             }
         }
     }
+}
 
-    fn convert_to_text(content: &Bytes) -> Result<Vec<u8>, PayloadError> {
-        match from_utf8(content) {
-            Ok(content) => Ok(content.to_string().into_bytes()),
-            Err(e) => {
-                Err(PayloadError::CouldNotConvertToUtf8(e))
+mod protobuf {
+    use crate::config::PayloadText;
+    use protofish::context::{Context, EnumField, MessageInfo};
+    use protofish::decode::{FieldValue, MessageValue, Value};
+
+    use crate::payload::text::PayloadFormatText;
+    use crate::payload::PayloadFormatError;
+
+    pub(super) fn get_message_value(
+        context: &Context,
+        message_value: &MessageValue,
+        indent_level: u16,
+        parent_field: Option<u64>,
+        options: &PayloadText,
+    ) -> Result<String, PayloadFormatError> {
+        let mut result = String::new();
+
+        let message_info = context.resolve_message(message_value.msg_ref);
+
+        let message_text = match parent_field {
+            None => {
+                format!("{} (Message)\n", message_info.full_name)
             }
+            Some(parent_field) => {
+                let indent_spaces = (0..indent_level).map(|_| "  ").collect::<String>();
+                format!(
+                    "{indent_spaces}[{}] {} (Message)\n",
+                    parent_field, message_info.full_name
+                )
+            }
+        };
+        result.push_str(&message_text);
+
+        for field in &message_value.fields {
+            let result_field =
+                get_field_value(context, message_info, field, indent_level + 1, options)?;
+            result.push_str(&result_field);
         }
+
+        Ok(result)
     }
 
-    fn convert_to_json(content: &Bytes) -> Result<Vec<u8>, PayloadError> {
-        match from_utf8(content) {
-            Ok(content) => {
-                let json = json!({
-                     "text": content
-                 });
+    fn get_field_value(
+        context: &Context,
+        message_response: &MessageInfo,
+        field_value: &FieldValue,
+        indent_level: u16,
+        options: &PayloadText,
+    ) -> Result<String, PayloadFormatError> {
+        let indent_spaces = (0..indent_level).map(|_| "  ").collect::<String>();
 
-                Ok(json.to_string().into_bytes())
-            }
-            Err(e) => {
-                Err(PayloadError::CouldNotConvertToUtf8(e))
-            }
-        }
-    }
+        return match &message_response.get_field(field_value.number) {
+            None => Err(PayloadFormatError::FieldNumberNotFoundInProtoFile(
+                field_value.number,
+            )),
+            Some(field) => {
+                let type_name = &field.name;
 
-    fn convert_to_yaml(content: &Bytes) -> Result<Vec<u8>, PayloadError> {
-        match from_utf8(content) {
-            Ok(content) => {
-                let mut mapping = serde_yaml::Mapping::with_capacity(1);
-                mapping.insert(serde_yaml::Value::String("text".to_string()), serde_yaml::Value::String(content.to_string()));
-                let yaml = serde_yaml::Value::Mapping(mapping);
-
-                match serde_yaml::to_string(&yaml) {
-                    Ok(yaml) => Ok(yaml.into_bytes()),
-                    Err(e) => {
-                        Err(PayloadError::CouldNotConvertToYaml(e))
+                let ret = match &field_value.value {
+                    Value::Double(value) => {
+                        format!(
+                            "{indent_spaces}[{}] {type_name} = {} (Double)\n",
+                            field.number, value
+                        )
                     }
-                }
-            }
-            Err(e) => {
-                Err(PayloadError::CouldNotConvertToUtf8(e))
-            }
-        }
-    }
+                    Value::Float(value) => {
+                        format!(
+                            "{indent_spaces}[{}] {type_name} = {} (Float)\n",
+                            field.number, value
+                        )
+                    }
+                    Value::Int32(value) => {
+                        format!(
+                            "{indent_spaces}[{}] {type_name} = {} (Int32)\n",
+                            field.number, value
+                        )
+                    }
+                    Value::Int64(value) => {
+                        format!(
+                            "{indent_spaces}[{}] {type_name} = {} (Int64)\n",
+                            field.number, value
+                        )
+                    }
+                    Value::UInt32(value) => {
+                        format!(
+                            "{indent_spaces}[{}] {type_name} = {} (UInt32)\n",
+                            field.number, value
+                        )
+                    }
+                    Value::UInt64(value) => {
+                        format!(
+                            "{indent_spaces}[{}] {type_name} = {} (UInt64)\n",
+                            field.number, value
+                        )
+                    }
+                    Value::SInt32(value) => {
+                        format!(
+                            "{indent_spaces}[{}] {type_name} = {} (SInt32)\n",
+                            field.number, value
+                        )
+                    }
+                    Value::SInt64(value) => {
+                        format!(
+                            "{indent_spaces}[{}] {type_name} = {} (SInt64)\n",
+                            field.number, value
+                        )
+                    }
+                    Value::Fixed32(value) => {
+                        format!(
+                            "{indent_spaces}[{}] {type_name} = {} (Fixed32)\n",
+                            field.number, value
+                        )
+                    }
+                    Value::Fixed64(value) => {
+                        format!(
+                            "{indent_spaces}[{}] {type_name} = {} (Fixed64)\n",
+                            field.number, value
+                        )
+                    }
+                    Value::SFixed32(value) => {
+                        format!(
+                            "{indent_spaces}[{}] {type_name} = {} (SFixed32)\n",
+                            field.number, value
+                        )
+                    }
+                    Value::SFixed64(value) => {
+                        format!(
+                            "{indent_spaces}[{}] {type_name} = {} (SFixed64)\n",
+                            field.number, value
+                        )
+                    }
+                    Value::Bool(value) => {
+                        format!(
+                            "{indent_spaces}[{}] {type_name} = {} (Bool)\n",
+                            field.number, value
+                        )
+                    }
+                    Value::String(value) => {
+                        format!(
+                            "{indent_spaces}[{}] {type_name} = {} (String)\n",
+                            field.number, value
+                        )
+                    }
+                    Value::Bytes(value) => {
+                        format!(
+                            "{indent_spaces}[{}] {type_name} = {:?} (Bytes)\n",
+                            field.number,
+                            PayloadFormatText::convert_raw_type(options, value.to_vec())
+                        )
+                    }
+                    Value::Message(value) => get_message_value(
+                        context,
+                        value,
+                        indent_level,
+                        Some(field.number),
+                        options,
+                    )?,
+                    Value::Packed(value) => {
+                        format!(
+                            "{indent_spaces}[{}] Unknown value encountered: {:?}\n",
+                            field.number, value
+                        )
+                    }
+                    Value::Enum(value) => {
+                        let enum_value = context.resolve_enum(value.enum_ref);
 
-    fn convert_to_hex(content: &Bytes) -> Result<Vec<u8>, PayloadError> {
-        let hex = hex::encode_upper(content.to_vec());
-        Ok(hex.into_bytes())
-    }
+                        format!(
+                            "{indent_spaces}[{}] {type_name} = {:?} (Enum {})\n",
+                            field.number,
+                            enum_value
+                                .get_field_by_value(value.value)
+                                .unwrap_or(&EnumField::new("INVALID_VALUE".to_string(), 0))
+                                .name,
+                            enum_value.full_name
+                        )
+                    }
+                    Value::Incomplete(number, value) => {
+                        format!(
+                            "{indent_spaces}[{}] Incomplete value encountered: {}: {:?}\n",
+                            field.number, number, value
+                        )
+                    }
+                    Value::Unknown(value) => {
+                        format!(
+                            "{indent_spaces}[{}] Unknown value encountered: {:?}\n",
+                            field.number, value
+                        )
+                    }
+                };
 
-    fn convert_to_base64(content: &Bytes) -> Result<Vec<u8>, PayloadError> {
-        let base64 = general_purpose::STANDARD_NO_PAD.encode(content);
-        Ok(base64.into_bytes())
+                Ok(ret)
+            }
+        };
     }
 }
 
 #[cfg(test)]
-mod test {
-    use bytes::Bytes;
+mod tests {
+    use crate::payload::base64::PayloadFormatBase64;
+    use crate::payload::hex::PayloadFormatHex;
+    use crate::payload::json::PayloadFormatJson;
+    use crate::payload::protobuf::PayloadFormatProtobuf;
+    use crate::payload::raw::PayloadFormatRaw;
+    use crate::payload::yaml::PayloadFormatYaml;
 
-    use crate::payload::text::PayloadTextHandler;
+    use super::*;
 
-    #[test]
-    fn convert_hex() {
-        let input = Bytes::from("Input text");
-        let output = PayloadTextHandler::convert_to_hex(&input);
-        assert_eq!("496E7075742074657874".as_bytes(), output.unwrap());
+    const INPUT_STRING: &str = "INPUT";
+    const INPUT_STRING_HEX: &str = "494e505554";
+    const INPUT_STRING_BASE64: &str = "SU5QVVQ=";
+    const INPUT_STRING_PROTOBUF_AS_HEX: &str = "082012080a066b696e646f6618012202c328";
+    const INPUT_STRING_MESSAGE: &str = r#"
+    syntax = "proto3";
+    package Proto;
+
+    enum Position {
+        POSITION_UNSPECIFIED = 0;
+        POSITION_INSIDE = 1;
+        POSITION_OUTSIDE = 2;
+    }
+
+    message Inner { string kind = 1; }
+
+    message Response {
+      int32 distance = 1;
+      Inner inside = 2;
+      Position position = 3;
+      bytes raw = 4;
+    }
+    "#;
+    const MESSAGE_NAME: &str = "Proto.Response";
+
+    fn get_input() -> Vec<u8> {
+        INPUT_STRING.into()
     }
 
     #[test]
-    fn convert_base64() {
-        let input = Bytes::from("Input text");
-        let output = PayloadTextHandler::convert_to_base64(&input);
-        assert_eq!("SW5wdXQgdGV4dA".as_bytes(), output.unwrap());
+    fn from_valid_vec_u8() {
+        let result = PayloadFormatText::try_from(get_input()).unwrap();
+
+        assert_eq!(INPUT_STRING.to_owned(), result.content);
     }
 
     #[test]
-    fn convert_yaml() {
-        let input = Bytes::from("Input text");
-        let output = PayloadTextHandler::convert_to_yaml(&input);
-        assert_eq!("text: Input text\n".as_bytes(), output.unwrap());
+    fn from_invalid_vec_u8() {
+        let result = PayloadFormatText::try_from(vec![0xc3, 0x28]);
+
+        assert!(result.is_err());
     }
 
     #[test]
-    fn convert_json() {
-        let input = Bytes::from("Input text");
-        let output = PayloadTextHandler::convert_to_json(&input);
-        assert_eq!("{\"text\":\"Input text\"}".as_bytes(), output.unwrap());
+    fn from_string() {
+        let result = PayloadFormatText::from(INPUT_STRING.to_string());
+
+        assert_eq!(INPUT_STRING.to_owned(), result.content);
+    }
+
+    #[test]
+    fn from_string_ref() {
+        let result = PayloadFormatText::from(INPUT_STRING);
+
+        assert_eq!(INPUT_STRING.to_owned(), result.content);
+    }
+
+    #[test]
+    fn to_vec_u8_into() {
+        let input = PayloadFormatText::try_from(get_input()).unwrap();
+
+        let result: Vec<u8> = input.into();
+        assert_eq!(INPUT_STRING.as_bytes(), result.as_slice());
+    }
+
+    #[test]
+    fn to_vec_u8_from() {
+        let input = PayloadFormatText::try_from(get_input()).unwrap();
+
+        let result: Vec<u8> = Vec::from(input);
+        assert_eq!(INPUT_STRING.as_bytes(), result.as_slice());
+    }
+
+    #[test]
+    fn to_string_into() {
+        let input = PayloadFormatText::try_from(get_input()).unwrap();
+
+        let result: String = input.into();
+        assert_eq!(INPUT_STRING, result.as_str());
+    }
+
+    #[test]
+    fn to_string_from() {
+        let input = PayloadFormatText::try_from(get_input()).unwrap();
+
+        let result: String = String::from(input);
+        assert_eq!(INPUT_STRING, result.as_str());
+    }
+
+    #[test]
+    fn from_text() {
+        let input = PayloadFormatText::try_from(get_input()).unwrap();
+        let result = PayloadFormatText::try_from(PayloadFormat::Text(input)).unwrap();
+
+        assert_eq!(INPUT_STRING.to_owned(), result.content);
+    }
+
+    #[test]
+    fn from_raw_as_hex() {
+        let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
+        let options = PayloadText::default();
+        let result = PayloadFormatText::try_from((PayloadFormat::Raw(input), &options)).unwrap();
+
+        assert_eq!(INPUT_STRING_HEX.to_string(), result.content);
+    }
+
+    #[test]
+    fn from_raw_as_base64() {
+        let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
+        let options = PayloadText::new(PayloadOptionRawFormat::Base64);
+        let result = PayloadFormatText::try_from((PayloadFormat::Raw(input), &options)).unwrap();
+
+        assert_eq!(INPUT_STRING_BASE64.to_string(), result.content);
+    }
+
+    #[test]
+    fn from_hex() {
+        let input = PayloadFormatHex::try_from(INPUT_STRING_HEX.to_owned()).unwrap();
+        let result = PayloadFormatText::try_from(PayloadFormat::Hex(input)).unwrap();
+
+        assert_eq!(INPUT_STRING.to_owned(), result.content);
+    }
+
+    #[test]
+    fn from_base64() {
+        let input = PayloadFormatBase64::try_from(INPUT_STRING_BASE64.to_owned()).unwrap();
+        let result = PayloadFormatText::try_from(PayloadFormat::Base64(input)).unwrap();
+
+        assert_eq!(INPUT_STRING.to_owned(), result.content);
+    }
+
+    #[test]
+    fn from_json() {
+        let input = PayloadFormatJson::try_from(Vec::<u8>::from(format!(
+            "{{\"content\": \"{}\"}}",
+            INPUT_STRING
+        )))
+        .unwrap();
+        let result = PayloadFormatText::try_from(PayloadFormat::Json(input)).unwrap();
+
+        assert_eq!(INPUT_STRING.to_owned(), result.content);
+    }
+
+    #[test]
+    fn from_yaml() {
+        let input =
+            PayloadFormatYaml::try_from(Vec::<u8>::from(format!("content: \"{}\"", INPUT_STRING)))
+                .unwrap();
+        let result = PayloadFormatText::try_from(PayloadFormat::Yaml(input)).unwrap();
+
+        assert_eq!(INPUT_STRING.to_owned(), result.content);
+    }
+
+    #[test]
+    fn from_protobuf() {
+        let input = PayloadFormatProtobuf::new(
+            hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(),
+            String::from(INPUT_STRING_MESSAGE),
+            MESSAGE_NAME.to_string(),
+        );
+        let result = PayloadFormatText::try_from(PayloadFormat::Protobuf(input.unwrap())).unwrap();
+
+        assert_eq!("Proto.Response (Message)\n  [1] distance = 32 (Int32)\n  [2] Proto.Inner (Message)\n    [1] kind = kindof (String)\n  [3] position = \"POSITION_INSIDE\" (Enum Proto.Position)\n  [4] raw = \"c328\" (Bytes)\n".to_owned(), result.content);
+    }
+
+    #[test]
+    fn from_protobuf_raw_as_hex() {
+        let input = PayloadFormatProtobuf::new(
+            hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(),
+            String::from(INPUT_STRING_MESSAGE),
+            MESSAGE_NAME.to_string(),
+        );
+        let options = PayloadText::default();
+        let result =
+            PayloadFormatText::try_from((PayloadFormat::Protobuf(input.unwrap()), &options))
+                .unwrap();
+
+        assert!(result.content.contains("raw = \"c328\""));
+    }
+
+    #[test]
+    fn from_protobuf_raw_as_base64() {
+        let input = PayloadFormatProtobuf::new(
+            hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(),
+            String::from(INPUT_STRING_MESSAGE),
+            MESSAGE_NAME.to_string(),
+        );
+        let options = PayloadText::new(PayloadOptionRawFormat::Base64);
+        let result =
+            PayloadFormatText::try_from((PayloadFormat::Protobuf(input.unwrap()), &options))
+                .unwrap();
+
+        assert!(result.content.contains("raw = \"wyg=\""));
     }
 }
