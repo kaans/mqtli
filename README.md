@@ -35,7 +35,7 @@ The supported data formats and the conversion rules are listed under [supported 
 </thead>
 <tbody>
   <tr>
-    <td class="tg-0cjc">Text<br>(UTF.8)</td>
+    <td class="tg-0cjc">Text<br>(UTF-8)</td>
     <td class="tg-0pky">Depending on the config ("raw_as") it is encoded as hex or base64</td>
     <td class="tg-0pky">INPUT =&gt; 494e505554</td>
   </tr>
@@ -84,7 +84,7 @@ The supported data formats and the conversion rules are listed under [supported 
 </thead>
 <tbody>
   <tr>
-    <td class="tg-1o19">Text<br>(UTF.8)</td>
+    <td class="tg-1o19">Text<br>(UTF-8)</td>
     <td class="tg-0lax">No conversion needed</td>
     <td class="tg-0lax">INPUT =&gt; INPUT</td>
   </tr>
@@ -134,7 +134,7 @@ The supported data formats and the conversion rules are listed under [supported 
 </thead>
 <tbody>
   <tr>
-    <td class="tg-0cjc">Text<br>(UTF.8)</td>
+    <td class="tg-0cjc">Text<br>(UTF-8)</td>
     <td class="tg-0pky">Decodes hex String and tries to convert bytes to UTF-8</td>
     <td class="tg-0pky">494e505554 =&gt; INPUT</td>
     <td class="tg-0lax">- length of hex string is not even<br>- decoded bytes contain non-UTF-8 characters</td>
@@ -191,7 +191,7 @@ The supported data formats and the conversion rules are listed under [supported 
 </thead>
 <tbody>
   <tr>
-    <td class="tg-0cjc">Text<br>(UTF.8)</td>
+    <td class="tg-0cjc">Text<br>(UTF-8)</td>
     <td class="tg-0pky">Decodes base64 String and tries to convert bytes to UTF-8</td>
     <td class="tg-0pky">SU5QVVQ= =&gt; INPUT</td>
     <td class="tg-0lax">- wrong length, padding, or bytes in base64 string<br>- decoded bytes contain non-UTF-8 characters</td>
@@ -248,7 +248,7 @@ The supported data formats and the conversion rules are listed under [supported 
 </thead>
 <tbody>
   <tr>
-    <td class="tg-0cjc">Text<br>(UTF.8)</td>
+    <td class="tg-0cjc">Text<br>(UTF-8)</td>
     <td class="tg-0pky">Read the string from the field "content" and store it</td>
     <td class="tg-0pky">{ "content": "INPUT" } =&gt; INPUT</td>
     <td class="tg-0lax">- field "content" does not exist or does not contain a string</td>
@@ -305,7 +305,7 @@ The supported data formats and the conversion rules are listed under [supported 
 </thead>
 <tbody>
   <tr>
-    <td class="tg-0cjc">Text<br>(UTF.8)</td>
+    <td class="tg-0cjc">Text<br>(UTF-8)</td>
     <td class="tg-0pky">Read the string from the field "content" and store it</td>
     <td class="tg-0pky">content: INPUT =&gt; INPUT</td>
     <td class="tg-0lax">- field "content" does not exist or does not contain a string</td>
@@ -362,7 +362,7 @@ The supported data formats and the conversion rules are listed under [supported 
 </thead>
 <tbody>
   <tr>
-    <td class="tg-0cjc">Text<br>(UTF.8)</td>
+    <td class="tg-0cjc">Text<br>(UTF-8)</td>
     <td class="tg-0pky">Converts the protobuf message to a human readable text format:<br/>
     [field number] field name = value (field type)</td>
     <td class="tg-0pky">Proto.Response (Message)<br/>
