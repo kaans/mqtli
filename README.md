@@ -25,18 +25,6 @@ The supported data formats and the conversion rules are listed under [supported 
 
 ### Raw (binary)
 
-<style>
-.tg  {border-collapse:collapse;border-spacing:0;}
-.tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg .tg-0cjc{background-color:#67fd9a;border-color:inherit;text-align:left;vertical-align:top}
-.tg .tg-fr0y{background-color:#656565;border-color:inherit;color:#ffffff;text-align:left;vertical-align:top}
-.tg .tg-0pky{border-color:inherit;text-align:left;vertical-align:top}
-.tg .tg-l23c{background-color:#67fd9a;border-color:inherit;text-align:left;vertical-align:middle}
-.tg .tg-jilr{background-color:#fd6864;border-color:inherit;text-align:left;vertical-align:middle}
-</style>
 <table class="tg">
 <thead>
   <tr>
@@ -86,18 +74,6 @@ The supported data formats and the conversion rules are listed under [supported 
 
 ### Text (UTF-8)
 
-<style>
-.tg  {border-collapse:collapse;border-spacing:0;}
-.tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg .tg-a00j{background-color:#67fd9a;text-align:left;vertical-align:middle}
-.tg .tg-1o19{background-color:#67fd9a;text-align:left;vertical-align:top}
-.tg .tg-c8dp{background-color:#656565;color:#ffffff;text-align:left;vertical-align:top}
-.tg .tg-0lax{text-align:left;vertical-align:top}
-.tg .tg-baly{background-color:#fd6864;text-align:left;vertical-align:middle}
-</style>
 <table class="tg">
 <thead>
   <tr>
@@ -147,20 +123,6 @@ The supported data formats and the conversion rules are listed under [supported 
 
 ### Hex
 
-<style>
-.tg  {border-collapse:collapse;border-spacing:0;}
-.tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg .tg-0cjc{background-color:#67fd9a;border-color:inherit;text-align:left;vertical-align:top}
-.tg .tg-fr0y{background-color:#656565;border-color:inherit;color:#ffffff;text-align:left;vertical-align:top}
-.tg .tg-c8dp{background-color:#656565;color:#ffffff;text-align:left;vertical-align:top}
-.tg .tg-0pky{border-color:inherit;text-align:left;vertical-align:top}
-.tg .tg-0lax{text-align:left;vertical-align:top}
-.tg .tg-l23c{background-color:#67fd9a;border-color:inherit;text-align:left;vertical-align:middle}
-.tg .tg-jilr{background-color:#fd6864;border-color:inherit;text-align:left;vertical-align:middle}
-</style>
 <table class="tg">
 <thead>
   <tr>
@@ -218,20 +180,6 @@ The supported data formats and the conversion rules are listed under [supported 
 
 ### Base64
 
-<style>
-.tg  {border-collapse:collapse;border-spacing:0;}
-.tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg .tg-0cjc{background-color:#67fd9a;border-color:inherit;text-align:left;vertical-align:top}
-.tg .tg-fr0y{background-color:#656565;border-color:inherit;color:#ffffff;text-align:left;vertical-align:top}
-.tg .tg-c8dp{background-color:#656565;color:#ffffff;text-align:left;vertical-align:top}
-.tg .tg-0pky{border-color:inherit;text-align:left;vertical-align:top}
-.tg .tg-0lax{text-align:left;vertical-align:top}
-.tg .tg-l23c{background-color:#67fd9a;border-color:inherit;text-align:left;vertical-align:middle}
-.tg .tg-jilr{background-color:#fd6864;border-color:inherit;text-align:left;vertical-align:middle}
-</style>
 <table class="tg">
 <thead>
   <tr>
@@ -289,20 +237,6 @@ The supported data formats and the conversion rules are listed under [supported 
 
 ### JSON
 
-<style>
-.tg  {border-collapse:collapse;border-spacing:0;}
-.tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg .tg-0cjc{background-color:#67fd9a;border-color:inherit;text-align:left;vertical-align:top}
-.tg .tg-fr0y{background-color:#656565;border-color:inherit;color:#ffffff;text-align:left;vertical-align:top}
-.tg .tg-c8dp{background-color:#656565;color:#ffffff;text-align:left;vertical-align:top}
-.tg .tg-0pky{border-color:inherit;text-align:left;vertical-align:top}
-.tg .tg-0lax{text-align:left;vertical-align:top}
-.tg .tg-l23c{background-color:#67fd9a;border-color:inherit;text-align:left;vertical-align:middle}
-.tg .tg-jilr{background-color:#fd6864;border-color:inherit;text-align:left;vertical-align:middle}
-</style>
 <table class="tg">
 <thead>
   <tr>
@@ -360,20 +294,6 @@ The supported data formats and the conversion rules are listed under [supported 
 
 ### YAML
 
-<style>
-.tg  {border-collapse:collapse;border-spacing:0;}
-.tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg .tg-0cjc{background-color:#67fd9a;border-color:inherit;text-align:left;vertical-align:top}
-.tg .tg-fr0y{background-color:#656565;border-color:inherit;color:#ffffff;text-align:left;vertical-align:top}
-.tg .tg-c8dp{background-color:#656565;color:#ffffff;text-align:left;vertical-align:top}
-.tg .tg-0pky{border-color:inherit;text-align:left;vertical-align:top}
-.tg .tg-0lax{text-align:left;vertical-align:top}
-.tg .tg-l23c{background-color:#67fd9a;border-color:inherit;text-align:left;vertical-align:middle}
-.tg .tg-jilr{background-color:#fd6864;border-color:inherit;text-align:left;vertical-align:middle}
-</style>
 <table class="tg">
 <thead>
   <tr>
@@ -431,20 +351,6 @@ The supported data formats and the conversion rules are listed under [supported 
 
 ### Protobuf
 
-<style>
-.tg  {border-collapse:collapse;border-spacing:0;}
-.tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg .tg-0cjc{background-color:#67fd9a;border-color:inherit;text-align:left;vertical-align:top}
-.tg .tg-fr0y{background-color:#656565;border-color:inherit;color:#ffffff;text-align:left;vertical-align:top}
-.tg .tg-c8dp{background-color:#656565;color:#ffffff;text-align:left;vertical-align:top}
-.tg .tg-0pky{border-color:inherit;text-align:left;vertical-align:top}
-.tg .tg-0lax{text-align:left;vertical-align:top}
-.tg .tg-l23c{background-color:#67fd9a;border-color:inherit;text-align:left;vertical-align:middle}
-.tg .tg-jilr{background-color:#fd6864;border-color:inherit;text-align:left;vertical-align:middle}
-</style>
 <table class="tg">
 <thead>
   <tr>
