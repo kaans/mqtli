@@ -8,7 +8,6 @@ use log::{debug, error, info};
 use rumqttc::tokio_rustls::rustls;
 use rumqttc::tokio_rustls::rustls::{Certificate, PrivateKey};
 use rumqttc::v5::mqttbytes::v5::{ConnectReturnCode, LastWill};
-use rumqttc::v5::mqttbytes::QoS;
 use rumqttc::v5::{
     AsyncClient, ConnectionError, Event, EventLoop, Incoming, MqttOptions, StateError,
 };
@@ -38,6 +37,30 @@ pub enum MqttServiceError {
     PrivateKeyTooManyFound(PathBuf),
     #[error("Client key must be present when using TLS authentication")]
     ClientKeyMustBePresent(),
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub enum QoS {
+    #[default]
+    AtMostOnce = 0,
+    AtLeastOnce = 1,
+    ExactlyOnce = 2,
+}
+
+impl From<QoS> for rumqttc::v5::mqttbytes::QoS {
+    fn from(value: QoS) -> Self {
+        Self::from(&value)
+    }
+}
+
+impl From<&QoS> for rumqttc::v5::mqttbytes::QoS {
+    fn from(value: &QoS) -> Self {
+        match value {
+            QoS::AtMostOnce => rumqttc::v5::mqttbytes::QoS::AtMostOnce,
+            QoS::AtLeastOnce => rumqttc::v5::mqttbytes::QoS::AtLeastOnce,
+            QoS::ExactlyOnce => rumqttc::v5::mqttbytes::QoS::ExactlyOnce,
+        }
+    }
 }
 
 pub struct MqttService {
@@ -130,7 +153,7 @@ impl MqttService {
             let last_will = LastWill::new(
                 last_will.topic(),
                 last_will.payload().clone(),
-                *last_will.qos(),
+                last_will.qos().into(),
                 *last_will.retain(),
                 None,
             );
@@ -292,7 +315,7 @@ impl MqttService {
 
                                     for (topic, qos) in topics.lock().await.iter() {
                                         info!("Subscribing to topic {} with QoS {:?}", topic, qos);
-                                        if let Err(e) = client.subscribe(topic, *qos).await {
+                                        if let Err(e) = client.subscribe(topic, qos.into()).await {
                                             error!("Could not subscribe to topic {}: {}", topic, e);
                                         }
                                     }
@@ -359,7 +382,7 @@ impl MqttService {
 
     pub async fn publish(&self, topic: String, qos: QoS, retain: bool, payload: Vec<u8>) {
         if let Some(client) = self.client.clone() {
-            if let Err(e) = client.publish(topic, qos, retain, payload).await {
+            if let Err(e) = client.publish(topic, qos.into(), retain, payload).await {
                 error!("Error during publish: {:?}", e);
             }
         }
