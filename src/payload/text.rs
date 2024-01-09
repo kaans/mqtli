@@ -25,6 +25,7 @@ impl PayloadFormatText {
         match options.raw_as_type() {
             PayloadOptionRawFormat::Hex => hex::encode(value),
             PayloadOptionRawFormat::Base64 => general_purpose::STANDARD.encode(value),
+            PayloadOptionRawFormat::Utf8 => String::from_utf8_lossy(value.as_slice()).to_string(),
         }
     }
 }
@@ -112,11 +113,15 @@ impl TryFrom<(PayloadFormat, &PayloadText)> for PayloadFormatText {
             }),
             PayloadFormat::Hex(value) => {
                 let a: Vec<u8> = value.try_into()?;
-                Self::try_from(a)
+                Ok(Self {
+                    content: Self::convert_raw_type(options, a),
+                })
             }
             PayloadFormat::Base64(value) => {
                 let a: Vec<u8> = value.try_into()?;
-                Self::try_from(a)
+                Ok(Self {
+                    content: Self::convert_raw_type(options, a),
+                })
             }
             PayloadFormat::Json(value) => {
                 let Some(text_node) = value.content().get("content") else {
