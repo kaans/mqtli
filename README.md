@@ -52,7 +52,7 @@ can only be specified in the config file because it would be too complex to spec
 
 ### CLI arguments and environment variables
 
-The following lists all possible command line arguments and environment variables (also availabe via `mqtli --help`):
+The following lists all possible command line arguments and environment variables (also available via `mqtli --help`):
 
 ```shell
 Usage: mqtli.exe [OPTIONS]
@@ -110,44 +110,44 @@ is recommended to use different topics for these messages.
 
 For each topic, the following three main aspects can be configured:
 
-1. The format of the payload of the messages on the topic
+1. **The format of the payload of the messages on the topic**
 
-The format is defined once for all message on the topic, assuming that the format of the payload does not change between
-messages.
-Depending on the format, several options may be passed, see [supported payload formats](#supported-formats).
+    The format is defined once for all message on the topic, assuming that the format of the payload does not change between
+    messages.
+    Depending on the format, several options may be passed, see [supported payload formats](#supported-formats).
+    
+    For example, all messages on the topic may be formatted as `hex` string or `JSON` value.
 
-For example, all messages on the topic may be formatted as `hex` string or `JSON` value.
+2. **The display of received messages on subscribed topics**
 
-2. The display of received messages on subscribed topics
+    If enabled, a subscription for the topic is registered on connect. Each subscription may have several independent
+    outputs.
+    Each output has a format type and a target.
+    
+    * *Format type* (default: Text): This may be one of the types defined
+      in [supported payload formats](#supported-formats).
+      It defines which format the received message will be displayed in. If the format type
+      of the topic is different, an automatic conversion is attempted. If it fails, an error is displayed. See the
+      referenced chapter to see which conversions are currently possible.
+      * *Target* (default: Console): The target defines where the message is being printed out. Currently, the following
+        targets
+        are supported:
+          * *Console*: Prints the message to the stdin console.
+          * *File*: Prints the message to a file. Apart from the path to the output file, string for prepending or appending
+            or the
+            behavior for overwriting can be specified.
 
-If enabled, a subscription for the topic is registered on connect. Each subscription may have several independent
-outputs.
-Each output has a format type and a target.
+3. **The format of messages published on the topics**
 
-* *Format type* (default: Text): This may be one of the types defined
-  in [supported payload formats](#supported-formats).
-  It defines which format the received message will be displayed in. If the format type
-  of the topic is different, an automatic conversion is attempted. If it fails, an error is displayed. See the
-  referenced chapter to see which conversions are currently possible.
-* *Target* (default: Console): The target defines where the message is being printed out. Currently, the following
-  targets
-  are supported:
-    * *Console*: Prints the message to the stdin console.
-    * *File*: Prints the message to a file. Apart from the path to the output file, string for prepending or appending
-      or the
-      behavior for overwriting can be specified.
+    When messages are published to a topic, for example via a periodic trigger, the message may be specified
+    in another format than the payload of the topic. If the payload format of the published message is not the same format
+    as the payload format of the topic, the payload will automatically be converted to the payload format of the topic. If a conversion is not possible, it will fail and an error will be printed. See [supported payload formats](#supported-formats) for possible conversions.
+    
+    For example, it might be easier to specify a binary payload as hex or base64 encoded string than as raw
+    bytes. This way, the payload could be written directly into the `config.yaml` file instead of an external
+    file (YAML files only accept UTF-8 content; a binary payload may contain invalid bytes).
 
-3. The format of messages published on the topics
-
-When messages are published to a topic, for example via a periodic trigger, the message may be specified
-in another format than the payload of the topic. If the payload format of the published message is not the same format
-as the payload format of the topic, the payload will automatically be converted to the payload format of the topic. If a conversion is not possible, it will fail and an error will be printed. See [supported payload formats](#supported-formats) for possible conversions.
-
-For example, it might be easier to specify a binary payload as hex or base64 encoded string than as raw
-bytes. This way, the payload could be written directly into the `config.yaml` file instead of an external
-file (YAML files only accept UTF-8 content; a binary payload may contain invalid bytes).
-
-> One of the most important advantages of this seperate definition of format types is that it is then possible to
+> One of the most important advantages of this separate definition of format types is that it is then possible to
 > automatically convert
 > between formats. For example:
 > * The payload format of the topic is protobuf
@@ -516,7 +516,7 @@ topics:
 <tbody>
   <tr>
     <td class="tg-0cjc">Text<br>(UTF-8)</td>
-    <td class="tg-0pky">Converts the protobuf message to a human readable text format:<br/>
+    <td class="tg-0pky">Converts the protobuf message to a human-readable text format:<br/>
     [field number] field name = value (field type)</td>
     <td class="tg-0pky">Proto.Response (Message)<br/>
   [1] distance = 32 (Int32)<br/>
