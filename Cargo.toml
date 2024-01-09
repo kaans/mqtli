@@ -1,6 +1,6 @@
 [package]
 name = "mqtli"
-version = "0.1.0"
+version = "0.3.0"
 edition = "2021"
 description = "MQTT multi-topic and payload converting cli client"
 license-file = "LICENSE.md"
