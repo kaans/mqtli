@@ -18,7 +18,7 @@ use crate::config::{args, ConfigError, PayloadType, PublishInputType};
 #[command(author, version, about, long_about = None)]
 pub struct MqtliArgs {
     #[command(flatten)]
-    pub broker: MqttBrokerConnectArgs,
+    pub broker: Option<MqttBrokerConnectArgs>,
 
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_level_filter")]
