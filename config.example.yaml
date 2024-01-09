@@ -1,23 +1,13 @@
 broker:
-  host: "localhost"
-  port: 8883
-  client_id: "mqtcli"
-  #keep_alive: 5
-  #username: ""
-  #password: ""
+  client_id: "my_client_id"
+  username: "yourusernamehere"
+  password: "yourpasswordhere"
 
   use_tls: false
-  #tls_ca_file: "ca.crt"
-  #tls_client_certificate: "client.crt"
-  #tls_client_key: "client.key"
 
-  #last_will:
-  #  topic: "mqtli/lwt"
-  #  payload: "Good bye"
-  #  qos: 1
-  #  retain: true
-
-log_level: "info"
+  last_will:
+    topic: "mqtli/lwt"
+    payload: "Good bye"
 
 topics:
   - topic: mqtli/test
@@ -25,32 +15,22 @@ topics:
       enabled: true
       qos: 1
       outputs:
-        - format: yaml
-          #target:
-          #  type: console # console is default and can be omitted
-        - format: json
+        - format: yaml # target is console; protobuf message will be shown as yaml
+        - format: base64
           target:
             type: file
             path: "log.txt"
-            overwrite: false # true only saves the latest message, false appends to the end
-            prepend: "BEGIN " # prepends a string to the beginning of the message
-            append: " END\n" # appends a string to the end of the message
-
+            overwrite: false
+            prepend: "MESSAGE: " # prepends the string "MESSAGE: " to the beginning of the base64 encoded message
+            append: "\n" # appends a new line to the end of the message
     payload:
       type: protobuf
       definition: "messages.proto"
-      message: "Proto.Response"
-    # payload:
-      # type: text
+      message: "Proto.Message" # package_name.message_name
     publish:
-      enabled: false
-      retain: false
-      qos: 0
+      enabled: true
       input:
-        type: text # text, raw, hex, base64, json, yaml
-        content: "content_to_send"
+        type: hex
+        content: AB23F6E983 # this must be a valid protobuf message according to the payload format (encoded as hex)
       trigger:
         - type: periodic # default trigger: periodic with no count (indefinitely) and interval 1 second
-          #count: 1 # 0 is indefinitely
-          interval: 1000 # in ms
-          initial_delay: 0 # in ms

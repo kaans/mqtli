@@ -147,8 +147,6 @@ For example, it might be easier to specify a binary payload as hex or base64 enc
 bytes. This way, the payload could be written directly into the `config.yaml` file instead of an external
 file (YAML files only accept UTF-8 content; a binary payload may contain invalid bytes).
 
-
-
 > One of the most important advantages of this seperate definition of format types is that it is then possible to
 > automatically convert
 > between formats. For example:
@@ -162,6 +160,48 @@ file (YAML files only accept UTF-8 content; a binary payload may contain invalid
 > whatsoever).
 > The message to publish does not need to be stored as bytes but can be encoded to a hex string which will automatically
 > be decoded to protobuf before being published.
+
+#### Example config: Protobuf as topic format, no TLS
+
+```yaml
+broker:
+  client_id: "my_client_id"
+  username: "yourusernamehere"
+  password: "yourpasswordhere"
+
+  use_tls: false
+
+  last_will:
+    topic: "mqtli/lwt"
+    payload: "Good bye"
+
+topics:
+  - topic: mqtli/test
+    subscription:
+      enabled: true
+      outputs:
+        - format: yaml # target is console; protobuf message will be shown as yaml
+        - format: base64
+          target:
+            type: file
+            path: "log.txt"
+            overwrite: false
+            prepend: "MESSAGE: " # prepends the string "MESSAGE: " to the beginning of the base64 encoded message
+            append: "\n" # appends a new line to the end of the message
+    payload:
+      type: protobuf
+      definition: "messages.proto" # path to file containing message definition
+      message: "Proto.Message" # package_name.message_name
+    publish:
+      enabled: true
+      input:
+        type: hex
+        content: AB23F6E983 # this must be a valid protobuf message according to the payload format (encoded as hex) 
+      trigger:
+        - type: periodic # default trigger: periodic with no count (indefinitely) and interval 1 second
+
+```
+
 
 ## <a name="supported-formats"></a>Supported Payload formats and conversion
 
