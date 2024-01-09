@@ -2,7 +2,7 @@
 
 MQTli is a multi-topic payload-converting MQTT cli client written in Rust.
 
-It can be configured to automatically convert between different payload formats 
+It can be configured to automatically convert between different payload formats
 when reading input data for publish and outputting data for subscribe.
 The supported data formats and the conversion rules are listed under [supported payload formats](#supported-formats)
 
@@ -11,10 +11,27 @@ The supported data formats and the conversion rules are listed under [supported 
 1. Download the latest release for you platform [from the releases](https://github.com/kaans/mqtli/releases/latest).
 2. Extract the executable to a folder on your local hard drive
 3. Optional: Add the path to the executable to your environments PATH variable, so that you can execute the
-program from any folder
-4. Copy the [config.default.yaml](https://github.com/kaans/mqtli/blob/main/config.default.yaml) to 
-your local directory, rename it to `config.yaml` and adjust it with your required settings
-5. Execute the command `mqtli` (Optionally specify the name of the config file `mqtli --config-file config.default.yaml`)
+   program from any folder
+4. Copy the [config.default.yaml](https://github.com/kaans/mqtli/blob/main/config.default.yaml) to
+   your local directory, rename it to `config.yaml` and adjust it with your required settings
+5. Execute the command `mqtli` (Optionally specify the name of the config
+   file `mqtli --config-file config.default.yaml`)
+
+
+## Supported features:
+
+* Configure multiple topics with the following settings for each:
+    * Input: periodically send messages (publish)
+    * Payload: define the payload format of the topic
+    * Output: print incoming payload to console or file (subscribe)
+* Automatically convert the message payload between input, payload, and output, if they differ
+* Configuration via cli arguments and config file (yaml)
+* MQTT v5 (only)
+* TLS support (v1.2 and v1.3)
+* Client authentication via username/password
+* Client authentication via TLS certificates
+* Last will
+* QoS 0, 1, 2
 
 
 ## Configuration
@@ -32,7 +49,6 @@ can only be specified in the config file because it would be too complex to spec
 
 > NOTE: The config file is not optional and must be specified. Also note that the program does nothing really useful
 > if not topics are specified or all specified topics are disabled.
-
 
 ### CLI arguments and environment variables
 
@@ -83,11 +99,12 @@ In addition to all configuration values from command line arguments, the topics 
 See [config.default.yaml](https://github.com/kaans/mqtli/blob/main/config.default.yaml) for all possible configuration
 values including their defaults.
 
-#### Topics
+#### Topics and automatic conversion between payload formats
 
 The general idea behind the topics configuration is that each topic on the mqtt broker is used for transporting messages
-of the same type and data format, but possibly different content. Even though the MQTT specification does not at all apply
-any restrictions how topics may be used, it is common practise to only use the same data formats for the payload of a 
+of the same type and data format, but possibly different content. Even though the MQTT specification does not at all
+apply
+any restrictions how topics may be used, it is common practise to only use the same data formats for the payload of a
 specific topic. In case the structure or data format of the payload of a topic differs between two messages, it
 is recommended to use different topics for these messages.
 
@@ -95,57 +112,64 @@ For each topic, the following three main aspects can be configured:
 
 1. The format of the payload of the messages on the topic
 
-The format is defined once for all message on the topic, assuming that the format of the payload does not change between messages.
+The format is defined once for all message on the topic, assuming that the format of the payload does not change between
+messages.
 Depending on the format, several options may be passed, see [supported payload formats](#supported-formats).
 
 For example, all messages on the topic may be formatted as `hex` string or `JSON` value.
 
 2. The display of received messages on subscribed topics
 
-If enabled, a subscription for the topic is registered on connect. Each subscription may have several independent outputs.
+If enabled, a subscription for the topic is registered on connect. Each subscription may have several independent
+outputs.
 Each output has a format type and a target.
 
-* *Format type* (default: Text): This may be one of the types defined in [supported payload formats](#supported-formats). 
-It defines which format the received message will be displayed in. If the format type
-of the topic is different, an automatic conversion is attempted. If it fails, an error is displayed. See the referenced chapter
-to see which conversions are currently possible.
-* *Target* (default: Console): The target defines where the message is being printed out. Currently, the following targets
-are supported:
-  * *Console*: Prints the message to the stdin console.
-  * *File*: Prints the message to a file. Apart from the path to the output file, string for prepending or appending or the
-  behavior for overwriting can be specified. 
+* *Format type* (default: Text): This may be one of the types defined
+  in [supported payload formats](#supported-formats).
+  It defines which format the received message will be displayed in. If the format type
+  of the topic is different, an automatic conversion is attempted. If it fails, an error is displayed. See the
+  referenced chapter to see which conversions are currently possible.
+* *Target* (default: Console): The target defines where the message is being printed out. Currently, the following
+  targets
+  are supported:
+    * *Console*: Prints the message to the stdin console.
+    * *File*: Prints the message to a file. Apart from the path to the output file, string for prepending or appending
+      or the
+      behavior for overwriting can be specified.
 
 3. The format of messages published on the topics
 
-> One of the most important advantages of this seperate definition of format types is that it is then possible to automatically convert
-> between formats. For example: 
+When messages are published to a topic, for example via a periodic trigger, the message may be specified
+in another format than the payload of the topic. If the payload format of the published message is not the same format
+as the payload format of the topic, the payload will automatically be converted to the payload format of the topic. If a conversion is not possible, it will fail and an error will be printed. See [supported payload formats](#supported-formats) for possible conversions.
+
+For example, it might be easier to specify a binary payload as hex or base64 encoded string than as raw
+bytes. This way, the payload could be written directly into the `config.yaml` file instead of an external
+file (YAML files only accept UTF-8 content; a binary payload may contain invalid bytes).
+
+
+
+> One of the most important advantages of this seperate definition of format types is that it is then possible to
+> automatically convert
+> between formats. For example:
 > * The payload format of the topic is protobuf
 > * The published messages are written as hex string for storing it directly in the config.yaml
 > * The received messages on subscribed topics are displayed as json and written to a file as raw (bytes)
-> 
-> Even though protobuf is not human-readable by itself (as it is encoded using bytes), this setup allows to read messages 
-> on the topic as human-readable json while storing received messages as original bytes in a file (for later use or whatsoever).
+>
+> Even though protobuf is not human-readable by itself (as it is encoded using bytes), this setup allows to read
+> messages
+> on the topic as human-readable json while storing received messages as original bytes in a file (for later use or
+> whatsoever).
 > The message to publish does not need to be stored as bytes but can be encoded to a hex string which will automatically
 > be decoded to protobuf before being published.
-
-## Supported features:
-
-* Configure multiple topics with the following settings for each:
-  * Input: periodically send messages (publish)
-  * Payload: define the payload format of the topic
-  * Output: print incoming payload to console or file (subscribe)
-* Automatically convert the message payload between input, payload, and output
-* Configuration via cli arguments and config file (yaml)
-* MQTT v5 (only)
-* TLS support (v1.2 and v1.3)
-* Client authentication via username/password
-* Client authentication via TLS certificates
-* Last will
-* QoS 0, 1, 2
 
 ## <a name="supported-formats"></a>Supported Payload formats and conversion
 
 ### Raw (binary)
+
+#### Options
+
+#### Conversions
 
 <table class="tg">
 <thead>
@@ -196,6 +220,14 @@ are supported:
 
 ### Text (UTF-8)
 
+#### Options
+
+| Name   | Description                                                                                                                 | Default | Possible values |
+|--------|-----------------------------------------------------------------------------------------------------------------------------|---------|-----------------|
+| raw_as | Type as which raw values will be rendered;<br>raw types may contain invalid UTF-8 bytes and, thus, must be encoded to UTF-8 | hex     | hex, base64     |
+
+#### Conversions
+
 <table class="tg">
 <thead>
   <tr>
@@ -244,6 +276,10 @@ are supported:
 </table>
 
 ### Hex
+
+#### Options
+
+#### Conversions
 
 <table class="tg">
 <thead>
@@ -302,6 +338,10 @@ are supported:
 
 ### Base64
 
+#### Options
+
+#### Conversions
+
 <table class="tg">
 <thead>
   <tr>
@@ -358,6 +398,14 @@ are supported:
 </table>
 
 ### JSON
+
+#### Options
+
+| Name   | Description                                                                                                                 | Default | Possible values |
+|--------|-----------------------------------------------------------------------------------------------------------------------------|---------|-----------------|
+| raw_as | Type as which raw values will be rendered;<br>raw types may contain invalid UTF-8 bytes and, thus, must be encoded to UTF-8 | hex     | hex, base64     |
+
+#### Conversions
 
 <table class="tg">
 <thead>
@@ -416,6 +464,14 @@ are supported:
 
 ### YAML
 
+#### Options
+
+| Name   | Description                                                                                                                 | Default | Possible values |
+|--------|-----------------------------------------------------------------------------------------------------------------------------|---------|-----------------|
+| raw_as | Type as which raw values will be rendered;<br>raw types may contain invalid UTF-8 bytes and, thus, must be encoded to UTF-8 | hex     | hex, base64     |
+
+#### Conversions
+
 <table class="tg">
 <thead>
   <tr>
@@ -472,6 +528,15 @@ are supported:
 </table>
 
 ### Protobuf
+
+#### Options
+
+| Name       | Description                                                                  | Default | Possible values        |
+|------------|------------------------------------------------------------------------------|---------|------------------------|
+| definition | Path to the file containing the definition of the protobuf message           | none    | a valid path to a file |
+| message    | Name of the message from the definition file to use for decoding the payload | none    | a valid message name   |
+
+#### Conversions
 
 <table class="tg">
 <thead>
@@ -534,12 +599,11 @@ are supported:
 </tbody>
 </table>
 
-
 ## Future plans
 
 * Support MQTT v3 and v3.1
 * Support websockets
 * Single-topic clients for each subscribe and publish
-  * publish one message (or the same message repeatedly) to a single topic
-  * subscribe for one topic
-  * this mode is only configurable via cli args
+    * publish one message (or the same message repeatedly) to a single topic
+    * subscribe for one topic
+    * this mode is only configurable via cli args
