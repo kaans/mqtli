@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io;
-use std::io::BufReader;
+use std::io::{BufReader, ErrorKind};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -9,7 +9,9 @@ use rumqttc::tokio_rustls::rustls;
 use rumqttc::tokio_rustls::rustls::{Certificate, PrivateKey};
 use rumqttc::v5::mqttbytes::v5::{ConnectReturnCode, LastWill};
 use rumqttc::v5::mqttbytes::QoS;
-use rumqttc::v5::{AsyncClient, ConnectionError, Event, EventLoop, Incoming, MqttOptions};
+use rumqttc::v5::{
+    AsyncClient, ConnectionError, Event, EventLoop, Incoming, MqttOptions, StateError,
+};
 use rumqttc::{TlsConfiguration, Transport};
 use rustls::version::{TLS12, TLS13};
 use rustls::SupportedProtocolVersion;
@@ -308,6 +310,16 @@ impl MqttService {
                             error!("Not authorized, check if the credentials are valid");
                             return;
                         }
+                        ConnectionError::MqttState(StateError::Io(value)) => match value.kind() {
+                            ErrorKind::ConnectionAborted => {
+                                info!("Connection was terminated by the broker");
+                                return;
+                            }
+                            e => {
+                                error!("Connection error: {:?}", e);
+                                return;
+                            }
+                        },
                         _ => {
                             error!("Error while processing mqtt loop: {:?}", e);
                             return;

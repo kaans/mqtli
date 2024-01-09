@@ -1,7 +1,6 @@
-use std::process::exit;
 use std::sync::Arc;
 
-use anyhow::anyhow;
+use anyhow::Context;
 use log::{error, info, LevelFilter};
 use simplelog::{Config, SimpleLogger};
 use tokio::sync::broadcast::Sender;
@@ -23,11 +22,8 @@ mod payload;
 mod publish;
 
 #[tokio::main]
-async fn main() {
-    let config = parse_config().unwrap_or_else(|e| {
-        println!("Error while parsing configuration:\n\n{:#}", anyhow!(e));
-        exit(1);
-    });
+async fn main() -> anyhow::Result<()> {
+    let config = parse_config().with_context(|| "Error while parsing configuration")?;
 
     init_logger(config.log_level());
 
@@ -61,10 +57,7 @@ async fn main() {
         .await
         .connect(Some(sender))
         .await
-        .unwrap_or_else(|e| {
-            error!("Error while connecting to mqtt broker: {}", e);
-            exit(2);
-        });
+        .with_context(|| "Error while connecting to mqtt broker")?;
 
     start_scheduler(topics.clone(), mqtt_service.clone()).await;
 
@@ -73,6 +66,8 @@ async fn main() {
         .await
         .expect("Error while waiting for tasks to shut down");
     handler.await_task().await;
+
+    Ok(())
 }
 
 async fn start_scheduler(topics: Arc<Vec<Topic>>, mqtt_service: Arc<Mutex<MqttService>>) {
@@ -109,7 +104,7 @@ async fn start_scheduler(topics: Arc<Vec<Topic>>, mqtt_service: Arc<Mutex<MqttSe
 async fn start_exit_task(sender_exit: Sender<i32>) {
     let exit_task: JoinHandle<()> = task::spawn(async move {
         if let Err(_e) = signal::ctrl_c().await {
-            error!("Could not add ctrlc handler");
+            error!("Could not add ctrl + c handler");
         }
 
         info!("Exit signal received, shutting down");

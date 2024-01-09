@@ -31,7 +31,12 @@ pub struct MqtliArgs {
     )]
     pub log_level: Option<LevelFilter>,
 
-    #[arg(short = 'c', long = "config-file", env = "CONFIG_FILE_PATH", help = "Path to the config file (default: config.yaml)")]
+    #[arg(
+        short = 'c',
+        long = "config-file",
+        env = "CONFIG_FILE_PATH",
+        help = "Path to the config file (default: config.yaml)"
+    )]
     #[serde(skip_serializing)]
     pub config_file: Option<PathBuf>,
 
@@ -42,13 +47,31 @@ pub struct MqtliArgs {
 
 #[derive(Args, Debug, Default, Deserialize, Getters)]
 pub struct MqttBrokerConnectArgs {
-    #[arg(short = 'o', long = "host", env = "BROKER_HOST", help_heading = "Broker", help = "The ip address or hostname of the broker (default: localhost)")]
+    #[arg(
+        short = 'o',
+        long = "host",
+        env = "BROKER_HOST",
+        help_heading = "Broker",
+        help = "The ip address or hostname of the broker (default: localhost)"
+    )]
     pub host: Option<String>,
 
-    #[arg(short = 'p', long = "port", env = "BROKER_PORT", help_heading = "Broker", help = "The port the broker is listening on (default: 1883)")]
+    #[arg(
+        short = 'p',
+        long = "port",
+        env = "BROKER_PORT",
+        help_heading = "Broker",
+        help = "The port the broker is listening on (default: 1883)"
+    )]
     pub port: Option<u16>,
 
-    #[arg(short = 'i', long = "client-id", env = "BROKER_CLIENT_ID", help_heading = "Broker", help = "The client id for this mqtli instance (default: mqtli)")]
+    #[arg(
+        short = 'i',
+        long = "client-id",
+        env = "BROKER_CLIENT_ID",
+        help_heading = "Broker",
+        help = "The client id for this mqtli instance (default: mqtli)"
+    )]
     pub client_id: Option<String>,
 
     #[serde(default)]
@@ -56,16 +79,38 @@ pub struct MqttBrokerConnectArgs {
     #[arg(long = "keep-alive", env = "BROKER_KEEP_ALIVE", value_parser = parse_keep_alive, help_heading = "Broker", help = "Keep alive time in seconds (default: 5 seconds)")]
     pub keep_alive: Option<Duration>,
 
-    #[arg(short = 'u', long = "username", env = "BROKER_USERNAME", help_heading = "Broker", help = "(optional) Username used to authenticate against the broker; if used then username must be given too (default: empty)")]
+    #[arg(
+        short = 'u',
+        long = "username",
+        env = "BROKER_USERNAME",
+        help_heading = "Broker",
+        help = "(optional) Username used to authenticate against the broker; if used then username must be given too (default: empty)"
+    )]
     pub username: Option<String>,
 
-    #[arg(short = 'w', long = "password", env = "BROKER_PASSWORD", help_heading = "Broker", help = "(optional) Password used to authenticate against the broker; if used then password must be given too (default: empty)")]
+    #[arg(
+        short = 'w',
+        long = "password",
+        env = "BROKER_PASSWORD",
+        help_heading = "Broker",
+        help = "(optional) Password used to authenticate against the broker; if used then password must be given too (default: empty)"
+    )]
     pub password: Option<String>,
 
-    #[arg(long = "use-tls", env = "BROKER_USE_TLS", help_heading = "TLS", help = "If specified, TLS is used to communicate with the broker (default: false)")]
+    #[arg(
+        long = "use-tls",
+        env = "BROKER_USE_TLS",
+        help_heading = "TLS",
+        help = "If specified, TLS is used to communicate with the broker (default: false)"
+    )]
     pub use_tls: Option<bool>,
 
-    #[arg(long = "ca-file", env = "BROKER_TLS_CA_FILE", help_heading = "TLS", help = "Path to a PEM encoded ca certificate to verify the broker's certificate (default: empty)")]
+    #[arg(
+        long = "ca-file",
+        env = "BROKER_TLS_CA_FILE",
+        help_heading = "TLS",
+        help = "Path to a PEM encoded ca certificate to verify the broker's certificate (default: empty)"
+    )]
     pub tls_ca_file: Option<PathBuf>,
 
     #[arg(
