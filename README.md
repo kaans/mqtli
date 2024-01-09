@@ -8,7 +8,7 @@ The supported data formats and the conversion rules are listed under [supported 
 
 ## How to use
 
-1. Download the latest release for you platform [from the releases](https://github.com/kaans/mqtli/releases/latest).
+1. Download the latest release for your platform [from the releases](https://github.com/kaans/mqtli/releases/latest).
 2. Extract the executable to a folder on your local hard drive
 3. Optional: Add the path to the executable to your environments PATH variable, so that you can execute the
    program from any folder
