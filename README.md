@@ -213,21 +213,21 @@ topics:
 
 | Convert to      | Description                                                                                                                | Example                              | Possible failures |
 |-----------------|----------------------------------------------------------------------------------------------------------------------------|--------------------------------------|-------------------|
-| Text<br>(UTF-8) | Depending on the config ("raw_as") it is encoded as hex or base64                                                          | INPUT => 494e505554                  |                   |
+| Text<br>(UTF-8) | Depending on the config ("raw_as") it is encoded as hex, base64 or UTF-8                                                   | INPUT => 494e505554                  |                   |
 | Raw             | No conversion needed                                                                                                       | INPUT => INPUT                       |                   |
 | Hex             | Converts input to hex                                                                                                      | INPUT => 494e505554                  |                   |
 | Base64          | Converts input to base64                                                                                                   | INPUT => SU5QVVQ=                    |                   |
 | JSON            | Puts input text into field content of new JSON object<br>Depending on the config ("raw_as") it is encoded as hex or base64 | INPUT => { "content": "494e505554" } |                   |
 | YAML            | Puts input text into field content of new YAML object<br>Depending on the config ("raw_as") it is encoded as hex or base64 | INPUT => content: 494e505554         |                   |
-| Protobuf        | Not possible                                                                                                               | none                                 |                   |
+| Protobuf        | Not supported                                                                                                              | none                                 |                   |
 
 ### Text (UTF-8)
 
 #### Options
 
-| Name   | Description                                                                                                                 | Default | Possible values |
-|--------|-----------------------------------------------------------------------------------------------------------------------------|---------|-----------------|
-| raw_as | Type as which raw values will be rendered;<br>raw types may contain invalid UTF-8 bytes and, thus, must be encoded to UTF-8 | hex     | hex, base64     |
+| Name   | Description                                                                                                         | Default | Possible values   |
+|--------|---------------------------------------------------------------------------------------------------------------------|---------|-------------------|
+| raw_as | Type as which raw values will be rendered; if utf8, invalid characters will be displayed with replacement character | hex     | hex, base64, utf8 |
 
 #### Conversions
 
@@ -239,7 +239,7 @@ topics:
 | Base64          | Converts input to base64                              | INPUT => SU5QVVQ=               |                   |
 | JSON            | Puts input text into field content of new JSON object | INPUT => { "content": "INPUT" } |                   |
 | YAML            | Puts input text into field content of new YAML object | INPUT => content: INPUT         |                   |
-| Protobuf        | Not possible                                          |                                 |                   |
+| Protobuf        | Not supported                                         |                                 |                   |
 
 ### Hex
 
@@ -259,9 +259,9 @@ topics:
 <tbody>
   <tr>
     <td class="tg-0cjc">Text<br>(UTF-8)</td>
-    <td class="tg-0pky">Decodes hex String and tries to convert bytes to UTF-8</td>
+    <td class="tg-0pky">Decodes hex String and tries to convert bytes to hex, base64 or UTF-8 (depending on the "raw_as" setting)</td>
     <td class="tg-0pky">494e505554 =&gt; INPUT</td>
-    <td class="tg-0lax">- length of hex string is not even<br>- decoded bytes contain non-UTF-8 characters</td>
+    <td class="tg-0lax">- length of hex string is not even</td>
   </tr>
   <tr>
     <td class="tg-0cjc">Raw</td>
@@ -295,7 +295,7 @@ topics:
   </tr>
   <tr>
     <td class="tg-jilr">Protobuf</td>
-    <td class="tg-0pky">Not possible</td>
+    <td class="tg-0pky">Not supported</td>
     <td class="tg-0pky"></td>
     <td class="tg-0lax"></td>
   </tr>
@@ -320,9 +320,9 @@ topics:
 <tbody>
   <tr>
     <td class="tg-0cjc">Text<br>(UTF-8)</td>
-    <td class="tg-0pky">Decodes base64 String and tries to convert bytes to UTF-8</td>
+    <td class="tg-0pky">Decodes base64 String and tries to convert bytes to hex, base64 or UTF-8 (depending on the "raw_as" setting)</td>
     <td class="tg-0pky">SU5QVVQ= =&gt; INPUT</td>
-    <td class="tg-0lax">- wrong length, padding, or bytes in base64 string<br>- decoded bytes contain non-UTF-8 characters</td>
+    <td class="tg-0lax">- wrong length, padding, or bytes in base64 string</td>
   </tr>
   <tr>
     <td class="tg-0cjc">Raw</td>
@@ -356,7 +356,7 @@ topics:
   </tr>
   <tr>
     <td class="tg-jilr">Protobuf</td>
-    <td class="tg-0pky">Not possible</td>
+    <td class="tg-0pky">Not supported</td>
     <td class="tg-0pky"></td>
     <td class="tg-0lax"></td>
   </tr>
@@ -367,9 +367,9 @@ topics:
 
 #### Options
 
-| Name   | Description                                                                                                                 | Default | Possible values |
-|--------|-----------------------------------------------------------------------------------------------------------------------------|---------|-----------------|
-| raw_as | Type as which raw values will be rendered;<br>raw types may contain invalid UTF-8 bytes and, thus, must be encoded to UTF-8 | hex     | hex, base64     |
+| Name   | Description                                                                                                         | Default | Possible values   |
+|--------|---------------------------------------------------------------------------------------------------------------------|---------|-------------------|
+| raw_as | Type as which raw values will be rendered; if utf8, invalid characters will be displayed with replacement character | hex     | hex, base64, utf8 |
 
 #### Conversions
 
@@ -399,7 +399,7 @@ topics:
     <td class="tg-l23c">Hex</td>
     <td class="tg-0pky">Read the string from the field "content" validate that it is a valid hex string and store the string as is</td>
     <td class="tg-0pky">{ "content": "494e505554" } =&gt; 494e505554</td>
-    <td class="tg-0lax">- field "content" does not exist or does not contain a valid base64 string</td>
+    <td class="tg-0lax">- field "content" does not exist or does not contain a valid hex string</td>
   </tr>
   <tr>
     <td class="tg-l23c">Base64</td>
@@ -421,7 +421,7 @@ topics:
   </tr>
   <tr>
     <td class="tg-jilr">Protobuf</td>
-    <td class="tg-0pky">Not possible</td>
+    <td class="tg-0pky">Not supported</td>
     <td class="tg-0pky"></td>
     <td class="tg-0lax"></td>
   </tr>
@@ -432,9 +432,9 @@ topics:
 
 #### Options
 
-| Name   | Description                                                                                                                 | Default | Possible values |
-|--------|-----------------------------------------------------------------------------------------------------------------------------|---------|-----------------|
-| raw_as | Type as which raw values will be rendered;<br>raw types may contain invalid UTF-8 bytes and, thus, must be encoded to UTF-8 | hex     | hex, base64     |
+| Name   | Description                                                                                                         | Default | Possible values   |
+|--------|---------------------------------------------------------------------------------------------------------------------|---------|-------------------|
+| raw_as | Type as which raw values will be rendered; if utf8, invalid characters will be displayed with replacement character | hex     | hex, base64, utf8 |
 
 #### Conversions
 
@@ -464,7 +464,7 @@ topics:
     <td class="tg-l23c">Hex</td>
     <td class="tg-0pky">Read the string from the field "content" validate that it is a valid hex string and store the string as is</td>
     <td class="tg-0pky">content: 494e505554 =&gt; 494e505554</td>
-    <td class="tg-0lax">- field "content" does not exist or does not contain a valid base64 string</td>
+    <td class="tg-0lax">- field "content" does not exist or does not contain a valid hex string</td>
   </tr>
   <tr>
     <td class="tg-l23c">Base64</td>
@@ -486,7 +486,7 @@ topics:
   </tr>
   <tr>
     <td class="tg-jilr">Protobuf</td>
-    <td class="tg-0pky">Not possible</td>
+    <td class="tg-0pky">Not supported</td>
     <td class="tg-0pky"></td>
     <td class="tg-0lax"></td>
   </tr>
@@ -558,7 +558,7 @@ topics:
   </tr>
   <tr>
     <td class="tg-jilr">Protobuf</td>
-    <td class="tg-0pky">Not possible</td>
+    <td class="tg-0pky">Not supported</td>
     <td class="tg-0pky"></td>
     <td class="tg-0lax"></td>
   </tr>

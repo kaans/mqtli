@@ -73,6 +73,8 @@ pub enum PayloadOptionRawFormat {
     Hex,
     #[serde(rename = "base64")]
     Base64,
+    #[serde(rename = "utf8")]
+    Utf8,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]

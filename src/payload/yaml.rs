@@ -27,6 +27,7 @@ impl PayloadFormatYaml {
         match options.raw_as_type() {
             PayloadOptionRawFormat::Hex => hex::encode(value),
             PayloadOptionRawFormat::Base64 => general_purpose::STANDARD.encode(value),
+            PayloadOptionRawFormat::Utf8 => String::from_utf8_lossy(value.as_slice()).to_string(),
         }
     }
 }
