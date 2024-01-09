@@ -4,11 +4,10 @@ use std::time::Duration;
 use crate::config::{PayloadType, PublishInputType};
 use clokwerk::{AsyncScheduler, Interval, Job};
 use log::info;
-use rumqttc::v5::mqttbytes::QoS;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
-use crate::mqtt_service::MqttService;
+use crate::mqtt_service::{MqttService, QoS};
 use crate::payload::PayloadFormat;
 use crate::publish::TriggerError;
 

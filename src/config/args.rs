@@ -7,12 +7,12 @@ use std::time::Duration;
 use clap::{Args, Parser};
 use derive_getters::Getters;
 use log::LevelFilter;
-use rumqttc::v5::mqttbytes::QoS;
 use serde::de::{Error, Unexpected};
 use serde::{Deserialize, Deserializer};
 
 use crate::config::mqtli_config::TlsVersion;
 use crate::config::{args, ConfigError, PayloadType, PublishInputType};
+use crate::mqtt_service::QoS;
 
 #[derive(Debug, Deserialize, Parser)]
 #[command(author, version, about, long_about = None)]

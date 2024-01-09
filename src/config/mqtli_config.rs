@@ -6,13 +6,13 @@ use std::time::Duration;
 use clap::ValueEnum;
 use derive_getters::Getters;
 use log::LevelFilter;
-use rumqttc::v5::mqttbytes::QoS;
 use serde::Deserialize;
 use validator::{Validate, ValidationError};
 
 use crate::config::args;
 use crate::config::args::{read_cli_args, read_config};
 use crate::config::{ConfigError, PayloadType, PublishInputType};
+use crate::mqtt_service::QoS;
 
 #[derive(Debug, Getters, Validate)]
 pub struct MqtliConfig {
