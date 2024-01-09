@@ -25,7 +25,10 @@ pub struct MqtliConfig {
 
 impl MqtliConfig {
     fn merge(&mut self, other: &args::MqtliArgs) {
-        self.broker.merge(&other.broker);
+        if let Some(broker) = &other.broker {
+            self.broker.merge(broker);
+        }
+
         if let Some(log_level) = other.log_level {
             self.log_level = log_level
         };

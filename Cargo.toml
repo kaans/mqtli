@@ -2,7 +2,10 @@
 name = "mqtli"
 version = "0.1.0"
 edition = "2021"
-description = "MQTT cli client"
+description = "MQTT multi-topic and payload converting cli client"
+license-file = "LICENSE.md"
+repository = "https://github.com/kaans/mqtli"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

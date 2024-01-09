@@ -18,7 +18,7 @@ use crate::config::{args, ConfigError, PayloadType, PublishInputType};
 #[command(author, version, about, long_about = None)]
 pub struct MqtliArgs {
     #[command(flatten)]
-    pub broker: MqttBrokerConnectArgs,
+    pub broker: Option<MqttBrokerConnectArgs>,
 
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_level_filter")]
@@ -26,11 +26,17 @@ pub struct MqtliArgs {
         short = 'l',
         long = "log-level",
         env = "LOG_LEVEL",
-        help_heading = "Logging"
+        help_heading = "Logging",
+        help = "Log level (default: info) (possible values: trace, debug, info, warn, error, off)"
     )]
     pub log_level: Option<LevelFilter>,
 
-    #[arg(long = "config-file", env = "CONFIG_FILE_PATH")]
+    #[arg(
+        short = 'c',
+        long = "config-file",
+        env = "CONFIG_FILE_PATH",
+        help = "Path to the config file (default: config.yaml)"
+    )]
     #[serde(skip_serializing)]
     pub config_file: Option<PathBuf>,
 
@@ -41,51 +47,93 @@ pub struct MqtliArgs {
 
 #[derive(Args, Debug, Default, Deserialize, Getters)]
 pub struct MqttBrokerConnectArgs {
-    #[arg(short = 'o', long = "host", env = "BROKER_HOST")]
+    #[arg(
+        short = 'o',
+        long = "host",
+        env = "BROKER_HOST",
+        help_heading = "Broker",
+        help = "The ip address or hostname of the broker (default: localhost)"
+    )]
     pub host: Option<String>,
 
-    #[arg(short = 'p', long = "port", env = "BROKER_PORT")]
+    #[arg(
+        short = 'p',
+        long = "port",
+        env = "BROKER_PORT",
+        help_heading = "Broker",
+        help = "The port the broker is listening on (default: 1883)"
+    )]
     pub port: Option<u16>,
 
-    #[arg(short = 'c', long = "client-id", env = "BROKER_CLIENT_ID")]
+    #[arg(
+        short = 'i',
+        long = "client-id",
+        env = "BROKER_CLIENT_ID",
+        help_heading = "Broker",
+        help = "The client id for this mqtli instance (default: mqtli)"
+    )]
     pub client_id: Option<String>,
 
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_duration_seconds")]
-    #[arg(long = "keep-alive", env = "BROKER_KEEP_ALIVE", value_parser = parse_keep_alive)]
+    #[arg(long = "keep-alive", env = "BROKER_KEEP_ALIVE", value_parser = parse_keep_alive, help_heading = "Broker", help = "Keep alive time in seconds (default: 5 seconds)")]
     pub keep_alive: Option<Duration>,
 
-    #[arg(short = 'u', long = "username", env = "BROKER_USERNAME")]
+    #[arg(
+        short = 'u',
+        long = "username",
+        env = "BROKER_USERNAME",
+        help_heading = "Broker",
+        help = "(optional) Username used to authenticate against the broker; if used then username must be given too (default: empty)"
+    )]
     pub username: Option<String>,
 
-    #[arg(short = 'w', long = "password", env = "BROKER_PASSWORD")]
+    #[arg(
+        short = 'w',
+        long = "password",
+        env = "BROKER_PASSWORD",
+        help_heading = "Broker",
+        help = "(optional) Password used to authenticate against the broker; if used then password must be given too (default: empty)"
+    )]
     pub password: Option<String>,
 
-    #[arg(long = "use-tls", env = "BROKER_USE_TLS", help_heading = "TLS")]
+    #[arg(
+        long = "use-tls",
+        env = "BROKER_USE_TLS",
+        help_heading = "TLS",
+        help = "If specified, TLS is used to communicate with the broker (default: false)"
+    )]
     pub use_tls: Option<bool>,
 
-    #[arg(long = "ca-file", env = "BROKER_TLS_CA_FILE", help_heading = "TLS")]
+    #[arg(
+        long = "ca-file",
+        env = "BROKER_TLS_CA_FILE",
+        help_heading = "TLS",
+        help = "Path to a PEM encoded ca certificate to verify the broker's certificate (default: empty)"
+    )]
     pub tls_ca_file: Option<PathBuf>,
 
     #[arg(
         long = "client-cert",
         env = "BROKER_TLS_CLIENT_CERTIFICATE_FILE",
-        help_heading = "TLS"
+        help_heading = "TLS",
+        help = "(optional) Path to a PEM encoded client certificate for authenticating against the broker; must be specified with client-key (default: empty)"
     )]
     pub tls_client_certificate: Option<PathBuf>,
 
     #[arg(
         long = "client-key",
         env = "BROKER_TLS_CLIENT_KEY_FILE",
-        help_heading = "TLS"
+        help_heading = "TLS",
+        help = "(optional) Path to a PKCS#8 encoded, unencrypted client private key for authenticating against the broker; must be specified with client-cert (default: empty)"
     )]
     pub tls_client_key: Option<PathBuf>,
 
     #[arg(
         long = "tls-version",
         env = "BROKER_TLS_VERSION",
-        value_enum,
-        help_heading = "TLS"
+        help_heading = "TLS",
+        help = "TLS version to used (default: all)"
     )]
     pub tls_version: Option<TlsVersion>,
 
@@ -98,26 +146,32 @@ pub struct LastWillConfig {
     #[arg(
         long = "last-will-payload",
         env = "BROKER_LAST_WILL_PAYLOAD",
-        help_heading = "Last will"
+        help_heading = "Last will",
+        help = "The UTF-8 encoded payload of the will message (default: empty)"
     )]
     pub payload: Option<String>,
 
     #[arg(
         long = "last-will-topic",
         env = "BROKER_LAST_WILL_TOPIC",
-        help_heading = "Last will"
+        help_heading = "Last will",
+        help = "The topic where the last will message will be published (default: empty)"
     )]
     pub topic: Option<String>,
 
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_qos_option")]
-    #[arg(long = "last-will-qos", env = "BROKER_LAST_WILL_QOS", value_parser = parse_qos, help_heading = "Last will", help = "0 = at most once; 1 = at least once; 2 = exactly once")]
+    #[arg(long = "last-will-qos", env = "BROKER_LAST_WILL_QOS", value_parser = parse_qos,
+        help_heading = "Last will",
+        help = "Quality of Service (default: 0) (possible values: 0 = at most once; 1 = at least once; 2 = exactly once)")
+    ]
     pub qos: Option<QoS>,
 
     #[arg(
         long = "last-will-retain",
         env = "BROKER_LAST_WILL_RETAIN",
-        help_heading = "Last will"
+        help_heading = "Last will",
+        help = "If true, last will message will be retained, else not (default: false)"
     )]
     pub retain: Option<bool>,
 }
