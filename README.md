@@ -211,52 +211,15 @@ topics:
 
 #### Conversions
 
-<table class="tg">
-<thead>
-  <tr>
-    <th class="tg-fr0y">Convert to</th>
-    <th class="tg-fr0y">Description</th>
-    <th class="tg-fr0y">Example</th>
-  </tr>
-</thead>
-<tbody>
-  <tr>
-    <td class="tg-0cjc">Text<br>(UTF-8)</td>
-    <td class="tg-0pky">Depending on the config ("raw_as") it is encoded as hex or base64</td>
-    <td class="tg-0pky">INPUT =&gt; 494e505554</td>
-  </tr>
-  <tr>
-    <td class="tg-0cjc">Raw</td>
-    <td class="tg-0pky">No conversion needed</td>
-    <td class="tg-0pky">INPUT =&gt; INPUT</td>
-  </tr>
-  <tr>
-    <td class="tg-l23c">Hex</td>
-    <td class="tg-0pky">Converts input to hex</td>
-    <td class="tg-0pky">INPUT =&gt; 494e505554</td>
-  </tr>
-  <tr>
-    <td class="tg-l23c">Base64</td>
-    <td class="tg-0pky">Converts input to base64</td>
-    <td class="tg-0pky">INPUT =&gt; SU5QVVQ=</td>
-  </tr>
-  <tr>
-    <td class="tg-l23c">JSON</td>
-    <td class="tg-0pky">Puts input text into field content of new JSON object<br/>Depending on the config ("raw_as") it is encoded as hex or base64</td>
-    <td class="tg-0pky">INPUT =&gt; { "content": "494e505554" }</td>
-  </tr>
-  <tr>
-    <td class="tg-l23c">YAML</td>
-    <td class="tg-0pky">Puts input text into field content of new YAML object<br/>Depending on the config ("raw_as") it is encoded as hex or base64</td>
-    <td class="tg-0pky">INPUT =&gt; content: 494e505554</td>
-  </tr>
-  <tr>
-    <td class="tg-jilr">Protobuf</td>
-    <td class="tg-0pky">Not possible</td>
-    <td class="tg-0pky"></td>
-  </tr>
-</tbody>
-</table>
+| Convert to      | Description                                                                                                                | Example                              | Possible failures |
+|-----------------|----------------------------------------------------------------------------------------------------------------------------|--------------------------------------|-------------------|
+| Text<br>(UTF-8) | Depending on the config ("raw_as") it is encoded as hex or base64                                                          | INPUT => 494e505554                  |                   |
+| Raw             | No conversion needed                                                                                                       | INPUT => INPUT                       |                   |
+| Hex             | Converts input to hex                                                                                                      | INPUT => 494e505554                  |                   |
+| Base64          | Converts input to base64                                                                                                   | INPUT => SU5QVVQ=                    |                   |
+| JSON            | Puts input text into field content of new JSON object<br>Depending on the config ("raw_as") it is encoded as hex or base64 | INPUT => { "content": "494e505554" } |                   |
+| YAML            | Puts input text into field content of new YAML object<br>Depending on the config ("raw_as") it is encoded as hex or base64 | INPUT => content: 494e505554         |                   |
+| Protobuf        | Not possible                                                                                                               | none                                 |                   |
 
 ### Text (UTF-8)
 
@@ -268,52 +231,15 @@ topics:
 
 #### Conversions
 
-<table class="tg">
-<thead>
-  <tr>
-    <th class="tg-c8dp">Convert to</th>
-    <th class="tg-c8dp">Description</th>
-    <th class="tg-c8dp">Example</th>
-  </tr>
-</thead>
-<tbody>
-  <tr>
-    <td class="tg-1o19">Text<br>(UTF-8)</td>
-    <td class="tg-0lax">No conversion needed</td>
-    <td class="tg-0lax">INPUT =&gt; INPUT</td>
-  </tr>
-  <tr>
-    <td class="tg-1o19">Raw</td>
-    <td class="tg-0lax">No conversion needed</td>
-    <td class="tg-0lax">INPUT =&gt; INPUT</td>
-  </tr>
-  <tr>
-    <td class="tg-a00j">Hex</td>
-    <td class="tg-0lax">Converts input to hex</td>
-    <td class="tg-0lax">INPUT =&gt; 494e505554</td>
-  </tr>
-  <tr>
-    <td class="tg-a00j">Base64</td>
-    <td class="tg-0lax">Converts input to base64</td>
-    <td class="tg-0lax">INPUT =&gt; SU5QVVQ=</td>
-  </tr>
-  <tr>
-    <td class="tg-a00j">JSON</td>
-    <td class="tg-0lax">Puts input text into field content of new JSON object</td>
-    <td class="tg-0lax">INPUT =&gt; { "content": "INPUT" }</td>
-  </tr>
-  <tr>
-    <td class="tg-a00j">YAML</td>
-    <td class="tg-0lax">Puts input text into field content of new YAML object</td>
-    <td class="tg-0lax">INPUT =&gt; content: INPUT</td>
-  </tr>
-  <tr>
-    <td class="tg-baly">Protobuf</td>
-    <td class="tg-0lax">Not possible</td>
-    <td class="tg-0lax"></td>
-  </tr>
-</tbody>
-</table>
+| Convert to      | Description                                           | Example                         | Possible failures |
+|-----------------|-------------------------------------------------------|---------------------------------|-------------------|
+| Text<br>(UTF-8) | No conversion needed                                  | INPUT => INPUT                  |                   |
+| Raw             | No conversion needed                                  | INPUT => INPUT                  |                   |
+| Hex             | Converts input to hex                                 | INPUT => 494e505554             |                   |
+| Base64          | Converts input to base64                              | INPUT => SU5QVVQ=               |                   |
+| JSON            | Puts input text into field content of new JSON object | INPUT => { "content": "INPUT" } |                   |
+| YAML            | Puts input text into field content of new YAML object | INPUT => content: INPUT         |                   |
+| Protobuf        | Not possible                                          |                                 |                   |
 
 ### Hex
 
