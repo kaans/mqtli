@@ -304,6 +304,18 @@ pub enum TlsVersion {
     Version1_3,
 }
 
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, ValueEnum)]
+pub enum MqttVersion {
+    #[serde(rename = "v311")]
+    #[clap(name = "v311")]
+    V311,
+
+    #[default]
+    #[serde(rename = "v5")]
+    #[clap(name = "v5")]
+    V5,
+}
+
 #[derive(Clone, Debug, Getters, Validate)]
 #[validate(schema(function = "validate_credentials", skip_on_field_errors = false))]
 #[validate(schema(function = "validate_tls_client", skip_on_field_errors = false))]
@@ -313,6 +325,7 @@ pub struct MqttBrokerConnectArgs {
     port: u16,
     #[validate(length(min = 1, message = "Client id must be given"))]
     client_id: String,
+    mqtt_version: MqttVersion,
     #[validate(custom(
         function = "validate_keep_alive",
         message = "Keep alive must be a number and at least 5 seconds"
@@ -341,6 +354,9 @@ impl MqttBrokerConnectArgs {
         }
         if let Some(client_id) = &other.client_id {
             self.client_id = client_id.to_string()
+        }
+        if let Some(mqtt_version) = &other.mqtt_version {
+            self.mqtt_version = mqtt_version.clone()
         }
         if let Some(keep_alive) = other.keep_alive {
             self.keep_alive = keep_alive
@@ -394,6 +410,7 @@ impl Default for MqttBrokerConnectArgs {
             host: "localhost".to_string(),
             port: 1883,
             client_id: "mqtli".to_string(),
+            mqtt_version: MqttVersion::V5,
             keep_alive: Duration::from_secs(5),
             username: None,
             password: None,

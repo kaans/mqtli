@@ -504,7 +504,11 @@ mod tests {
     #[test]
     fn from_hex_as_base64() {
         let input = PayloadFormatHex::try_from(INPUT_STRING_HEX.to_owned()).unwrap();
-        let result = PayloadFormatText::try_from((PayloadFormat::Hex(input), PayloadText::new(PayloadOptionRawFormat::Base64))).unwrap();
+        let result = PayloadFormatText::try_from((
+            PayloadFormat::Hex(input),
+            PayloadText::new(PayloadOptionRawFormat::Base64),
+        ))
+        .unwrap();
 
         assert_eq!(INPUT_STRING_BASE64.to_owned(), result.content);
     }
@@ -512,7 +516,11 @@ mod tests {
     #[test]
     fn from_base64_as_base64() {
         let input = PayloadFormatBase64::try_from(INPUT_STRING_BASE64.to_owned()).unwrap();
-        let result = PayloadFormatText::try_from((PayloadFormat::Base64(input), PayloadText::new(PayloadOptionRawFormat::Base64))).unwrap();
+        let result = PayloadFormatText::try_from((
+            PayloadFormat::Base64(input),
+            PayloadText::new(PayloadOptionRawFormat::Base64),
+        ))
+        .unwrap();
 
         assert_eq!(INPUT_STRING_BASE64.to_owned(), result.content);
     }
@@ -520,7 +528,11 @@ mod tests {
     #[test]
     fn from_hex_as_text() {
         let input = PayloadFormatHex::try_from(INPUT_STRING_HEX.to_owned()).unwrap();
-        let result = PayloadFormatText::try_from((PayloadFormat::Hex(input), PayloadText::new(PayloadOptionRawFormat::Utf8))).unwrap();
+        let result = PayloadFormatText::try_from((
+            PayloadFormat::Hex(input),
+            PayloadText::new(PayloadOptionRawFormat::Utf8),
+        ))
+        .unwrap();
 
         assert_eq!(INPUT_STRING.to_owned(), result.content);
     }
@@ -528,7 +540,11 @@ mod tests {
     #[test]
     fn from_base64_as_text() {
         let input = PayloadFormatBase64::try_from(INPUT_STRING_BASE64.to_owned()).unwrap();
-        let result = PayloadFormatText::try_from((PayloadFormat::Base64(input), PayloadText::new(PayloadOptionRawFormat::Utf8))).unwrap();
+        let result = PayloadFormatText::try_from((
+            PayloadFormat::Base64(input),
+            PayloadText::new(PayloadOptionRawFormat::Utf8),
+        ))
+        .unwrap();
 
         assert_eq!(INPUT_STRING.to_owned(), result.content);
     }
@@ -539,7 +555,7 @@ mod tests {
             "{{\"content\": \"{}\"}}",
             INPUT_STRING
         )))
-            .unwrap();
+        .unwrap();
         let result = PayloadFormatText::try_from(PayloadFormat::Json(input)).unwrap();
 
         assert_eq!(INPUT_STRING.to_owned(), result.content);

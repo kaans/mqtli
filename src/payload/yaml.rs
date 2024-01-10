@@ -170,10 +170,9 @@ mod protobuf {
             Value::Bool(value) => serde_yaml::Value::Bool(*value),
             Value::String(value) => serde_yaml::Value::String(value.clone()),
             Value::Message(value) => get_message_value(context, value, options)?,
-            Value::Bytes(value) => serde_yaml::Value::String(convert_raw_type(
-                options.raw_as_type(),
-                value.to_vec(),
-            )),
+            Value::Bytes(value) => {
+                serde_yaml::Value::String(convert_raw_type(options.raw_as_type(), value.to_vec()))
+            }
             Value::Enum(value) => {
                 let enum_ref = value.enum_ref;
                 let enum_value = match context
@@ -198,8 +197,8 @@ mod protobuf {
 
 #[cfg(test)]
 mod tests {
-    use serde_yaml::from_str;
     use crate::config::PayloadOptionRawFormat;
+    use serde_yaml::from_str;
 
     use crate::payload::base64::PayloadFormatBase64;
     use crate::payload::hex::PayloadFormatHex;
@@ -353,7 +352,7 @@ mod tests {
             "{{\"content\":\"{}\"}}",
             INPUT_STRING
         )))
-            .unwrap();
+        .unwrap();
         let result = PayloadFormatYaml::try_from(PayloadFormat::Json(input)).unwrap();
 
         assert_eq!(
@@ -368,7 +367,7 @@ mod tests {
             "{{\"size\": 54.3, \"name\":\"{}\"}}",
             INPUT_STRING
         )))
-            .unwrap();
+        .unwrap();
         let result = PayloadFormatYaml::try_from(PayloadFormat::Json(input)).unwrap();
 
         assert_eq!(54.3, result.content.get("size").unwrap().as_f64().unwrap());

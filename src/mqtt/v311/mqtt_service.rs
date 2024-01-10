@@ -3,26 +3,23 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use log::{debug, error, info};
-use rumqttc::v5::mqttbytes::v5::{ConnectReturnCode, LastWill};
-use rumqttc::v5::{
-    AsyncClient, ConnectionError, Event, EventLoop, Incoming, MqttOptions, StateError,
-};
-use rumqttc::Transport;
+use rumqttc::{AsyncClient, ConnectionError, Event, EventLoop, Incoming, MqttOptions, StateError};
+use rumqttc::{ConnectReturnCode, LastWill, Transport};
 use tokio::sync::{broadcast, Mutex};
 use tokio::task::JoinHandle;
 
 use crate::config::mqtli_config::MqttBrokerConnectArgs;
 use crate::mqtt::{configure_tls_rustls, MqttEvent, MqttService, MqttServiceError, QoS};
 
-pub struct MqttServiceV5 {
-    config: Arc<MqttBrokerConnectArgs>,
+pub struct MqttServiceV311 {
     client: Option<AsyncClient>,
+    config: Arc<MqttBrokerConnectArgs>,
     topics: Arc<Mutex<Vec<(String, QoS)>>>,
 }
 
-impl MqttServiceV5 {
-    pub fn new(config: Arc<MqttBrokerConnectArgs>) -> MqttServiceV5 {
-        MqttServiceV5 {
+impl MqttServiceV311 {
+    pub fn new(config: Arc<MqttBrokerConnectArgs>) -> MqttServiceV311 {
+        MqttServiceV311 {
             client: None,
             config,
             topics: Arc::new(Mutex::new(vec![])),
@@ -58,7 +55,7 @@ impl MqttServiceV5 {
                         }
 
                         if let Some(channel) = &channel {
-                            let _ = channel.send(MqttEvent::V5(event));
+                            let _ = channel.send(MqttEvent::V311(event));
                         }
                     }
                     Err(e) => match e {
@@ -88,7 +85,7 @@ impl MqttServiceV5 {
 }
 
 #[async_trait]
-impl MqttService for MqttServiceV5 {
+impl MqttService for MqttServiceV311 {
     async fn connect(
         &mut self,
         channel: Option<broadcast::Sender<MqttEvent>>,
@@ -140,7 +137,6 @@ impl MqttService for MqttServiceV5 {
                 last_will.payload().clone(),
                 last_will.qos().into(),
                 *last_will.retain(),
-                None,
             );
             options.set_last_will(last_will);
         }
