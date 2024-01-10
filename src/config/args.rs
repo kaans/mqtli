@@ -19,10 +19,10 @@ use crate::mqtt::QoS;
 #[clap(disable_version_flag = true)]
 #[clap(disable_help_flag = true)]
 pub struct MqtliArgs {
-    #[clap(long, action = clap::ArgAction::HelpLong)]
+    #[clap(long, action = clap::ArgAction::HelpLong, help = "Print help")]
     help: Option<bool>,
 
-    #[clap(long, action = clap::ArgAction::Version)]
+    #[clap(long, action = clap::ArgAction::Version, help = "Print version")]
     version: Option<bool>,
 
     #[command(flatten)]
