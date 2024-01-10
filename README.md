@@ -26,7 +26,7 @@ The supported data formats and the conversion rules are listed under [supported 
     * Output: print incoming payload to console or file (subscribe)
 * Automatically convert the message payload between input, payload, and output, if they differ
 * Configuration via cli arguments and config file (yaml)
-* MQTT v5 (only)
+* MQTT v5 and v3.1.1
 * TLS support (v1.2 and v1.3)
 * Client authentication via username/password
 * Client authentication via TLS certificates
@@ -567,7 +567,6 @@ topics:
 
 ## Future plans
 
-* Support MQTT v3 and v3.1
 * Support websockets
 * Single-topic clients for each subscribe and publish
     * publish one message (or the same message repeatedly) to a single topic
