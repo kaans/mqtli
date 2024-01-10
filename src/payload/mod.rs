@@ -4,13 +4,14 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::string::FromUtf8Error;
 
-use ::base64::DecodeError;
+use ::base64::{DecodeError, Engine};
+use ::base64::engine::general_purpose;
 use ::hex::FromHexError;
 use log::error;
 use protofish::context::ParseError;
 use thiserror::Error;
 
-use crate::config::{PayloadType, PublishInputType, PublishInputTypeContentPath};
+use crate::config::{PayloadOptionRawFormat, PayloadType, PublishInputType, PublishInputTypeContentPath};
 use crate::payload::base64::PayloadFormatBase64;
 use crate::payload::hex::PayloadFormatHex;
 use crate::payload::json::PayloadFormatJson;
@@ -305,4 +306,12 @@ fn read_from_path(path: &PathBuf) -> Result<Vec<u8>, PayloadFormatError> {
         ));
     };
     Ok(buf)
+}
+
+fn convert_raw_type(option: &PayloadOptionRawFormat, value: Vec<u8>) -> String {
+    match option {
+        PayloadOptionRawFormat::Hex => ::hex::encode(value),
+        PayloadOptionRawFormat::Base64 => general_purpose::STANDARD.encode(value),
+        PayloadOptionRawFormat::Utf8 => String::from_utf8_lossy(value.as_slice()).to_string(),
+    }
 }

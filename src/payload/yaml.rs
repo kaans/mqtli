@@ -1,13 +1,11 @@
 use std::fmt::{Display, Formatter};
 
-use crate::config::{PayloadOptionRawFormat, PayloadYaml};
-use base64::engine::general_purpose;
-use base64::Engine;
 use derive_getters::Getters;
 use log::error;
 use serde_yaml::{from_slice, from_str, Value};
 
-use crate::payload::{PayloadFormat, PayloadFormatError};
+use crate::config::PayloadYaml;
+use crate::payload::{convert_raw_type, PayloadFormat, PayloadFormatError};
 
 #[derive(Clone, Debug, Getters)]
 pub struct PayloadFormatYaml {
@@ -21,14 +19,6 @@ impl PayloadFormatYaml {
 
     fn encode_to_yaml(value: Vec<u8>) -> serde_yaml::Result<Value> {
         from_slice(value.as_slice())
-    }
-
-    fn convert_raw_type(options: &PayloadYaml, value: Vec<u8>) -> String {
-        match options.raw_as_type() {
-            PayloadOptionRawFormat::Hex => hex::encode(value),
-            PayloadOptionRawFormat::Base64 => general_purpose::STANDARD.encode(value),
-            PayloadOptionRawFormat::Utf8 => String::from_utf8_lossy(value.as_slice()).to_string(),
-        }
     }
 }
 
@@ -108,7 +98,7 @@ impl TryFrom<(PayloadFormat, &PayloadYaml)> for PayloadFormatYaml {
         match value {
             PayloadFormat::Text(value) => convert_from_value(value.into()),
             PayloadFormat::Raw(value) => {
-                convert_from_value(PayloadFormatYaml::convert_raw_type(options, value.into()))
+                convert_from_value(convert_raw_type(options.raw_as_type(), value.into()))
             }
             PayloadFormat::Protobuf(value) => Ok(Self {
                 content: protobuf::get_message_value(
@@ -128,13 +118,12 @@ impl TryFrom<(PayloadFormat, &PayloadYaml)> for PayloadFormatYaml {
 }
 
 mod protobuf {
-    use crate::config::PayloadYaml;
     use protofish::context::Context;
     use protofish::decode::{FieldValue, MessageValue, Value};
     use serde_yaml::value;
 
-    use crate::payload::yaml::PayloadFormatYaml;
-    use crate::payload::PayloadFormatError;
+    use crate::config::PayloadYaml;
+    use crate::payload::{convert_raw_type, PayloadFormatError};
 
     pub(super) fn get_message_value(
         context: &Context,
@@ -181,8 +170,8 @@ mod protobuf {
             Value::Bool(value) => serde_yaml::Value::Bool(*value),
             Value::String(value) => serde_yaml::Value::String(value.clone()),
             Value::Message(value) => get_message_value(context, value, options)?,
-            Value::Bytes(value) => serde_yaml::Value::String(PayloadFormatYaml::convert_raw_type(
-                options,
+            Value::Bytes(value) => serde_yaml::Value::String(convert_raw_type(
+                options.raw_as_type(),
                 value.to_vec(),
             )),
             Value::Enum(value) => {
@@ -210,6 +199,7 @@ mod protobuf {
 #[cfg(test)]
 mod tests {
     use serde_yaml::from_str;
+    use crate::config::PayloadOptionRawFormat;
 
     use crate::payload::base64::PayloadFormatBase64;
     use crate::payload::hex::PayloadFormatHex;
@@ -324,6 +314,15 @@ mod tests {
     }
 
     #[test]
+    fn from_raw_as_utf8() {
+        let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
+        let options = PayloadYaml::new(PayloadOptionRawFormat::Utf8);
+        let result = PayloadFormatYaml::try_from((PayloadFormat::Raw(input), &options)).unwrap();
+
+        assert_eq!(get_yaml_value(INPUT_STRING), result.content);
+    }
+
+    #[test]
     fn from_hex() {
         let input = PayloadFormatHex::try_from(INPUT_STRING_HEX.to_owned()).unwrap();
         let result = PayloadFormatYaml::try_from(PayloadFormat::Hex(input)).unwrap();
@@ -354,7 +353,7 @@ mod tests {
             "{{\"content\":\"{}\"}}",
             INPUT_STRING
         )))
-        .unwrap();
+            .unwrap();
         let result = PayloadFormatYaml::try_from(PayloadFormat::Json(input)).unwrap();
 
         assert_eq!(
@@ -369,7 +368,7 @@ mod tests {
             "{{\"size\": 54.3, \"name\":\"{}\"}}",
             INPUT_STRING
         )))
-        .unwrap();
+            .unwrap();
         let result = PayloadFormatYaml::try_from(PayloadFormat::Json(input)).unwrap();
 
         assert_eq!(54.3, result.content.get("size").unwrap().as_f64().unwrap());
