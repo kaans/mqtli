@@ -10,7 +10,7 @@ use log::LevelFilter;
 use serde::de::{Error, Unexpected};
 use serde::{Deserialize, Deserializer};
 
-use crate::config::mqtli_config::{MqttVersion, TlsVersion};
+use crate::config::mqtli_config::{MqttProtocol, MqttVersion, TlsVersion};
 use crate::config::{args, ConfigError, PayloadType, PublishInputType};
 use crate::mqtt::QoS;
 
@@ -72,6 +72,14 @@ pub struct MqttBrokerConnectArgs {
         help = "The port the broker is listening on (default: 1883)"
     )]
     pub port: Option<u16>,
+
+    #[arg(
+        long = "protocol",
+        env = "BROKER_PROTOCOL",
+        help_heading = "Broker",
+        help = "The protocol to use to communicate with the broker (default: tcp)"
+    )]
+    pub protocol: Option<MqttProtocol>,
 
     #[arg(
         short = 'i',

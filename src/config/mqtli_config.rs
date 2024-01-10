@@ -316,6 +316,18 @@ pub enum MqttVersion {
     V5,
 }
 
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, ValueEnum)]
+pub enum MqttProtocol {
+    #[default]
+    #[serde(rename = "tcp")]
+    #[clap(name = "tcp")]
+    Tcp,
+
+    #[serde(rename = "websocket")]
+    #[clap(name = "websocket")]
+    Websocket,
+}
+
 #[derive(Clone, Debug, Getters, Validate)]
 #[validate(schema(function = "validate_credentials", skip_on_field_errors = false))]
 #[validate(schema(function = "validate_tls_client", skip_on_field_errors = false))]
@@ -323,6 +335,8 @@ pub struct MqttBrokerConnectArgs {
     #[validate(length(min = 1, message = "Hostname must be given"))]
     host: String,
     port: u16,
+    protocol: MqttProtocol,
+
     #[validate(length(min = 1, message = "Client id must be given"))]
     client_id: String,
     mqtt_version: MqttVersion,
@@ -351,6 +365,9 @@ impl MqttBrokerConnectArgs {
         }
         if let Some(port) = other.port {
             self.port = port
+        }
+        if let Some(protocol) = &other.protocol {
+            self.protocol = protocol.clone()
         }
         if let Some(client_id) = &other.client_id {
             self.client_id = client_id.to_string()
@@ -409,6 +426,7 @@ impl Default for MqttBrokerConnectArgs {
         Self {
             host: "localhost".to_string(),
             port: 1883,
+            protocol: MqttProtocol::Tcp,
             client_id: "mqtli".to_string(),
             mqtt_version: MqttVersion::V5,
             keep_alive: Duration::from_secs(5),

@@ -128,14 +128,15 @@ mod v311 {
     use std::str::from_utf8;
 
     use log::info;
+    use rumqttc::{Event, Incoming};
 
     use crate::config::mqtli_config::Topic;
     use crate::mqtt::mqtt_handler::MqttHandler;
 
-    pub fn handle_event(event: rumqttc::Event, topics: &Vec<Topic>) {
+    pub fn handle_event(event: Event, topics: &Vec<Topic>) {
         match event {
-            rumqttc::Event::Incoming(event) => {
-                if let rumqttc::Incoming::Publish(value) = event {
+            Event::Incoming(event) => {
+                if let Incoming::Publish(value) = event {
                     let incoming_topic = from_utf8(value.topic.as_ref()).unwrap();
 
                     info!(
@@ -150,7 +151,7 @@ mod v311 {
                     );
                 }
             }
-            rumqttc::Event::Outgoing(_event) => {}
+            Event::Outgoing(_event) => {}
         }
     }
 }
