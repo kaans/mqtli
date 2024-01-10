@@ -4,14 +4,16 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::string::FromUtf8Error;
 
-use ::base64::{DecodeError, Engine};
 use ::base64::engine::general_purpose;
+use ::base64::{DecodeError, Engine};
 use ::hex::FromHexError;
 use log::error;
 use protofish::context::ParseError;
 use thiserror::Error;
 
-use crate::config::{PayloadOptionRawFormat, PayloadType, PublishInputType, PublishInputTypeContentPath};
+use crate::config::{
+    PayloadOptionRawFormat, PayloadType, PublishInputType, PublishInputTypeContentPath,
+};
 use crate::payload::base64::PayloadFormatBase64;
 use crate::payload::hex::PayloadFormatHex;
 use crate::payload::json::PayloadFormatJson;

@@ -178,9 +178,10 @@ impl TryFrom<(PayloadFormat, &PayloadJson)> for PayloadFormatJson {
 
         match value {
             PayloadFormat::Text(value) => encode_to_json_with_string_content(value.into()),
-            PayloadFormat::Raw(value) => encode_to_json_with_string_content(
-                convert_raw_type(options.raw_as_type(), value.into()),
-            ),
+            PayloadFormat::Raw(value) => encode_to_json_with_string_content(convert_raw_type(
+                options.raw_as_type(),
+                value.into(),
+            )),
             PayloadFormat::Protobuf(value) => Ok(Self {
                 content: protobuf::get_message_value(
                     value.context(),
@@ -303,8 +304,8 @@ mod protobuf {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::from_str;
     use crate::config::PayloadOptionRawFormat;
+    use serde_json::from_str;
 
     use crate::payload::base64::PayloadFormatBase64;
     use crate::payload::hex::PayloadFormatHex;
@@ -427,7 +428,6 @@ mod tests {
         assert_eq!(get_json_value(INPUT_STRING), result.content);
     }
 
-
     #[test]
     fn from_hex() {
         let input = PayloadFormatHex::try_from(INPUT_STRING_HEX.to_owned()).unwrap();
@@ -472,7 +472,7 @@ mod tests {
             "size: 54.3\nname: \"{}\"",
             INPUT_STRING
         )))
-            .unwrap();
+        .unwrap();
         let result = PayloadFormatJson::try_from(PayloadFormat::Yaml(input)).unwrap();
 
         assert_eq!(54.3, result.content.get("size").unwrap().as_f64().unwrap());
