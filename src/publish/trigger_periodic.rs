@@ -6,19 +6,20 @@ use clokwerk::{AsyncScheduler, Interval, Job};
 use log::info;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
+use crate::mqtt::QoS;
+use crate::mqtt::v5::mqtt_service::MqttServiceV5;
 
-use crate::mqtt_service::{MqttService, QoS};
 use crate::payload::PayloadFormat;
 use crate::publish::TriggerError;
 
 pub struct TriggerPeriodic {
     scheduler: Option<Box<AsyncScheduler>>,
     task_handle: Option<JoinHandle<()>>,
-    mqtt_service: Arc<Mutex<MqttService>>,
+    mqtt_service: Arc<Mutex<MqttServiceV5>>,
 }
 
 impl TriggerPeriodic {
-    pub fn new(mqtt_service: Arc<Mutex<MqttService>>) -> Self {
+    pub fn new(mqtt_service: Arc<Mutex<MqttServiceV5>>) -> Self {
         Self {
             scheduler: Option::from(Box::new(AsyncScheduler::new())),
             task_handle: None,

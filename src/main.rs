@@ -10,16 +10,15 @@ use tokio::{signal, task};
 
 use crate::config::mqtli_config::PublishTriggerType::Periodic;
 use crate::config::mqtli_config::{parse_config, Topic};
-use crate::mqtt_handler::MqttHandler;
-use crate::mqtt_service::MqttService;
+use crate::mqtt::v5::mqtt_handler::MqttHandlerV5;
+use crate::mqtt::v5::mqtt_service::MqttServiceV5;
 use crate::publish::trigger_periodic::TriggerPeriodic;
 
 mod config;
-mod mqtt_handler;
-mod mqtt_service;
 mod output;
 mod payload;
 mod publish;
+mod mqtt;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -29,7 +28,7 @@ async fn main() -> anyhow::Result<()> {
 
     let (sender_exit, receiver_exit) = broadcast::channel(1);
 
-    let mqtt_service = Arc::new(Mutex::new(MqttService::new(
+    let mqtt_service = Arc::new(Mutex::new(MqttServiceV5::new(
         Arc::new(config.broker().clone()),
         receiver_exit,
     )));
@@ -49,7 +48,7 @@ async fn main() -> anyhow::Result<()> {
     let (sender, receiver) = broadcast::channel(32);
 
     let topics = Arc::new(config.topics);
-    let mut handler = MqttHandler::new(topics.clone());
+    let mut handler = MqttHandlerV5::new(topics.clone());
     handler.start_task(receiver);
 
     let task_handle_service = mqtt_service
@@ -70,7 +69,7 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn start_scheduler(topics: Arc<Vec<Topic>>, mqtt_service: Arc<Mutex<MqttService>>) {
+async fn start_scheduler(topics: Arc<Vec<Topic>>, mqtt_service: Arc<Mutex<MqttServiceV5>>) {
     let mut scheduler = TriggerPeriodic::new(mqtt_service);
 
     topics.iter().for_each(|topic| {
