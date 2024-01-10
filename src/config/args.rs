@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
 
-use clap::{Args, Parser};
+use clap::{Args, Parser, ValueEnum};
 use derive_getters::Getters;
 use log::LevelFilter;
 use serde::de::{Error, Unexpected};
@@ -16,7 +16,15 @@ use crate::mqtt::QoS;
 
 #[derive(Debug, Deserialize, Parser)]
 #[command(author, version, about, long_about = None)]
+#[clap(disable_version_flag = true)]
+#[clap(disable_help_flag = true)]
 pub struct MqtliArgs {
+    #[clap(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
+    #[clap(long, action = clap::ArgAction::Version)]
+    version: Option<bool>,
+
     #[command(flatten)]
     pub broker: Option<MqttBrokerConnectArgs>,
 
@@ -45,10 +53,21 @@ pub struct MqtliArgs {
     pub topics: Vec<Topic>,
 }
 
+#[derive(Clone, Debug, Deserialize, ValueEnum)]
+#[serde(tag = "type")]
+#[clap(rename_all = "kebab-case")]
+pub enum MqttVersion {
+    #[serde(rename = "v311")]
+    V311,
+
+    #[serde(rename = "v5")]
+    V5
+}
+
 #[derive(Args, Debug, Default, Deserialize, Getters)]
 pub struct MqttBrokerConnectArgs {
     #[arg(
-    short = 'o',
+    short = 'h',
     long = "host",
     env = "BROKER_HOST",
     help_heading = "Broker",
@@ -73,6 +92,15 @@ pub struct MqttBrokerConnectArgs {
     help = "The client id for this mqtli instance (default: mqtli)"
     )]
     pub client_id: Option<String>,
+
+    #[arg(
+    short = 'v',
+    long = "mqtt-version",
+    env = "BROKER_MQTT_VERSION",
+    help_heading = "Broker",
+    help = "The MQTT version to use (default: v5)"
+    )]
+    pub mqtt_version: Option<MqttVersion>,
 
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_duration_seconds")]
