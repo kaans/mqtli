@@ -1,6 +1,8 @@
 #broker:
 #  host: "localhost"
 #  port: 1883
+#  protocol: tcp # tcp or websocket
+#
 #  client_id: "mqtcli"
 #  keep_alive: 5 # in seconds
 #  username: ""

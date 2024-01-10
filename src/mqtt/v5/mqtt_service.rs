@@ -7,12 +7,11 @@ use rumqttc::v5::mqttbytes::v5::{ConnectReturnCode, LastWill};
 use rumqttc::v5::{
     AsyncClient, ConnectionError, Event, EventLoop, Incoming, MqttOptions, StateError,
 };
-use rumqttc::Transport;
 use tokio::sync::{broadcast, Mutex};
 use tokio::task::JoinHandle;
 
 use crate::config::mqtli_config::MqttBrokerConnectArgs;
-use crate::mqtt::{configure_tls_rustls, MqttEvent, MqttService, MqttServiceError, QoS};
+use crate::mqtt::{get_transport_parameters, MqttEvent, MqttService, MqttServiceError, QoS};
 
 pub struct MqttServiceV5 {
     config: Arc<MqttBrokerConnectArgs>,
@@ -93,23 +92,17 @@ impl MqttService for MqttServiceV5 {
         &mut self,
         channel: Option<broadcast::Sender<MqttEvent>>,
     ) -> Result<JoinHandle<()>, MqttServiceError> {
+        let (transport, hostname) = get_transport_parameters(self.config.clone())?;
+
         info!(
-            "Connection to {}:{} with client id {}",
-            self.config.host(),
+            "Connecting to {} on port {} with client id {}",
+            hostname,
             self.config.port(),
             self.config.client_id()
         );
-        let mut options = MqttOptions::new(
-            self.config.client_id(),
-            self.config.host(),
-            *self.config.port(),
-        );
+        let mut options = MqttOptions::new(self.config.client_id(), hostname, *self.config.port());
 
-        if *self.config.use_tls() {
-            info!("Using TLS");
-
-            options.set_transport(Transport::Tls(configure_tls_rustls(self.config.clone())?));
-        }
+        options.set_transport(transport);
 
         debug!(
             "Setting keep alive to {} seconds",

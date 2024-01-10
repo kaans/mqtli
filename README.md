@@ -28,6 +28,7 @@ The supported data formats and the conversion rules are listed under [supported 
 * Configuration via cli arguments and config file (yaml)
 * MQTT v5 and v3.1.1
 * TLS support (v1.2 and v1.3)
+* Websocket support (unencrypted and TLS)
 * Client authentication via username/password
 * Client authentication via TLS certificates
 * Last will
@@ -54,27 +55,29 @@ can only be specified in the config file because it would be too complex to spec
 
 The following lists all possible command line arguments and environment variables (also available via `mqtli --help`):
 
-```shell
+```
 Usage: mqtli.exe [OPTIONS]
 
 Options:
+      --help                       Print help
+      --version                    Print version
   -c, --config-file <CONFIG_FILE>  Path to the config file (default: config.yaml) [env: CONFIG_FILE_PATH=]
-  -h, --help                       Print help
-  -V, --version                    Print version
 
 Broker:
-  -o, --host <HOST>              The ip address or hostname of the broker (default: localhost) [env: BROKER_HOST=]
-  -p, --port <PORT>              The port the broker is listening on (default: 1883) [env: BROKER_PORT=]
-  -i, --client-id <CLIENT_ID>    The client id for this mqtli instance (default: mqtli) [env: BROKER_CLIENT_ID=]
-      --keep-alive <KEEP_ALIVE>  Keep alive time (default: 5 seconds) [env: BROKER_KEEP_ALIVE=]
-  -u, --username <USERNAME>      (optional) Username used to authenticate against the broker; if used then username must be given too (default: empty) [env: BROKER_USERNAME=]
-  -w, --password <PASSWORD>      (optional) Password used to authenticate against the broker; if used then password must be given too (default: empty) [env: BROKER_PASSWORD=]
+  -h, --host <HOST>                  The ip address or hostname of the broker (default: localhost) [env: BROKER_HOST=]
+  -p, --port <PORT>                  The port the broker is listening on (default: 1883) [env: BROKER_PORT=]
+      --protocol <PROTOCOL>          The protocol to use to communicate with the broker (default: tcp) [env: BROKER_PROTOCOL=] [possible values: tcp, websocket]
+  -i, --client-id <CLIENT_ID>        The client id for this mqtli instance (default: mqtli) [env: BROKER_CLIENT_ID=]
+  -v, --mqtt-version <MQTT_VERSION>  The MQTT version to use (default: v5) [env: BROKER_MQTT_VERSION=] [possible values: v311, v5]
+      --keep-alive <KEEP_ALIVE>      Keep alive time in seconds (default: 5 seconds) [env: BROKER_KEEP_ALIVE=]
+  -u, --username <USERNAME>          (optional) Username used to authenticate against the broker; if used then username must be given too (default: empty) [env: BROKER_USERNAME=]
+  -w, --password <PASSWORD>          (optional) Password used to authenticate against the broker; if used then password must be given too (default: empty) [env: BROKER_PASSWORD=]
 
 TLS:
       --use-tls <USE_TLS>
           If specified, TLS is used to communicate with the broker (default: false) [env: BROKER_USE_TLS=] [possible values: true, false]
       --ca-file <TLS_CA_FILE>
-          Path to a PEM encoded ca certificate to verify the broker`s certificate (default: empty) [env: BROKER_TLS_CA_FILE=]
+          Path to a PEM encoded ca certificate to verify the broker's certificate (default: empty) [env: BROKER_TLS_CA_FILE=]
       --client-cert <TLS_CLIENT_CERTIFICATE>
           (optional) Path to a PEM encoded client certificate for authenticating against the broker; must be specified with client-key (default: empty) [env: BROKER_TLS_CLIENT_CERTIFICATE_FILE=]
       --client-key <TLS_CLIENT_KEY>
@@ -567,8 +570,11 @@ topics:
 
 ## Future plans
 
-* Support websockets
 * Single-topic clients for each subscribe and publish
     * publish one message (or the same message repeatedly) to a single topic
     * subscribe for one topic
     * this mode is only configurable via cli args
+* Support MQTT5 attributes
+  * user properties
+  * content-type (to automatically detect the format of a topic)
+  * other attributes

@@ -4,12 +4,12 @@ use std::io::BufReader;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use crate::config::mqtli_config::{MqttBrokerConnectArgs, TlsVersion};
+use crate::config::mqtli_config::{MqttBrokerConnectArgs, MqttProtocol, TlsVersion};
 use async_trait::async_trait;
 use log::{debug, info};
 use rumqttc::tokio_rustls::rustls::version::{TLS12, TLS13};
 use rumqttc::tokio_rustls::rustls::{Certificate, PrivateKey, SupportedProtocolVersion};
-use rumqttc::TlsConfiguration;
+use rumqttc::{TlsConfiguration, Transport};
 use thiserror::Error;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
@@ -101,7 +101,7 @@ pub enum MqttEvent {
     V311(rumqttc::Event),
 }
 
-pub fn configure_tls_rustls(
+fn configure_tls_rustls(
     config: Arc<MqttBrokerConnectArgs>,
 ) -> Result<TlsConfiguration, MqttServiceError> {
     fn load_private_key_from_file(path: &PathBuf) -> Result<PrivateKey, MqttServiceError> {
@@ -221,4 +221,42 @@ pub fn configure_tls_rustls(
     };
 
     Ok(TlsConfiguration::Rustls(Arc::new(tls_config)))
+}
+
+fn get_transport_parameters(
+    config: Arc<MqttBrokerConnectArgs>,
+) -> Result<(Transport, String), MqttServiceError> {
+    let (transport, hostname) = match config.protocol() {
+        MqttProtocol::Tcp => match *config.use_tls() {
+            false => {
+                info!("Using TCP");
+                (Transport::Tcp, config.host().to_string())
+            }
+            true => {
+                info!("Using TCP with TLS");
+                (
+                    Transport::Tls(configure_tls_rustls(config.clone())?),
+                    config.host().to_string(),
+                )
+            }
+        },
+        MqttProtocol::Websocket => match *config.use_tls() {
+            false => {
+                info!("Using websockets");
+
+                let hostname = format!("ws://{}:{}/mqtt", config.host(), config.port());
+                (Transport::Ws, hostname)
+            }
+            true => {
+                info!("Using websockets with TLS");
+
+                let hostname = format!("wss://{}:{}/mqtt", config.host(), config.port());
+                (
+                    Transport::Wss(configure_tls_rustls(config.clone())?),
+                    hostname,
+                )
+            }
+        },
+    };
+    Ok((transport, hostname))
 }
