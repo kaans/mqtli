@@ -10,6 +10,7 @@ use tokio::{signal, task};
 
 use crate::config::mqtli_config::PublishTriggerType::Periodic;
 use crate::config::mqtli_config::{parse_config, Topic};
+use crate::mqtt::MqttService;
 use crate::mqtt::v5::mqtt_handler::MqttHandlerV5;
 use crate::mqtt::v5::mqtt_service::MqttServiceV5;
 use crate::publish::trigger_periodic::TriggerPeriodic;
@@ -28,7 +29,7 @@ async fn main() -> anyhow::Result<()> {
 
     let (sender_exit, receiver_exit) = broadcast::channel(1);
 
-    let mqtt_service = Arc::new(Mutex::new(MqttServiceV5::new(
+    let mqtt_service: Arc<Mutex<dyn MqttService>> = Arc::new(Mutex::new(MqttServiceV5::new(
         Arc::new(config.broker().clone()),
         receiver_exit,
     )));
@@ -69,7 +70,7 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn start_scheduler(topics: Arc<Vec<Topic>>, mqtt_service: Arc<Mutex<MqttServiceV5>>) {
+async fn start_scheduler(topics: Arc<Vec<Topic>>, mqtt_service: Arc<Mutex<dyn MqttService>>) {
     let mut scheduler = TriggerPeriodic::new(mqtt_service);
 
     topics.iter().for_each(|topic| {

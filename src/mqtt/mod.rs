@@ -1,6 +1,11 @@
 use std::io;
 use std::path::PathBuf;
+
+use async_trait::async_trait;
+use rumqttc::v5::Event;
 use thiserror::Error;
+use tokio::sync::broadcast;
+use tokio::task::JoinHandle;
 
 pub mod v5;
 
@@ -44,4 +49,18 @@ impl From<&QoS> for rumqttc::v5::mqttbytes::QoS {
             QoS::ExactlyOnce => rumqttc::v5::mqttbytes::QoS::ExactlyOnce,
         }
     }
+}
+
+#[async_trait]
+pub trait MqttService: Send {
+    async fn connect(
+        &mut self,
+        channel: Option<broadcast::Sender<Event>>,
+    ) -> Result<JoinHandle<()>, MqttServiceError>;
+
+    async fn disconnect(&self);
+
+    async fn subscribe(&mut self, topic: String, qos: QoS);
+
+    async fn publish(&self, topic: String, qos: QoS, retain: bool, payload: Vec<u8>);
 }
