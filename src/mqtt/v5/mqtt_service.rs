@@ -1,24 +1,25 @@
+use async_trait::async_trait;
 use std::fs::File;
 use std::io::{BufReader, ErrorKind};
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use log::{debug, error, info};
+use rumqttc::{TlsConfiguration, Transport};
 use rumqttc::tokio_rustls::rustls;
 use rumqttc::tokio_rustls::rustls::{Certificate, PrivateKey};
-use rumqttc::v5::mqttbytes::v5::{ConnectReturnCode, LastWill};
 use rumqttc::v5::{
     AsyncClient, ConnectionError, Event, EventLoop, Incoming, MqttOptions, StateError,
 };
-use rumqttc::{TlsConfiguration, Transport};
-use rustls::version::{TLS12, TLS13};
+use rumqttc::v5::mqttbytes::v5::{ConnectReturnCode, LastWill};
 use rustls::SupportedProtocolVersion;
-use tokio::sync::broadcast::Receiver;
+use rustls::version::{TLS12, TLS13};
 use tokio::sync::{broadcast, Mutex};
+use tokio::sync::broadcast::Receiver;
 use tokio::task::JoinHandle;
 
 use crate::config::mqtli_config::{MqttBrokerConnectArgs, TlsVersion};
-use crate::mqtt::{MqttServiceError, QoS};
+use crate::mqtt::{MqttService, MqttServiceError, QoS};
 
 pub struct MqttServiceV5 {
     client: Option<AsyncClient>,
@@ -43,94 +44,6 @@ impl MqttServiceV5 {
         }
     }
 
-    pub async fn _disconnect(&self) {
-        if let Some(client) = self.client.as_ref() {
-            match client.disconnect().await {
-                Ok(_) => {
-                    info!("Successfully disconnected");
-                }
-                Err(e) => {
-                    error!("Error during disconnect: {:?}", e);
-                }
-            };
-        }
-    }
-
-    pub async fn connect(
-        &mut self,
-        channel: Option<broadcast::Sender<Event>>,
-    ) -> Result<JoinHandle<()>, MqttServiceError> {
-        info!(
-            "Connection to {}:{} with client id {}",
-            self.config.host(),
-            self.config.port(),
-            self.config.client_id()
-        );
-        let mut options = MqttOptions::new(
-            self.config.client_id(),
-            self.config.host(),
-            *self.config.port(),
-        );
-
-        if *self.config.use_tls() {
-            info!("Using TLS");
-
-            let tls_config_rustls = match self.configure_tls_rustls() {
-                Ok(value) => value,
-                Err(value) => return Err(value),
-            };
-
-            options.set_transport(Transport::Tls(tls_config_rustls));
-        }
-
-        debug!(
-            "Setting keep alive to {} seconds",
-            self.config.keep_alive().as_secs()
-        );
-        options.set_keep_alive(*self.config.keep_alive());
-
-        if self.config.username().is_some() && self.config.password().is_some() {
-            info!("Using username/password for authentication");
-            options.set_credentials(
-                self.config.username().clone().unwrap(),
-                self.config.password().clone().unwrap(),
-            );
-        } else {
-            info!("Using anonymous access");
-        }
-
-        if let Some(last_will) = self.config.last_will() {
-            info!(
-                "Setting last will for topic {} [Payload length: {}, QoS {:?}; retain: {}]",
-                last_will.topic(),
-                last_will.payload().len(),
-                last_will.qos(),
-                last_will.retain(),
-            );
-            let last_will = LastWill::new(
-                last_will.topic(),
-                last_will.payload().clone(),
-                last_will.qos().into(),
-                *last_will.retain(),
-                None,
-            );
-            options.set_last_will(last_will);
-        }
-
-        let (client, event_loop) = AsyncClient::new(options, 10);
-
-        let topics = self.topics.clone();
-
-        let task_handle: JoinHandle<()> =
-            MqttServiceV5::start_connection_task(event_loop, client.clone(), topics, channel).await;
-
-        self.client = Option::from(client);
-
-        self.start_exit_task().await;
-
-        Ok(task_handle)
-    }
-
     fn configure_tls_rustls(&mut self) -> Result<TlsConfiguration, MqttServiceError> {
         fn load_private_key_from_file(path: &PathBuf) -> Result<PrivateKey, MqttServiceError> {
             let file = match File::open(path) {
@@ -139,7 +52,7 @@ impl MqttServiceV5 {
                     return Err(MqttServiceError::PrivateKeyNotReadable(
                         e,
                         PathBuf::from(path),
-                    ))
+                    ));
                 }
             };
             let mut reader = BufReader::new(file);
@@ -149,7 +62,7 @@ impl MqttServiceV5 {
                     return Err(MqttServiceError::PrivateKeyNotReadable(
                         e,
                         PathBuf::from(path),
-                    ))
+                    ));
                 }
             };
 
@@ -171,7 +84,7 @@ impl MqttServiceV5 {
                     return Err(MqttServiceError::CertificateNotReadable(
                         e,
                         PathBuf::from(path),
-                    ))
+                    ));
                 }
             };
             let mut reader = BufReader::new(file);
@@ -181,7 +94,7 @@ impl MqttServiceV5 {
                     return Err(MqttServiceError::CertificateNotReadable(
                         e,
                         PathBuf::from(path),
-                    ))
+                    ));
                 }
             };
 
@@ -332,12 +245,103 @@ impl MqttServiceV5 {
             }
         })
     }
+}
 
-    pub async fn subscribe(&mut self, topic: String, qos: QoS) {
+#[async_trait]
+impl MqttService for MqttServiceV5 {
+    async fn connect(
+        &mut self,
+        channel: Option<broadcast::Sender<Event>>,
+    ) -> Result<JoinHandle<()>, MqttServiceError> {
+        info!(
+            "Connection to {}:{} with client id {}",
+            self.config.host(),
+            self.config.port(),
+            self.config.client_id()
+        );
+        let mut options = MqttOptions::new(
+            self.config.client_id(),
+            self.config.host(),
+            *self.config.port(),
+        );
+
+        if *self.config.use_tls() {
+            info!("Using TLS");
+
+            let tls_config_rustls = match self.configure_tls_rustls() {
+                Ok(value) => value,
+                Err(value) => return Err(value),
+            };
+
+            options.set_transport(Transport::Tls(tls_config_rustls));
+        }
+
+        debug!(
+            "Setting keep alive to {} seconds",
+            self.config.keep_alive().as_secs()
+        );
+        options.set_keep_alive(*self.config.keep_alive());
+
+        if self.config.username().is_some() && self.config.password().is_some() {
+            info!("Using username/password for authentication");
+            options.set_credentials(
+                self.config.username().clone().unwrap(),
+                self.config.password().clone().unwrap(),
+            );
+        } else {
+            info!("Using anonymous access");
+        }
+
+        if let Some(last_will) = self.config.last_will() {
+            info!(
+                "Setting last will for topic {} [Payload length: {}, QoS {:?}; retain: {}]",
+                last_will.topic(),
+                last_will.payload().len(),
+                last_will.qos(),
+                last_will.retain(),
+            );
+            let last_will = LastWill::new(
+                last_will.topic(),
+                last_will.payload().clone(),
+                last_will.qos().into(),
+                *last_will.retain(),
+                None,
+            );
+            options.set_last_will(last_will);
+        }
+
+        let (client, event_loop) = AsyncClient::new(options, 10);
+
+        let topics = self.topics.clone();
+
+        let task_handle: JoinHandle<()> =
+            MqttServiceV5::start_connection_task(event_loop, client.clone(), topics, channel).await;
+
+        self.client = Option::from(client);
+
+        self.start_exit_task().await;
+
+        Ok(task_handle)
+    }
+
+    async fn disconnect(&self) {
+        if let Some(client) = self.client.as_ref() {
+            match client.disconnect().await {
+                Ok(_) => {
+                    info!("Successfully disconnected");
+                }
+                Err(e) => {
+                    error!("Error during disconnect: {:?}", e);
+                }
+            };
+        }
+    }
+
+    async fn subscribe(&mut self, topic: String, qos: QoS) {
         self.topics.lock().await.push((topic, qos));
     }
 
-    pub async fn publish(&self, topic: String, qos: QoS, retain: bool, payload: Vec<u8>) {
+    async fn publish(&self, topic: String, qos: QoS, retain: bool, payload: Vec<u8>) {
         if let Some(client) = self.client.clone() {
             if let Err(e) = client.publish(topic, qos.into(), retain, payload).await {
                 error!("Error during publish: {:?}", e);
