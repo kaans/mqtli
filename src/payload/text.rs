@@ -1,11 +1,8 @@
 use std::fmt::{Display, Formatter};
 use std::string::FromUtf8Error;
 
-use base64::engine::general_purpose;
-use base64::Engine;
-
-use crate::config::{PayloadOptionRawFormat, PayloadText};
-use crate::payload::{PayloadFormat, PayloadFormatError};
+use crate::config::PayloadText;
+use crate::payload::{convert_raw_type, PayloadFormat, PayloadFormatError};
 
 #[derive(Clone, Debug)]
 pub struct PayloadFormatText {
@@ -19,14 +16,6 @@ impl PayloadFormatText {
 
     fn encode_to_utf8(value: Vec<u8>) -> Result<String, FromUtf8Error> {
         String::from_utf8(value)
-    }
-
-    fn convert_raw_type(options: &PayloadText, value: Vec<u8>) -> String {
-        match options.raw_as_type() {
-            PayloadOptionRawFormat::Hex => hex::encode(value),
-            PayloadOptionRawFormat::Base64 => general_purpose::STANDARD.encode(value),
-            PayloadOptionRawFormat::Utf8 => String::from_utf8_lossy(value.as_slice()).to_string(),
-        }
     }
 }
 
@@ -93,6 +82,14 @@ impl TryFrom<PayloadFormat> for PayloadFormatText {
     }
 }
 
+impl TryFrom<(PayloadFormat, PayloadText)> for PayloadFormatText {
+    type Error = PayloadFormatError;
+
+    fn try_from((value, options): (PayloadFormat, PayloadText)) -> Result<Self, Self::Error> {
+        Self::try_from((value, &options))
+    }
+}
+
 impl TryFrom<(PayloadFormat, &PayloadText)> for PayloadFormatText {
     type Error = PayloadFormatError;
 
@@ -100,7 +97,7 @@ impl TryFrom<(PayloadFormat, &PayloadText)> for PayloadFormatText {
         match value {
             PayloadFormat::Text(value) => Ok(value),
             PayloadFormat::Raw(value) => Ok(Self {
-                content: Self::convert_raw_type(options, value.into()),
+                content: convert_raw_type(options.raw_as_type(), value.into()),
             }),
             PayloadFormat::Protobuf(value) => Ok(Self {
                 content: protobuf::get_message_value(
@@ -114,13 +111,13 @@ impl TryFrom<(PayloadFormat, &PayloadText)> for PayloadFormatText {
             PayloadFormat::Hex(value) => {
                 let a: Vec<u8> = value.try_into()?;
                 Ok(Self {
-                    content: Self::convert_raw_type(options, a),
+                    content: convert_raw_type(options.raw_as_type(), a),
                 })
             }
             PayloadFormat::Base64(value) => {
                 let a: Vec<u8> = value.try_into()?;
                 Ok(Self {
-                    content: Self::convert_raw_type(options, a),
+                    content: convert_raw_type(options.raw_as_type(), a),
                 })
             }
             PayloadFormat::Json(value) => {
@@ -158,12 +155,11 @@ impl TryFrom<(PayloadFormat, &PayloadText)> for PayloadFormatText {
 }
 
 mod protobuf {
-    use crate::config::PayloadText;
     use protofish::context::{Context, EnumField, MessageInfo};
     use protofish::decode::{FieldValue, MessageValue, Value};
 
-    use crate::payload::text::PayloadFormatText;
-    use crate::payload::PayloadFormatError;
+    use crate::config::PayloadText;
+    use crate::payload::{convert_raw_type, PayloadFormatError};
 
     pub(super) fn get_message_value(
         context: &Context,
@@ -304,7 +300,7 @@ mod protobuf {
                         format!(
                             "{indent_spaces}[{}] {type_name} = {:?} (Bytes)\n",
                             field.number,
-                            PayloadFormatText::convert_raw_type(options, value.to_vec())
+                            convert_raw_type(options.raw_as_type(), value.to_vec())
                         )
                     }
                     Value::Message(value) => get_message_value(
@@ -355,6 +351,7 @@ mod protobuf {
 
 #[cfg(test)]
 mod tests {
+    use crate::config::PayloadOptionRawFormat;
     use crate::payload::base64::PayloadFormatBase64;
     use crate::payload::hex::PayloadFormatHex;
     use crate::payload::json::PayloadFormatJson;
@@ -480,17 +477,58 @@ mod tests {
     }
 
     #[test]
-    fn from_hex() {
+    fn from_raw_as_utf8() {
+        let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
+        let options = PayloadText::new(PayloadOptionRawFormat::Utf8);
+        let result = PayloadFormatText::try_from((PayloadFormat::Raw(input), &options)).unwrap();
+
+        assert_eq!(INPUT_STRING.to_string(), result.content);
+    }
+
+    #[test]
+    fn from_hex_as_hex() {
         let input = PayloadFormatHex::try_from(INPUT_STRING_HEX.to_owned()).unwrap();
         let result = PayloadFormatText::try_from(PayloadFormat::Hex(input)).unwrap();
+
+        assert_eq!(INPUT_STRING_HEX.to_owned(), result.content);
+    }
+
+    #[test]
+    fn from_base64_as_hex() {
+        let input = PayloadFormatBase64::try_from(INPUT_STRING_BASE64.to_owned()).unwrap();
+        let result = PayloadFormatText::try_from(PayloadFormat::Base64(input)).unwrap();
+
+        assert_eq!(INPUT_STRING_HEX.to_owned(), result.content);
+    }
+
+    #[test]
+    fn from_hex_as_base64() {
+        let input = PayloadFormatHex::try_from(INPUT_STRING_HEX.to_owned()).unwrap();
+        let result = PayloadFormatText::try_from((PayloadFormat::Hex(input), PayloadText::new(PayloadOptionRawFormat::Base64))).unwrap();
+
+        assert_eq!(INPUT_STRING_BASE64.to_owned(), result.content);
+    }
+
+    #[test]
+    fn from_base64_as_base64() {
+        let input = PayloadFormatBase64::try_from(INPUT_STRING_BASE64.to_owned()).unwrap();
+        let result = PayloadFormatText::try_from((PayloadFormat::Base64(input), PayloadText::new(PayloadOptionRawFormat::Base64))).unwrap();
+
+        assert_eq!(INPUT_STRING_BASE64.to_owned(), result.content);
+    }
+
+    #[test]
+    fn from_hex_as_text() {
+        let input = PayloadFormatHex::try_from(INPUT_STRING_HEX.to_owned()).unwrap();
+        let result = PayloadFormatText::try_from((PayloadFormat::Hex(input), PayloadText::new(PayloadOptionRawFormat::Utf8))).unwrap();
 
         assert_eq!(INPUT_STRING.to_owned(), result.content);
     }
 
     #[test]
-    fn from_base64() {
+    fn from_base64_as_text() {
         let input = PayloadFormatBase64::try_from(INPUT_STRING_BASE64.to_owned()).unwrap();
-        let result = PayloadFormatText::try_from(PayloadFormat::Base64(input)).unwrap();
+        let result = PayloadFormatText::try_from((PayloadFormat::Base64(input), PayloadText::new(PayloadOptionRawFormat::Utf8))).unwrap();
 
         assert_eq!(INPUT_STRING.to_owned(), result.content);
     }
@@ -501,7 +539,7 @@ mod tests {
             "{{\"content\": \"{}\"}}",
             INPUT_STRING
         )))
-        .unwrap();
+            .unwrap();
         let result = PayloadFormatText::try_from(PayloadFormat::Json(input)).unwrap();
 
         assert_eq!(INPUT_STRING.to_owned(), result.content);
