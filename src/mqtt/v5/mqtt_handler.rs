@@ -14,14 +14,14 @@ use crate::output::file::FileOutput;
 use crate::output::OutputError;
 use crate::payload::{PayloadFormat, PayloadFormatTopic};
 
-pub struct MqttHandler {
+pub struct MqttHandlerV5 {
     task_handle: Option<JoinHandle<()>>,
     topics: Arc<Vec<Topic>>,
 }
 
-impl MqttHandler {
-    pub fn new(topics: Arc<Vec<Topic>>) -> MqttHandler {
-        MqttHandler {
+impl MqttHandlerV5 {
+    pub fn new(topics: Arc<Vec<Topic>>) -> MqttHandlerV5 {
+        MqttHandlerV5 {
             task_handle: None,
             topics,
         }
@@ -32,7 +32,7 @@ impl MqttHandler {
 
         self.task_handle = Some(task::spawn(async move {
             while let Ok(event) = receiver.recv().await {
-                MqttHandler::handle_event(event, &topics);
+                MqttHandlerV5::handle_event(event, &topics);
             }
         }));
     }

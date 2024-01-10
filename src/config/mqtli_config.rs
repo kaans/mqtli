@@ -12,7 +12,7 @@ use validator::{Validate, ValidationError};
 use crate::config::args;
 use crate::config::args::{read_cli_args, read_config};
 use crate::config::{ConfigError, PayloadType, PublishInputType};
-use crate::mqtt_service::QoS;
+use crate::mqtt::QoS;
 
 #[derive(Debug, Getters, Validate)]
 pub struct MqtliConfig {
