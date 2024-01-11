@@ -48,8 +48,9 @@ If a config entry was not explicitly specified, the default values applies.
 All but the topic configuration can be given as a command line argument or environment variable. The topic configuration
 can only be specified in the config file because it would be too complex to specify in another way.
 
-> NOTE: The config file is not optional and must be specified. Also note that the program does nothing really useful
-> if not topics are specified or all specified topics are disabled.
+> NOTE: The program does not do anything really useful if no topics are specified or all specified topics are disabled.
+> It is fine to just use the command line arguments or environment variables to connect to the broker. 
+> If you want to see subscribe to topics or publish messages, you need to configure them in the config file.
 
 ### CLI arguments and environment variables
 
