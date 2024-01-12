@@ -9,9 +9,9 @@ use log::LevelFilter;
 use serde::Deserialize;
 use validator::{Validate, ValidationError};
 
-use crate::config::{ConfigError, PayloadType, PublishInputType};
 use crate::config::args;
 use crate::config::args::{read_cli_args, read_config};
+use crate::config::{ConfigError, PayloadType, PublishInputType};
 use crate::mqtt::QoS;
 
 #[derive(Debug, Getters, Validate)]
@@ -341,8 +341,8 @@ pub struct MqttBrokerConnectArgs {
     client_id: String,
     mqtt_version: MqttVersion,
     #[validate(custom(
-    function = "validate_keep_alive",
-    message = "Keep alive must be a number and at least 5 seconds"
+        function = "validate_keep_alive",
+        message = "Keep alive must be a number and at least 5 seconds"
     ))]
     keep_alive: Duration,
     username: Option<String>,
@@ -467,7 +467,10 @@ pub fn parse_config() -> Result<MqtliConfig, ConfigError> {
             config.merge(&config_file_args);
         }
         Err(e) => {
-            println!("Error while reading reading config file {:?}, skipping it: {:?}", config_file, e);
+            println!(
+                "Error while reading reading config file {:?}, skipping it: {:?}",
+                config_file, e
+            );
         }
     }
 
