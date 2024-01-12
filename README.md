@@ -223,7 +223,7 @@ topics:
 | Base64          | Converts input to base64                                                                                                   | INPUT => SU5QVVQ=                    |                   |
 | JSON            | Puts input text into field content of new JSON object<br>Depending on the config ("raw_as") it is encoded as hex or base64 | INPUT => { "content": "494e505554" } |                   |
 | YAML            | Puts input text into field content of new YAML object<br>Depending on the config ("raw_as") it is encoded as hex or base64 | INPUT => content: 494e505554         |                   |
-| Protobuf        | Not supported                                                                                                              | none                                 |                   |
+| Protobuf        | Raw bytes must represent a valid protobuf message                                                                          | <raw_bytes> => <protobuf_message>    |                   |
 
 ### Text (UTF-8)
 
@@ -299,7 +299,7 @@ topics:
   </tr>
   <tr>
     <td class="tg-jilr">Protobuf</td>
-    <td class="tg-0pky">Not supported</td>
+    <td class="tg-0pky">Decoded bytes must represent a valid protobuf message</td>
     <td class="tg-0pky"></td>
     <td class="tg-0lax"></td>
   </tr>
@@ -360,7 +360,7 @@ topics:
   </tr>
   <tr>
     <td class="tg-jilr">Protobuf</td>
-    <td class="tg-0pky">Not supported</td>
+    <td class="tg-0pky">Decoded bytes must represent a valid protobuf message</td>
     <td class="tg-0pky"></td>
     <td class="tg-0lax"></td>
   </tr>
@@ -425,8 +425,8 @@ topics:
   </tr>
   <tr>
     <td class="tg-jilr">Protobuf</td>
-    <td class="tg-0pky">Not supported</td>
-    <td class="tg-0pky"></td>
+    <td class="tg-0pky">JSON structure must be equal to the protobuf message</td>
+    <td class="tg-0pky">{ "distance": 32, "name": "Path" } => [1] distance: 32\n[2] name: Path</td>
     <td class="tg-0lax"></td>
   </tr>
 </tbody>
@@ -490,8 +490,8 @@ topics:
   </tr>
   <tr>
     <td class="tg-jilr">Protobuf</td>
-    <td class="tg-0pky">Not supported</td>
-    <td class="tg-0pky"></td>
+    <td class="tg-0pky">YAML structure must be equal to the protobuf message</td>
+    <td class="tg-0pky">distance: 32\nname: Path => [1] distance: 32\n[2] name: Path</td>
     <td class="tg-0lax"></td>
   </tr>
 </tbody>
@@ -562,8 +562,8 @@ topics:
   </tr>
   <tr>
     <td class="tg-jilr">Protobuf</td>
-    <td class="tg-0pky">Not supported</td>
-    <td class="tg-0pky"></td>
+    <td class="tg-0pky">No conversion needed</td>
+    <td class="tg-0pky">[1] distance: 32\n[2] name: Path => [1] distance: 32\n[2] name: Path</td>
     <td class="tg-0lax"></td>
   </tr>
 </tbody>
