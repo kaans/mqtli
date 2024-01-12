@@ -134,7 +134,6 @@ mod tests {
     use std::ops::Deref;
 
     use lazy_static::lazy_static;
-    use protobuf::MessageDyn;
 
     use crate::payload::base64::PayloadFormatBase64;
     use crate::payload::hex::PayloadFormatHex;
@@ -144,18 +143,6 @@ mod tests {
     use crate::payload::yaml::PayloadFormatYaml;
 
     use super::*;
-
-    const INPUT_STRING_MESSAGE: &str = r#"
-    syntax = "proto3";
-    package Proto;
-
-    message Inner { string kind = 1; }
-
-    message Response {
-      int32 distance = 1;
-      Inner inside = 2;
-    }
-    "#;
 
     const MESSAGE_NAME: &str = "Response";
 
