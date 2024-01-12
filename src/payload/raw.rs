@@ -37,7 +37,7 @@ impl TryFrom<PayloadFormat> for PayloadFormatRaw {
             }
             PayloadFormat::Raw(value) => Ok(value),
             PayloadFormat::Protobuf(value) => {
-                let a: Vec<u8> = value.into();
+                let a: Vec<u8> = value.try_into()?;
                 Ok(Self::from(a))
             }
             PayloadFormat::Hex(value) => {

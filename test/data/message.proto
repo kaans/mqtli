@@ -1,0 +1,17 @@
+syntax = "proto3";
+package Proto;
+
+enum Position {
+  POSITION_UNSPECIFIED = 0;
+  POSITION_INSIDE = 1;
+  POSITION_OUTSIDE = 2;
+}
+
+message Inner { string kind = 1; }
+
+message Response {
+  int32 distance = 1;
+  Inner inside = 2;
+  Position position = 3;
+  bytes raw = 4;
+}

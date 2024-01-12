@@ -8,7 +8,7 @@ use ::base64::engine::general_purpose;
 use ::base64::{DecodeError, Engine};
 use ::hex::FromHexError;
 use log::error;
-use protofish::context::ParseError;
+use protobuf_json_mapping::PrintError;
 use thiserror::Error;
 
 use crate::config::{
@@ -44,12 +44,14 @@ pub enum PayloadFormatError {
     EitherContentOrPathMustBeGiven,
     #[error("Could not open definition file {0}")]
     CouldNotOpenDefinitionFile(String),
-    #[error("Could not parse proto file {0}")]
-    CouldNotParseProtoFile(#[source] ParseError),
+    #[error("Could not open protobuf definition file")]
+    CouldNotOpenProtobufDefinitionFile,
     #[error("Message {0} not found in proto file, cannot decode payload")]
     MessageNotFoundInProtoFile(String),
     #[error("Invalid protobuf")]
     InvalidProtobuf,
+    #[error("Protobuf message {0} not found")]
+    ProtobufMessageNotFound(String),
     #[error("Field with number {0} not found in proto file")]
     FieldNumberNotFoundInProtoFile(u64),
     #[error("Could not convert payload to yaml")]
@@ -68,6 +70,12 @@ pub enum PayloadFormatError {
     ValueIsNotValidHex(String),
     #[error("The value is not valid base64 formatted: {0}")]
     ValueIsNotValidBase64(String),
+    #[error("Error while converting protobuf to JSON")]
+    ProtobufJsonConversionError(#[from] PrintError),
+    #[error("Error while parsing protobuf from JSON")]
+    ProtobufParseError(#[from] ::protobuf::Error),
+    #[error("Error while parsing protobuf from JSON")]
+    ProtobufJsonMappingError(#[from] protobuf_json_mapping::ParseError),
 }
 
 impl From<FromUtf8Error> for PayloadFormatError {
@@ -118,7 +126,7 @@ impl TryInto<Vec<u8>> for PayloadFormat {
         match self {
             PayloadFormat::Text(value) => Ok(value.into()),
             PayloadFormat::Raw(value) => Ok(value.into()),
-            PayloadFormat::Protobuf(value) => Ok(value.into()),
+            PayloadFormat::Protobuf(value) => Ok(value.try_into()?),
             PayloadFormat::Hex(value) => Ok(value.try_into()?),
             PayloadFormat::Base64(value) => Ok(value.try_into()?),
             PayloadFormat::Json(value) => Ok(value.into()),
@@ -175,11 +183,13 @@ impl TryFrom<(PayloadFormat, &PayloadType)> for PayloadFormat {
             PayloadType::Yaml(options) => {
                 PayloadFormat::Yaml(PayloadFormatYaml::try_from((value, options))?)
             }
-            PayloadType::Hex(_) => PayloadFormat::Hex(PayloadFormatHex::try_from(value)?),
-            PayloadType::Base64(_) => PayloadFormat::Base64(PayloadFormatBase64::try_from(value)?),
-            PayloadType::Raw(_) => PayloadFormat::Raw(PayloadFormatRaw::try_from(value)?),
-            PayloadType::Protobuf(_) => {
-                PayloadFormat::Protobuf(PayloadFormatProtobuf::try_from(value)?)
+            PayloadType::Hex(_options) => PayloadFormat::Hex(PayloadFormatHex::try_from(value)?),
+            PayloadType::Base64(_options) => {
+                PayloadFormat::Base64(PayloadFormatBase64::try_from(value)?)
+            }
+            PayloadType::Raw(_options) => PayloadFormat::Raw(PayloadFormatRaw::try_from(value)?),
+            PayloadType::Protobuf(options) => {
+                PayloadFormat::Protobuf(PayloadFormatProtobuf::try_from((value, options))?)
             }
         })
     }
@@ -193,13 +203,11 @@ impl TryFrom<PayloadFormatTopic> for PayloadFormat {
             PayloadType::Text(_options) => {
                 PayloadFormat::Text(PayloadFormatText::try_from(value.content)?)
             }
-            PayloadType::Protobuf(options) => {
-                PayloadFormat::Protobuf(PayloadFormatProtobuf::new_from_definition_file(
-                    value.content,
-                    options.definition(),
-                    options.message().clone(),
-                )?)
-            }
+            PayloadType::Protobuf(options) => PayloadFormat::Protobuf(PayloadFormatProtobuf::new(
+                value.content,
+                options.definition(),
+                options.message().clone(),
+            )?),
             PayloadType::Json(_options) => {
                 PayloadFormat::Json(PayloadFormatJson::try_from(value.content)?)
             }
@@ -252,7 +260,7 @@ impl PayloadFormat {
                 Ok(PayloadFormat::Text(PayloadFormatText::try_from(content)?))
             }
             PayloadType::Protobuf(options) => Ok(PayloadFormat::Protobuf(
-                PayloadFormatProtobuf::convert_from_definition_file(
+                PayloadFormatProtobuf::convert_from(
                     content,
                     options.definition(),
                     options.message(),

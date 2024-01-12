@@ -5,6 +5,7 @@ use log::error;
 use serde_yaml::{from_slice, from_str, Value};
 
 use crate::config::PayloadYaml;
+use crate::payload::json::PayloadFormatJson;
 use crate::payload::{convert_raw_type, PayloadFormat, PayloadFormatError};
 
 #[derive(Clone, Debug, Getters)]
@@ -100,13 +101,12 @@ impl TryFrom<(PayloadFormat, &PayloadYaml)> for PayloadFormatYaml {
             PayloadFormat::Raw(value) => {
                 convert_from_value(convert_raw_type(options.raw_as_type(), value.into()))
             }
-            PayloadFormat::Protobuf(value) => Ok(Self {
-                content: protobuf::get_message_value(
-                    value.context(),
-                    value.message_value(),
-                    options,
-                )?,
-            }),
+            PayloadFormat::Protobuf(value) => {
+                let json = PayloadFormatJson::try_from(PayloadFormat::Protobuf(value))?;
+                Ok(Self {
+                    content: serde_json::from_value::<Value>(json.content().clone())?,
+                })
+            }
             PayloadFormat::Hex(value) => convert_from_value(value.into()),
             PayloadFormat::Base64(value) => convert_from_value(value.into()),
             PayloadFormat::Yaml(value) => Ok(value),
@@ -117,88 +117,12 @@ impl TryFrom<(PayloadFormat, &PayloadYaml)> for PayloadFormatYaml {
     }
 }
 
-mod protobuf {
-    use protofish::context::Context;
-    use protofish::decode::{FieldValue, MessageValue, Value};
-    use serde_yaml::value;
-
-    use crate::config::PayloadYaml;
-    use crate::payload::{convert_raw_type, PayloadFormatError};
-
-    pub(super) fn get_message_value(
-        context: &Context,
-        message_value: &MessageValue,
-        options: &PayloadYaml,
-    ) -> Result<serde_yaml::Value, PayloadFormatError> {
-        let message_info = context.resolve_message(message_value.msg_ref);
-
-        let mut map_fields = serde_yaml::Mapping::new();
-
-        for field in &message_value.fields {
-            let result_field = get_field_value(context, field, options)?;
-            let field_name = match &message_info.get_field(field.number) {
-                None => "unknown",
-                Some(value) => value.name.as_str(),
-            };
-            map_fields.insert(
-                serde_yaml::Value::String(field_name.to_string()),
-                result_field,
-            );
-        }
-
-        Ok(serde_yaml::Value::Mapping(map_fields))
-    }
-
-    fn get_field_value(
-        context: &Context,
-        field_value: &FieldValue,
-        options: &PayloadYaml,
-    ) -> Result<serde_yaml::Value, PayloadFormatError> {
-        let result = match &field_value.value {
-            Value::Double(value) => serde_yaml::Value::Number(value::Number::from(*value)),
-            Value::Float(value) => serde_yaml::Value::Number(value::Number::from(*value)),
-            Value::Int32(value) => serde_yaml::Value::Number(value::Number::from(*value)),
-            Value::Int64(value) => serde_yaml::Value::Number(value::Number::from(*value)),
-            Value::UInt32(value) => serde_yaml::Value::Number(value::Number::from(*value)),
-            Value::UInt64(value) => serde_yaml::Value::Number(value::Number::from(*value)),
-            Value::SInt32(value) => serde_yaml::Value::Number(value::Number::from(*value)),
-            Value::SInt64(value) => serde_yaml::Value::Number(value::Number::from(*value)),
-            Value::Fixed32(value) => serde_yaml::Value::Number(value::Number::from(*value)),
-            Value::Fixed64(value) => serde_yaml::Value::Number(value::Number::from(*value)),
-            Value::SFixed32(value) => serde_yaml::Value::Number(value::Number::from(*value)),
-            Value::SFixed64(value) => serde_yaml::Value::Number(value::Number::from(*value)),
-            Value::Bool(value) => serde_yaml::Value::Bool(*value),
-            Value::String(value) => serde_yaml::Value::String(value.clone()),
-            Value::Message(value) => get_message_value(context, value, options)?,
-            Value::Bytes(value) => {
-                serde_yaml::Value::String(convert_raw_type(options.raw_as_type(), value.to_vec()))
-            }
-            Value::Enum(value) => {
-                let enum_ref = value.enum_ref;
-                let enum_value = match context
-                    .resolve_enum(enum_ref)
-                    .get_field_by_value(value.value)
-                {
-                    None => "Unknown".to_string(),
-                    Some(value) => value.name.clone(),
-                };
-
-                serde_yaml::Value::String(enum_value)
-            }
-            value => {
-                // TODO implement missing protobuf values for yaml conversion
-                serde_yaml::Value::String(format!("Unknown: {:?}", value))
-            }
-        };
-
-        Ok(result)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::config::PayloadOptionRawFormat;
+    use lazy_static::lazy_static;
     use serde_yaml::from_str;
+    use std::path::PathBuf;
 
     use crate::payload::base64::PayloadFormatBase64;
     use crate::payload::hex::PayloadFormatHex;
@@ -214,26 +138,11 @@ mod tests {
     const INPUT_STRING_HEX: &str = "494e505554";
     const INPUT_STRING_BASE64: &str = "SU5QVVQ=";
     const INPUT_STRING_PROTOBUF_AS_HEX: &str = "082012080a066b696e646f6618012202c328";
-    const INPUT_STRING_MESSAGE: &str = r#"
-    syntax = "proto3";
-    package Proto;
+    const MESSAGE_NAME: &str = "Response";
 
-    enum Position {
-        POSITION_UNSPECIFIED = 0;
-        POSITION_INSIDE = 1;
-        POSITION_OUTSIDE = 2;
+    lazy_static! {
+        static ref INPUT_PATH_MESSAGE: PathBuf = PathBuf::from("test/data/message.proto");
     }
-
-    message Inner { string kind = 1; }
-
-    message Response {
-      int32 distance = 1;
-      Inner inside = 2;
-      Position position = 3;
-      bytes raw = 4;
-    }
-    "#;
-    const MESSAGE_NAME: &str = "Proto.Response";
 
     fn get_input() -> Vec<u8> {
         get_input_yaml(INPUT_STRING).into()
@@ -444,7 +353,7 @@ mod tests {
     fn from_protobuf() {
         let input = PayloadFormatProtobuf::new(
             hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(),
-            String::from(INPUT_STRING_MESSAGE),
+            &INPUT_PATH_MESSAGE,
             MESSAGE_NAME.to_string(),
         );
         let result = PayloadFormatYaml::try_from(PayloadFormat::Protobuf(input.unwrap())).unwrap();
@@ -469,42 +378,6 @@ mod tests {
                 .unwrap()
                 .as_str()
                 .unwrap()
-        );
-    }
-
-    #[test]
-    fn from_protobuf_raw_as_hex() {
-        let input = PayloadFormatProtobuf::new(
-            hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(),
-            String::from(INPUT_STRING_MESSAGE),
-            MESSAGE_NAME.to_string(),
-        );
-        let options = PayloadYaml::default();
-        let result =
-            PayloadFormatYaml::try_from((PayloadFormat::Protobuf(input.unwrap()), &options))
-                .unwrap();
-
-        assert_eq!(
-            "c328".to_string(),
-            result.content.get("raw").unwrap().as_str().unwrap()
-        );
-    }
-
-    #[test]
-    fn from_protobuf_raw_as_base64() {
-        let input = PayloadFormatProtobuf::new(
-            hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(),
-            String::from(INPUT_STRING_MESSAGE),
-            MESSAGE_NAME.to_string(),
-        );
-        let options = PayloadYaml::new(PayloadOptionRawFormat::Base64);
-        let result =
-            PayloadFormatYaml::try_from((PayloadFormat::Protobuf(input.unwrap()), &options))
-                .unwrap();
-
-        assert_eq!(
-            "wyg=".to_string(),
-            result.content.get("raw").unwrap().as_str().unwrap()
         );
     }
 }

@@ -1,4 +1,6 @@
+use protobuf::text_format::print_to_string_pretty;
 use std::fmt::{Display, Formatter};
+use std::ops::Deref;
 use std::string::FromUtf8Error;
 
 use crate::config::PayloadText;
@@ -100,13 +102,7 @@ impl TryFrom<(PayloadFormat, &PayloadText)> for PayloadFormatText {
                 content: convert_raw_type(options.raw_as_type(), value.into()),
             }),
             PayloadFormat::Protobuf(value) => Ok(Self {
-                content: protobuf::get_message_value(
-                    value.context(),
-                    value.message_value(),
-                    0,
-                    None,
-                    options,
-                )?,
+                content: print_to_string_pretty(value.content().deref()),
             }),
             PayloadFormat::Hex(value) => {
                 let a: Vec<u8> = value.try_into()?;
@@ -154,201 +150,6 @@ impl TryFrom<(PayloadFormat, &PayloadText)> for PayloadFormatText {
     }
 }
 
-mod protobuf {
-    use protofish::context::{Context, EnumField, MessageInfo};
-    use protofish::decode::{FieldValue, MessageValue, Value};
-
-    use crate::config::PayloadText;
-    use crate::payload::{convert_raw_type, PayloadFormatError};
-
-    pub(super) fn get_message_value(
-        context: &Context,
-        message_value: &MessageValue,
-        indent_level: u16,
-        parent_field: Option<u64>,
-        options: &PayloadText,
-    ) -> Result<String, PayloadFormatError> {
-        let mut result = String::new();
-
-        let message_info = context.resolve_message(message_value.msg_ref);
-
-        let message_text = match parent_field {
-            None => {
-                format!("{} (Message)\n", message_info.full_name)
-            }
-            Some(parent_field) => {
-                let indent_spaces = (0..indent_level).map(|_| "  ").collect::<String>();
-                format!(
-                    "{indent_spaces}[{}] {} (Message)\n",
-                    parent_field, message_info.full_name
-                )
-            }
-        };
-        result.push_str(&message_text);
-
-        for field in &message_value.fields {
-            let result_field =
-                get_field_value(context, message_info, field, indent_level + 1, options)?;
-            result.push_str(&result_field);
-        }
-
-        Ok(result)
-    }
-
-    fn get_field_value(
-        context: &Context,
-        message_response: &MessageInfo,
-        field_value: &FieldValue,
-        indent_level: u16,
-        options: &PayloadText,
-    ) -> Result<String, PayloadFormatError> {
-        let indent_spaces = (0..indent_level).map(|_| "  ").collect::<String>();
-
-        return match &message_response.get_field(field_value.number) {
-            None => Err(PayloadFormatError::FieldNumberNotFoundInProtoFile(
-                field_value.number,
-            )),
-            Some(field) => {
-                let type_name = &field.name;
-
-                let ret = match &field_value.value {
-                    Value::Double(value) => {
-                        format!(
-                            "{indent_spaces}[{}] {type_name} = {} (Double)\n",
-                            field.number, value
-                        )
-                    }
-                    Value::Float(value) => {
-                        format!(
-                            "{indent_spaces}[{}] {type_name} = {} (Float)\n",
-                            field.number, value
-                        )
-                    }
-                    Value::Int32(value) => {
-                        format!(
-                            "{indent_spaces}[{}] {type_name} = {} (Int32)\n",
-                            field.number, value
-                        )
-                    }
-                    Value::Int64(value) => {
-                        format!(
-                            "{indent_spaces}[{}] {type_name} = {} (Int64)\n",
-                            field.number, value
-                        )
-                    }
-                    Value::UInt32(value) => {
-                        format!(
-                            "{indent_spaces}[{}] {type_name} = {} (UInt32)\n",
-                            field.number, value
-                        )
-                    }
-                    Value::UInt64(value) => {
-                        format!(
-                            "{indent_spaces}[{}] {type_name} = {} (UInt64)\n",
-                            field.number, value
-                        )
-                    }
-                    Value::SInt32(value) => {
-                        format!(
-                            "{indent_spaces}[{}] {type_name} = {} (SInt32)\n",
-                            field.number, value
-                        )
-                    }
-                    Value::SInt64(value) => {
-                        format!(
-                            "{indent_spaces}[{}] {type_name} = {} (SInt64)\n",
-                            field.number, value
-                        )
-                    }
-                    Value::Fixed32(value) => {
-                        format!(
-                            "{indent_spaces}[{}] {type_name} = {} (Fixed32)\n",
-                            field.number, value
-                        )
-                    }
-                    Value::Fixed64(value) => {
-                        format!(
-                            "{indent_spaces}[{}] {type_name} = {} (Fixed64)\n",
-                            field.number, value
-                        )
-                    }
-                    Value::SFixed32(value) => {
-                        format!(
-                            "{indent_spaces}[{}] {type_name} = {} (SFixed32)\n",
-                            field.number, value
-                        )
-                    }
-                    Value::SFixed64(value) => {
-                        format!(
-                            "{indent_spaces}[{}] {type_name} = {} (SFixed64)\n",
-                            field.number, value
-                        )
-                    }
-                    Value::Bool(value) => {
-                        format!(
-                            "{indent_spaces}[{}] {type_name} = {} (Bool)\n",
-                            field.number, value
-                        )
-                    }
-                    Value::String(value) => {
-                        format!(
-                            "{indent_spaces}[{}] {type_name} = {} (String)\n",
-                            field.number, value
-                        )
-                    }
-                    Value::Bytes(value) => {
-                        format!(
-                            "{indent_spaces}[{}] {type_name} = {:?} (Bytes)\n",
-                            field.number,
-                            convert_raw_type(options.raw_as_type(), value.to_vec())
-                        )
-                    }
-                    Value::Message(value) => get_message_value(
-                        context,
-                        value,
-                        indent_level,
-                        Some(field.number),
-                        options,
-                    )?,
-                    Value::Packed(value) => {
-                        format!(
-                            "{indent_spaces}[{}] Unknown value encountered: {:?}\n",
-                            field.number, value
-                        )
-                    }
-                    Value::Enum(value) => {
-                        let enum_value = context.resolve_enum(value.enum_ref);
-
-                        format!(
-                            "{indent_spaces}[{}] {type_name} = {:?} (Enum {})\n",
-                            field.number,
-                            enum_value
-                                .get_field_by_value(value.value)
-                                .unwrap_or(&EnumField::new("INVALID_VALUE".to_string(), 0))
-                                .name,
-                            enum_value.full_name
-                        )
-                    }
-                    Value::Incomplete(number, value) => {
-                        format!(
-                            "{indent_spaces}[{}] Incomplete value encountered: {}: {:?}\n",
-                            field.number, number, value
-                        )
-                    }
-                    Value::Unknown(value) => {
-                        format!(
-                            "{indent_spaces}[{}] Unknown value encountered: {:?}\n",
-                            field.number, value
-                        )
-                    }
-                };
-
-                Ok(ret)
-            }
-        };
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::config::PayloadOptionRawFormat;
@@ -358,6 +159,8 @@ mod tests {
     use crate::payload::protobuf::PayloadFormatProtobuf;
     use crate::payload::raw::PayloadFormatRaw;
     use crate::payload::yaml::PayloadFormatYaml;
+    use lazy_static::lazy_static;
+    use std::path::PathBuf;
 
     use super::*;
 
@@ -365,26 +168,11 @@ mod tests {
     const INPUT_STRING_HEX: &str = "494e505554";
     const INPUT_STRING_BASE64: &str = "SU5QVVQ=";
     const INPUT_STRING_PROTOBUF_AS_HEX: &str = "082012080a066b696e646f6618012202c328";
-    const INPUT_STRING_MESSAGE: &str = r#"
-    syntax = "proto3";
-    package Proto;
+    const MESSAGE_NAME: &str = "Response";
 
-    enum Position {
-        POSITION_UNSPECIFIED = 0;
-        POSITION_INSIDE = 1;
-        POSITION_OUTSIDE = 2;
+    lazy_static! {
+        static ref INPUT_PATH_MESSAGE: PathBuf = PathBuf::from("test/data/message.proto");
     }
-
-    message Inner { string kind = 1; }
-
-    message Response {
-      int32 distance = 1;
-      Inner inside = 2;
-      Position position = 3;
-      bytes raw = 4;
-    }
-    "#;
-    const MESSAGE_NAME: &str = "Proto.Response";
 
     fn get_input() -> Vec<u8> {
         INPUT_STRING.into()
@@ -575,41 +363,11 @@ mod tests {
     fn from_protobuf() {
         let input = PayloadFormatProtobuf::new(
             hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(),
-            String::from(INPUT_STRING_MESSAGE),
+            &INPUT_PATH_MESSAGE,
             MESSAGE_NAME.to_string(),
         );
         let result = PayloadFormatText::try_from(PayloadFormat::Protobuf(input.unwrap())).unwrap();
 
-        assert_eq!("Proto.Response (Message)\n  [1] distance = 32 (Int32)\n  [2] Proto.Inner (Message)\n    [1] kind = kindof (String)\n  [3] position = \"POSITION_INSIDE\" (Enum Proto.Position)\n  [4] raw = \"c328\" (Bytes)\n".to_owned(), result.content);
-    }
-
-    #[test]
-    fn from_protobuf_raw_as_hex() {
-        let input = PayloadFormatProtobuf::new(
-            hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(),
-            String::from(INPUT_STRING_MESSAGE),
-            MESSAGE_NAME.to_string(),
-        );
-        let options = PayloadText::default();
-        let result =
-            PayloadFormatText::try_from((PayloadFormat::Protobuf(input.unwrap()), &options))
-                .unwrap();
-
-        assert!(result.content.contains("raw = \"c328\""));
-    }
-
-    #[test]
-    fn from_protobuf_raw_as_base64() {
-        let input = PayloadFormatProtobuf::new(
-            hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(),
-            String::from(INPUT_STRING_MESSAGE),
-            MESSAGE_NAME.to_string(),
-        );
-        let options = PayloadText::new(PayloadOptionRawFormat::Base64);
-        let result =
-            PayloadFormatText::try_from((PayloadFormat::Protobuf(input.unwrap()), &options))
-                .unwrap();
-
-        assert!(result.content.contains("raw = \"wyg=\""));
+        assert_eq!("distance: 32\ninside {\n  kind: \"kindof\"\n}\nposition: POSITION_INSIDE\nraw: \"\\303(\"\n".to_owned(), result.content);
     }
 }
