@@ -1,6 +1,8 @@
 use std::fmt::{Display, Formatter};
+use std::ops::Deref;
 
 use derive_getters::Getters;
+use protobuf_json_mapping::print_to_string;
 use serde_json::{from_slice, Value};
 
 use crate::config::PayloadJson;
@@ -182,13 +184,12 @@ impl TryFrom<(PayloadFormat, &PayloadJson)> for PayloadFormatJson {
                 options.raw_as_type(),
                 value.into(),
             )),
-            PayloadFormat::Protobuf(value) => Ok(Self {
-                content: protobuf::get_message_value(
-                    value.context(),
-                    value.message_value(),
-                    options,
-                )?,
-            }),
+            PayloadFormat::Protobuf(value) => {
+                let json_string = print_to_string(value.content().deref())?;
+                Ok(PayloadFormatJson::from(PayloadFormatJson::encode_to_json(
+                    json_string.into_bytes(),
+                )?))
+            }
             PayloadFormat::Hex(value) => encode_to_json_with_string_content(value.into()),
             PayloadFormat::Base64(value) => encode_to_json_with_string_content(value.into()),
             PayloadFormat::Json(value) => Ok(value),
@@ -199,114 +200,14 @@ impl TryFrom<(PayloadFormat, &PayloadJson)> for PayloadFormatJson {
     }
 }
 
-mod protobuf {
-    use protofish::context::Context;
-    use protofish::decode::{FieldValue, MessageValue, Value};
-    use serde_json::json;
-
-    use crate::config::PayloadJson;
-    use crate::payload::{convert_raw_type, PayloadFormatError};
-
-    pub(super) fn get_message_value(
-        context: &Context,
-        message_value: &MessageValue,
-        options: &PayloadJson,
-    ) -> Result<serde_json::Value, PayloadFormatError> {
-        let message_info = context.resolve_message(message_value.msg_ref);
-
-        let mut map_fields = serde_json::Map::new();
-
-        for field in &message_value.fields {
-            let result_field = get_field_value(context, field, options)?;
-            let field_name = match &message_info.get_field(field.number) {
-                None => "unknown",
-                Some(value) => value.name.as_str(),
-            };
-            map_fields.insert(field_name.to_string(), result_field);
-        }
-
-        Ok(serde_json::Value::Object(map_fields))
-    }
-
-    fn get_field_value(
-        context: &Context,
-        field_value: &FieldValue,
-        options: &PayloadJson,
-    ) -> Result<serde_json::Value, PayloadFormatError> {
-        let result = match &field_value.value {
-            Value::Double(value) => {
-                json!(value)
-            }
-            Value::Float(value) => {
-                json!(value)
-            }
-            Value::Int32(value) => {
-                json!(value)
-            }
-            Value::Int64(value) => {
-                json!(value)
-            }
-            Value::UInt32(value) => {
-                json!(value)
-            }
-            Value::UInt64(value) => {
-                json!(value)
-            }
-            Value::SInt32(value) => {
-                json!(value)
-            }
-            Value::SInt64(value) => {
-                json!(value)
-            }
-            Value::Fixed32(value) => {
-                json!(value)
-            }
-            Value::Fixed64(value) => {
-                json!(value)
-            }
-            Value::SFixed32(value) => {
-                json!(value)
-            }
-            Value::SFixed64(value) => {
-                json!(value)
-            }
-            Value::Bool(value) => {
-                json!(value)
-            }
-            Value::String(value) => {
-                json!(value)
-            }
-            Value::Message(value) => get_message_value(context, value, options)?,
-            Value::Bytes(value) => {
-                json!(convert_raw_type(options.raw_as_type(), value.to_vec()))
-            }
-            Value::Enum(value) => {
-                let enum_ref = value.enum_ref;
-                let enum_value = match context
-                    .resolve_enum(enum_ref)
-                    .get_field_by_value(value.value)
-                {
-                    None => "Unknown".to_string(),
-                    Some(value) => value.name.clone(),
-                };
-
-                json!(enum_value)
-            }
-            value => {
-                // TODO implement missing protobuf values for json conversion
-                json!(format!("Unknown: {:?}", value))
-            }
-        };
-
-        Ok(result)
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::config::PayloadOptionRawFormat;
+    use lazy_static::lazy_static;
+    use std::path::PathBuf;
+
     use serde_json::from_str;
 
+    use crate::config::PayloadOptionRawFormat;
     use crate::payload::base64::PayloadFormatBase64;
     use crate::payload::hex::PayloadFormatHex;
     use crate::payload::json::PayloadFormatJson;
@@ -321,26 +222,11 @@ mod tests {
     const INPUT_STRING_HEX: &str = "494e505554";
     const INPUT_STRING_BASE64: &str = "SU5QVVQ=";
     const INPUT_STRING_PROTOBUF_AS_HEX: &str = "082012080a066b696e646f6618012202c328";
-    const INPUT_STRING_MESSAGE: &str = r#"
-    syntax = "proto3";
-    package Proto;
+    const MESSAGE_NAME: &str = "Response";
 
-    enum Position {
-        POSITION_UNSPECIFIED = 0;
-        POSITION_INSIDE = 1;
-        POSITION_OUTSIDE = 2;
+    lazy_static! {
+        static ref INPUT_PATH_MESSAGE: PathBuf = PathBuf::from("test/data/message.proto");
     }
-
-    message Inner { string kind = 1; }
-
-    message Response {
-      int32 distance = 1;
-      Inner inside = 2;
-      Position position = 3;
-      bytes raw = 4;
-    }
-    "#;
-    const MESSAGE_NAME: &str = "Proto.Response";
 
     fn get_input() -> Vec<u8> {
         get_input_json(INPUT_STRING).into()
@@ -546,7 +432,7 @@ mod tests {
     fn from_protobuf() {
         let input = PayloadFormatProtobuf::new(
             hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(),
-            String::from(INPUT_STRING_MESSAGE),
+            &INPUT_PATH_MESSAGE,
             MESSAGE_NAME.to_string(),
         );
         let result = PayloadFormatJson::try_from(PayloadFormat::Protobuf(input.unwrap())).unwrap();
@@ -571,42 +457,6 @@ mod tests {
                 .unwrap()
                 .as_str()
                 .unwrap()
-        );
-    }
-
-    #[test]
-    fn from_protobuf_raw_as_hex() {
-        let input = PayloadFormatProtobuf::new(
-            hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(),
-            String::from(INPUT_STRING_MESSAGE),
-            MESSAGE_NAME.to_string(),
-        );
-        let options = PayloadJson::default();
-        let result =
-            PayloadFormatJson::try_from((PayloadFormat::Protobuf(input.unwrap()), &options))
-                .unwrap();
-
-        assert_eq!(
-            "c328".to_string(),
-            result.content.get("raw").unwrap().as_str().unwrap()
-        );
-    }
-
-    #[test]
-    fn from_protobuf_raw_as_base64() {
-        let input = PayloadFormatProtobuf::new(
-            hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(),
-            String::from(INPUT_STRING_MESSAGE),
-            MESSAGE_NAME.to_string(),
-        );
-        let options = PayloadJson::new(PayloadOptionRawFormat::Base64);
-        let result =
-            PayloadFormatJson::try_from((PayloadFormat::Protobuf(input.unwrap()), &options))
-                .unwrap();
-
-        assert_eq!(
-            "wyg=".to_string(),
-            result.content.get("raw").unwrap().as_str().unwrap()
         );
     }
 }
