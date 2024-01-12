@@ -5,6 +5,7 @@ use protobuf::reflect::{FileDescriptor, MessageDescriptor};
 use protobuf::MessageDyn;
 use protobuf_json_mapping::parse_dyn_from_str;
 
+use crate::config::PayloadProtobuf;
 use crate::payload::json::PayloadFormatJson;
 use crate::payload::{PayloadFormat, PayloadFormatError};
 
@@ -50,9 +51,7 @@ impl PayloadFormatProtobuf {
             PayloadFormat::Raw(value) => {
                 Self::convert_from_vec(Vec::from(value), definition_file, message_name)?
             }
-            PayloadFormat::Protobuf(value) => {
-                Self::convert_from_vec(Vec::try_from(value)?, definition_file, message_name)?
-            }
+            PayloadFormat::Protobuf(value) => value.content,
             PayloadFormat::Hex(value) => {
                 Self::convert_from_vec(Vec::try_from(value)?, definition_file, message_name)?
             }
@@ -62,11 +61,9 @@ impl PayloadFormatProtobuf {
             PayloadFormat::Json(value) => {
                 Self::convert_from_json(value, definition_file, message_name)?
             }
-            PayloadFormat::Yaml(_value) => {
-                return Err(PayloadFormatError::ConversionNotPossible(
-                    "yaml".to_string(),
-                    "protobuf".to_string(),
-                ));
+            PayloadFormat::Yaml(value) => {
+                let json = PayloadFormatJson::try_from(PayloadFormat::Yaml(value))?;
+                Self::convert_from_json(json, definition_file, message_name)?
             }
         };
 
@@ -118,14 +115,11 @@ impl TryFrom<PayloadFormatProtobuf> for Vec<u8> {
     }
 }
 
-impl TryFrom<PayloadFormat> for PayloadFormatProtobuf {
+impl TryFrom<(PayloadFormat, &PayloadProtobuf)> for PayloadFormatProtobuf {
     type Error = PayloadFormatError;
 
-    fn try_from(_value: PayloadFormat) -> Result<Self, Self::Error> {
-        Err(PayloadFormatError::ConversionNotPossible(
-            "any".to_string(),
-            "protobuf".to_string(),
-        ))
+    fn try_from((value, options): (PayloadFormat, &PayloadProtobuf)) -> Result<Self, Self::Error> {
+        Self::convert_from(value, options.definition(), options.message())
     }
 }
 

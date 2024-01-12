@@ -183,11 +183,13 @@ impl TryFrom<(PayloadFormat, &PayloadType)> for PayloadFormat {
             PayloadType::Yaml(options) => {
                 PayloadFormat::Yaml(PayloadFormatYaml::try_from((value, options))?)
             }
-            PayloadType::Hex(_) => PayloadFormat::Hex(PayloadFormatHex::try_from(value)?),
-            PayloadType::Base64(_) => PayloadFormat::Base64(PayloadFormatBase64::try_from(value)?),
-            PayloadType::Raw(_) => PayloadFormat::Raw(PayloadFormatRaw::try_from(value)?),
-            PayloadType::Protobuf(_) => {
-                PayloadFormat::Protobuf(PayloadFormatProtobuf::try_from(value)?)
+            PayloadType::Hex(_options) => PayloadFormat::Hex(PayloadFormatHex::try_from(value)?),
+            PayloadType::Base64(_options) => {
+                PayloadFormat::Base64(PayloadFormatBase64::try_from(value)?)
+            }
+            PayloadType::Raw(_options) => PayloadFormat::Raw(PayloadFormatRaw::try_from(value)?),
+            PayloadType::Protobuf(options) => {
+                PayloadFormat::Protobuf(PayloadFormatProtobuf::try_from((value, options))?)
             }
         })
     }
