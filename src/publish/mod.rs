@@ -1,4 +1,5 @@
 use thiserror::Error;
+use tokio_cron_scheduler::JobSchedulerError;
 
 use crate::payload::PayloadFormatError;
 
@@ -6,10 +7,10 @@ pub mod trigger_periodic;
 
 #[derive(Error, Debug)]
 pub enum TriggerError {
-    #[error("Scheduler is already running, cannot add more jobs")]
-    SchedulerAlreadyRunning,
     #[error("Could not convert payload")]
     CouldNotConvertPayload(#[source] PayloadFormatError),
+    #[error("Job scheduling error")]
+    JobSchedulerError(#[from] JobSchedulerError),
 }
 
 impl From<PayloadFormatError> for TriggerError {
