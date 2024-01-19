@@ -6,7 +6,7 @@ use log::debug;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::{mpsc, Mutex};
 use tokio::task;
-use tokio_cron_scheduler::{Job, JobScheduler};
+use tokio_cron_scheduler::{Job, JobScheduler, JobSchedulerError};
 use uuid::Uuid;
 
 use crate::config::{PayloadType, PublishInputType};
@@ -38,7 +38,7 @@ impl JobContextStorage {
     pub fn get_or_create_context(&mut self, uuid: &Uuid) -> &mut JobContext {
         if !self.contexts.contains_key(uuid) {
             let context = JobContext::new();
-            self.contexts.insert(uuid.clone(), context);
+            self.contexts.insert(*uuid, context);
         };
 
         self.contexts.get_mut(uuid).unwrap()
@@ -54,7 +54,7 @@ impl JobContextStorage {
 }
 
 pub struct TriggerPeriodic {
-    scheduler: JobScheduler,
+    scheduler: Arc<Mutex<JobScheduler>>,
     mqtt_service: Arc<Mutex<dyn MqttService>>,
     pub receiver: Receiver<(String, QoS, bool, Vec<u8>)>,
     pub publish_channel: Sender<(String, QoS, bool, Vec<u8>)>,
@@ -66,9 +66,11 @@ impl TriggerPeriodic {
         let (publish_channel, receiver) = mpsc::channel::<(String, QoS, bool, Vec<u8>)>(32);
 
         Self {
-            scheduler: JobScheduler::new()
-                .await
-                .expect("Could not start job scheduler"),
+            scheduler: Arc::new(Mutex::new(
+                JobScheduler::new()
+                    .await
+                    .expect("Could not start job scheduler"),
+            )),
             mqtt_service,
             publish_channel,
             receiver,
@@ -86,7 +88,7 @@ impl TriggerPeriodic {
         retain: bool,
         input: &PublishInputType,
         output_format: &PayloadType,
-    ) -> Result<Uuid, TriggerError> {
+    ) -> Result<(), TriggerError> {
         let payload: Vec<u8> = match PayloadFormat::new(input, output_format) {
             Ok(payload) => payload.try_into()?,
             Err(e) => return Err(TriggerError::CouldNotConvertPayload(e)),
@@ -94,81 +96,187 @@ impl TriggerPeriodic {
 
         let qos = *qos;
 
-        let payload = payload.clone();
-        let topic = String::from(topic);
         let publish_channel = self.publish_channel.clone();
+        let scheduler = self.scheduler.clone();
+        let initial_delay = *initial_delay;
+        let contexts = self.job_contexts.clone();
+        let topic = topic.to_owned();
+        let count = *count;
+        let interval = *interval;
 
-        let job = match count {
-            Some(1) => Job::new_one_shot_async(
-                initial_delay.clone(),
-                move |_uuid: Uuid, _scheduler: JobScheduler| {
-                    let payload = payload.clone();
-                    let pc = publish_channel.clone();
-                    let topic = topic.clone();
+        match count {
+            Some(1) => {
+                let job = Self::create_job_one_shot(
+                    &initial_delay,
+                    retain,
+                    qos,
+                    &payload,
+                    &topic,
+                    &publish_channel,
+                )?;
 
-                    Box::pin(async move {
-                        let tx = (topic, qos, retain, payload.clone());
-                        let _ = pc.clone().send(tx).await;
-                    })
-                },
-            )?,
-            Some(count) => {
-                let contexts = self.job_contexts.clone();
-                let count = count.clone();
-
-                Job::new_repeated_async(
-                    interval.clone(),
-                    move |uuid: Uuid, scheduler: JobScheduler| {
-                        let payload = payload.clone();
-                        let pc = publish_channel.clone();
-                        let topic = topic.clone();
-                        let contexts = contexts.clone();
-                        let count = count.clone();
-
-                        Box::pin(async move {
-                            if !contexts.lock().await.exists(&uuid) {
-                                contexts.lock().await.get_or_create_context(&uuid).count =
-                                    Some(count.clone());
-                            }
-                            let mut counter = contexts
-                                .lock()
-                                .await
-                                .get_or_create_context(&uuid)
-                                .count
-                                .unwrap();
-
-                            let tx = (topic, qos, retain, payload.clone());
-                            let _ = pc.clone().send(tx).await;
-
-                            counter -= 1;
-                            contexts.lock().await.get_or_create_context(&uuid).count =
-                                Some(counter);
-
-                            if counter == 0 {
-                                debug!("Removing periodic trigger {}", uuid);
-                                contexts.lock().await.remove(&uuid);
-                                let _ = scheduler.remove(&uuid).await;
-                            }
-                        })
-                    },
-                )?
+                scheduler.lock().await.add(job).await?;
             }
-            None => Job::new_repeated_async(
-                interval.clone(),
-                move |_uuid: Uuid, _scheduler: JobScheduler| {
-                    let payload = payload.clone();
-                    let pc = publish_channel.clone();
-                    let topic = topic.clone();
+            Some(count) => {
+                let job_initial = Self::create_job_one_shot(
+                    &initial_delay,
+                    retain,
+                    qos,
+                    &payload,
+                    &topic,
+                    &publish_channel,
+                )
+                .expect("Could not create job");
 
-                    Box::pin(async move {
-                        let tx = (topic, qos, retain, payload.clone());
-                        let _ = pc.clone().send(tx).await;
-                    })
-                },
-            )?,
+                let _ = scheduler.lock().await.add(job_initial).await;
+
+                task::spawn(async move {
+                    tokio::time::sleep(initial_delay).await;
+
+                    let job_repeated = Self::create_job_repeated_count(
+                        contexts,
+                        &interval,
+                        retain,
+                        qos,
+                        &payload,
+                        &topic,
+                        &publish_channel,
+                        count,
+                    )
+                    .expect("Could not create job");
+
+                    let _ = scheduler.lock().await.add(job_repeated).await;
+                });
+            }
+            None => {
+                let job_initial = Self::create_job_one_shot(
+                    &initial_delay,
+                    retain,
+                    qos,
+                    &payload,
+                    &topic,
+                    &publish_channel,
+                )
+                .expect("Could not create job");
+
+                let _ = scheduler.lock().await.add(job_initial).await;
+
+                task::spawn(async move {
+                    tokio::time::sleep(initial_delay).await;
+
+                    let job_repeated = Self::create_job_repeated_forever(
+                        &interval,
+                        retain,
+                        qos,
+                        payload,
+                        &topic,
+                        publish_channel,
+                    )
+                    .expect("Could not create job");
+
+                    let _ = scheduler.lock().await.add(job_repeated).await;
+                });
+            }
         };
 
-        Ok(self.scheduler.add(job).await?)
+        Ok(())
+    }
+
+    fn create_job_one_shot(
+        initial_delay: &Duration,
+        retain: bool,
+        qos: QoS,
+        payload: &[u8],
+        topic: &str,
+        publish_channel: &Sender<(String, QoS, bool, Vec<u8>)>,
+    ) -> Result<Job, JobSchedulerError> {
+        let payload = payload.to_owned();
+        let topic = topic.to_owned();
+        let publish_channel = publish_channel.clone();
+
+        Job::new_one_shot_async(
+            *initial_delay,
+            move |_uuid: Uuid, _scheduler: JobScheduler| {
+                let payload = payload.clone();
+                let pc = publish_channel.clone();
+                let topic = topic.clone();
+
+                Box::pin(async move {
+                    let tx = (topic, qos, retain, payload.clone());
+                    let _ = pc.clone().send(tx).await;
+                })
+            },
+        )
+    }
+
+    fn create_job_repeated_count(
+        contexts: Arc<Mutex<JobContextStorage>>,
+        interval: &Duration,
+        retain: bool,
+        qos: QoS,
+        payload: &[u8],
+        topic: &str,
+        publish_channel: &Sender<(String, QoS, bool, Vec<u8>)>,
+        count: u32,
+    ) -> Result<Job, JobSchedulerError> {
+        let payload = payload.to_owned();
+        let topic = topic.to_owned();
+        let publish_channel = publish_channel.clone();
+
+        Job::new_repeated_async(*interval, move |uuid: Uuid, scheduler: JobScheduler| {
+            let payload = payload.clone();
+            let pc = publish_channel.clone();
+            let topic = topic.clone();
+            let contexts = contexts.clone();
+
+            Box::pin(async move {
+                if !contexts.lock().await.exists(&uuid) {
+                    contexts.lock().await.get_or_create_context(&uuid).count = Some(count);
+                }
+                let mut counter = contexts
+                    .lock()
+                    .await
+                    .get_or_create_context(&uuid)
+                    .count
+                    .unwrap();
+
+                let tx = (topic, qos, retain, payload.clone());
+                let _ = pc.clone().send(tx).await;
+
+                counter -= 1;
+                contexts.lock().await.get_or_create_context(&uuid).count = Some(counter);
+
+                if counter == 0 {
+                    debug!("Removing periodic trigger {}", uuid);
+                    contexts.lock().await.remove(&uuid);
+                    let _ = scheduler.remove(&uuid).await;
+                }
+            })
+        })
+    }
+
+    fn create_job_repeated_forever(
+        interval: &Duration,
+        retain: bool,
+        qos: QoS,
+        payload: Vec<u8>,
+        topic: &str,
+        publish_channel: Sender<(String, QoS, bool, Vec<u8>)>,
+    ) -> Result<Job, JobSchedulerError> {
+        let payload = payload.clone();
+        let topic = topic.to_owned();
+        let publish_channel = publish_channel.clone();
+
+        Job::new_repeated_async(*interval, move |_uuid: Uuid, _scheduler: JobScheduler| {
+            let payload = payload.clone();
+            let pc = publish_channel.clone();
+            let topic = topic.clone();
+
+            Box::pin(async move {
+                let tx = (topic, qos, retain, payload.clone());
+                let _ = pc.clone().send(tx).await;
+            })
+        })
     }
 
     pub async fn start(self) -> Result<(), TriggerError> {
@@ -187,6 +295,6 @@ impl TriggerPeriodic {
             }
         });
 
-        Ok(self.scheduler.start().await?)
+        Ok(self.scheduler.lock().await.start().await?)
     }
 }
