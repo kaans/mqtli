@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use std::sync::Arc;
 
 use anyhow::Context;
@@ -73,34 +74,37 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn start_scheduler(topics: Arc<Vec<Topic>>, mqtt_service: Arc<Mutex<dyn MqttService>>) {
-    let mut scheduler = TriggerPeriodic::new(mqtt_service);
+    let mut scheduler = TriggerPeriodic::new(mqtt_service).await;
 
-    topics.iter().for_each(|topic| {
+    for topic in topics.deref() {
         if let Some(publish) = topic
             .publish()
             .as_ref()
             .filter(|publish| *publish.enabled())
         {
-            publish.trigger().iter().for_each(|trigger| {
+            for trigger in publish.trigger() {
                 if let Periodic(value) = trigger {
-                    if let Err(e) = scheduler.add_schedule(
-                        value.interval(),
-                        value.count(),
-                        value.initial_delay(),
-                        topic.topic(),
-                        publish.qos(),
-                        *publish.retain(),
-                        publish.input(),
-                        topic.payload(),
-                    ) {
+                    if let Err(e) = scheduler
+                        .add_schedule(
+                            value.interval(),
+                            value.count(),
+                            value.initial_delay(),
+                            topic.topic(),
+                            publish.qos(),
+                            *publish.retain(),
+                            publish.input(),
+                            topic.payload(),
+                        )
+                        .await
+                    {
                         error!("Error while adding schedule: {:?}", e);
                     };
                 }
-            })
+            }
         }
-    });
+    }
 
-    scheduler.start().await;
+    let _ = scheduler.start().await;
 }
 
 async fn start_exit_task(client: Arc<Mutex<dyn MqttService>>) {
