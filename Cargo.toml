@@ -17,7 +17,7 @@ log = "0.4.20"
 rumqttc = { git = "https://github.com/bytebeamio/rumqtt.git", rev = "431be1b", features = ["websocket"] }
 serde = { version = "1.0.193", features = ["derive"] }
 serde_yaml = "0.9.27"
-simplelog = "0.12.1"
+simplelog = { version = "0.12.1", features = ["paris"] }
 thiserror = "1.0.50"
 tokio = { version = "1.35.0", features = ["macros", "rt", "rt-multi-thread", "sync", "signal"] }
 validator = { version = "0.16.1", features = ["derive"] }
@@ -35,3 +35,4 @@ protobuf-json-mapping = "3.3.0"
 tokio-cron-scheduler = { version = "0.9.4", features = [] }
 uuid = { version = "1.6.1", features = ["v4"] }
 futures = "0.3.30"
+colored = "2.1.0"

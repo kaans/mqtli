@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use log::{error, info, LevelFilter};
-use simplelog::{Config, SimpleLogger};
+use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
 use tokio::sync::{broadcast, Mutex};
 use tokio::{signal, task};
 
@@ -127,8 +127,14 @@ async fn start_exit_task(client: Arc<Mutex<dyn MqttService>>) {
 }
 
 fn init_logger(filter: &LevelFilter) {
-    let config = Config::default();
-    if SimpleLogger::init(*filter, config).is_err() {
+    if TermLogger::init(
+        *filter,
+        Config::default(),
+        TerminalMode::Mixed,
+        ColorChoice::Auto,
+    )
+    .is_err()
+    {
         panic!("Another logger was already configured, exiting")
     }
 }
