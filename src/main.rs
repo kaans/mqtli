@@ -128,7 +128,7 @@ async fn start_exit_task(client: Arc<Mutex<dyn MqttService>>) {
 
 fn init_logger(filter: &LevelFilter) {
     if TermLogger::init(
-        filter.clone(),
+        *filter,
         Config::default(),
         TerminalMode::Mixed,
         ColorChoice::Auto,

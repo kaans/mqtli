@@ -42,6 +42,7 @@ pub enum MqttServiceError {
     ClientErrorV311(#[from] rumqttc::ClientError),
 }
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub enum QoS {
     #[default]
