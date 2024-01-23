@@ -7,7 +7,7 @@ use tokio::task::JoinHandle;
 
 use crate::config::mqtli_config::OutputTarget::Console;
 use crate::config::mqtli_config::{Output, OutputTarget, Topic};
-use crate::mqtt::MqttEvent;
+use crate::mqtt::{MqttEvent, QoS};
 use crate::output::console::ConsoleOutput;
 use crate::output::file::FileOutput;
 use crate::output::OutputError;
@@ -56,7 +56,13 @@ impl MqttHandler {
         }
     }
 
-    fn handle_incoming_message(topics: &Vec<Topic>, value: Vec<u8>, incoming_topic: &str) {
+    fn handle_incoming_message(
+        topics: &Vec<Topic>,
+        value: Vec<u8>,
+        incoming_topic: &str,
+        qos: QoS,
+        retain: bool,
+    ) {
         for topic in topics {
             if topic.topic() == incoming_topic && *topic.subscription().enabled() {
                 for output in topic.subscription().outputs() {
@@ -67,7 +73,13 @@ impl MqttHandler {
 
                     match result {
                         Ok(content) => {
-                            if let Err(e) = Self::forward_to_output(output, content) {
+                            if let Err(e) = Self::forward_to_output(
+                                output,
+                                incoming_topic,
+                                content,
+                                qos,
+                                retain,
+                            ) {
                                 error!("{:?}", e);
                             }
                         }
@@ -80,11 +92,17 @@ impl MqttHandler {
         }
     }
 
-    fn forward_to_output(output: &Output, content: PayloadFormat) -> Result<(), OutputError> {
+    fn forward_to_output(
+        output: &Output,
+        topic: &str,
+        content: PayloadFormat,
+        qos: QoS,
+        retain: bool,
+    ) -> Result<(), OutputError> {
         let conv = PayloadFormat::try_from((content, output.format()))?;
 
         let result = match output.target() {
-            Console(_options) => ConsoleOutput::output(conv.try_into()?),
+            Console(_options) => ConsoleOutput::output(topic, conv.try_into()?, qos, retain),
             OutputTarget::File(file) => FileOutput::output(conv.try_into()?, file),
         };
 
@@ -100,6 +118,7 @@ mod v5 {
 
     use crate::config::mqtli_config::Topic;
     use crate::mqtt::mqtt_handler::MqttHandler;
+    use crate::mqtt::QoS;
 
     pub fn handle_event(event: Event, topics: &Vec<Topic>) {
         match event {
@@ -116,6 +135,8 @@ mod v5 {
                         topics,
                         value.payload.to_vec(),
                         incoming_topic,
+                        QoS::from(value.qos),
+                        value.retain,
                     );
                 }
             }
@@ -132,6 +153,7 @@ mod v311 {
 
     use crate::config::mqtli_config::Topic;
     use crate::mqtt::mqtt_handler::MqttHandler;
+    use crate::mqtt::QoS;
 
     pub fn handle_event(event: Event, topics: &Vec<Topic>) {
         match event {
@@ -148,6 +170,8 @@ mod v311 {
                         topics,
                         value.payload.to_vec(),
                         incoming_topic,
+                        QoS::from(value.qos),
+                        value.retain,
                     );
                 }
             }
