@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io;
 use std::io::BufReader;
@@ -41,12 +42,24 @@ pub enum MqttServiceError {
     ClientErrorV311(#[from] rumqttc::ClientError),
 }
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub enum QoS {
     #[default]
     AtMostOnce = 0,
     AtLeastOnce = 1,
     ExactlyOnce = 2,
+}
+
+impl Display for QoS {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let display = match self {
+            QoS::AtMostOnce => "At most once (0)",
+            QoS::AtLeastOnce => "At least once (1)",
+            QoS::ExactlyOnce => "Exactly once (2)",
+        };
+        write!(f, "{}", display)
+    }
 }
 
 impl From<QoS> for rumqttc::v5::mqttbytes::QoS {
@@ -77,6 +90,38 @@ impl From<&QoS> for rumqttc::QoS {
             QoS::AtMostOnce => rumqttc::QoS::AtMostOnce,
             QoS::AtLeastOnce => rumqttc::QoS::AtLeastOnce,
             QoS::ExactlyOnce => rumqttc::QoS::ExactlyOnce,
+        }
+    }
+}
+
+impl From<rumqttc::QoS> for QoS {
+    fn from(value: rumqttc::QoS) -> Self {
+        Self::from(&value)
+    }
+}
+
+impl From<&rumqttc::QoS> for QoS {
+    fn from(value: &rumqttc::QoS) -> Self {
+        match value {
+            rumqttc::QoS::AtMostOnce => QoS::AtMostOnce,
+            rumqttc::QoS::AtLeastOnce => QoS::AtLeastOnce,
+            rumqttc::QoS::ExactlyOnce => QoS::ExactlyOnce,
+        }
+    }
+}
+
+impl From<rumqttc::v5::mqttbytes::QoS> for QoS {
+    fn from(value: rumqttc::v5::mqttbytes::QoS) -> Self {
+        Self::from(&value)
+    }
+}
+
+impl From<&rumqttc::v5::mqttbytes::QoS> for QoS {
+    fn from(value: &rumqttc::v5::mqttbytes::QoS) -> Self {
+        match value {
+            rumqttc::v5::mqttbytes::QoS::AtMostOnce => QoS::AtMostOnce,
+            rumqttc::v5::mqttbytes::QoS::AtLeastOnce => QoS::AtLeastOnce,
+            rumqttc::v5::mqttbytes::QoS::ExactlyOnce => QoS::ExactlyOnce,
         }
     }
 }
