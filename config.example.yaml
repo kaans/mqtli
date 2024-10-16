@@ -15,8 +15,10 @@ topics:
       enabled: true
       qos: 1
       outputs:
-        - format: yaml # target is console; protobuf message will be shown as yaml
-        - format: base64
+        - format:
+          type: yaml # target is console; protobuf message will be shown as yaml
+        - format:
+          type: base64
           target:
             type: file
             path: "log.txt"
@@ -24,9 +26,7 @@ topics:
             prepend: "MESSAGE: " # prepends the string "MESSAGE: " to the beginning of the base64 encoded message
             append: "\n" # appends a new line to the end of the message
     payload:
-      type: protobuf
-      definition: "messages.proto"
-      message: "Proto.Message" # package_name.message_name
+      type: text
     publish:
       enabled: true
       input:
