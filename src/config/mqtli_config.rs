@@ -16,10 +16,10 @@ use crate::mqtt::QoS;
 
 #[derive(Debug, Getters, Validate)]
 pub struct MqtliConfig {
-    #[validate]
+    #[validate(nested)]
     broker: MqttBrokerConnectArgs,
     log_level: LevelFilter,
-    #[validate]
+    #[validate(nested)]
     pub topics: Vec<Topic>,
 }
 
@@ -53,10 +53,10 @@ impl Default for MqtliConfig {
 pub struct Topic {
     #[validate(length(min = 1, message = "Topic must be given"))]
     topic: String,
-    #[validate]
+    #[validate(nested)]
     subscription: Subscription,
     payload: PayloadType,
-    #[validate]
+    #[validate(nested)]
     publish: Option<Publish>,
 }
 
@@ -66,7 +66,7 @@ pub struct Publish {
     qos: QoS,
     retain: bool,
     trigger: Vec<PublishTriggerType>,
-    #[validate]
+    #[validate(nested)]
     input: PublishInputType,
 }
 
@@ -354,7 +354,7 @@ pub struct MqttBrokerConnectArgs {
     tls_client_key: Option<PathBuf>,
     tls_version: TlsVersion,
 
-    #[validate]
+    #[validate(nested)]
     last_will: Option<LastWillConfig>,
 }
 

@@ -83,6 +83,7 @@ async fn start_scheduler(topics: Arc<Vec<Topic>>, mqtt_service: Arc<Mutex<dyn Mq
             .filter(|publish| *publish.enabled())
         {
             for trigger in publish.trigger() {
+                #[allow(irrefutable_let_patterns)]
                 if let Periodic(value) = trigger {
                     if let Err(e) = scheduler
                         .add_schedule(
