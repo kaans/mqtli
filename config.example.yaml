@@ -16,9 +16,9 @@ topics:
       qos: 1
       outputs:
         - format:
-          type: yaml # target is console; protobuf message will be shown as yaml
+            type: yaml # target is console; protobuf message will be shown as yaml
         - format:
-          type: base64
+            type: base64
           target:
             type: file
             path: "log.txt"
