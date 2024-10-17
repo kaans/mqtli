@@ -17,6 +17,8 @@ use crate::publish::trigger_periodic::TriggerPeriodic;
 
 mod config;
 mod mqtt;
+mod output;
+mod payload;
 mod publish;
 
 #[tokio::main]
