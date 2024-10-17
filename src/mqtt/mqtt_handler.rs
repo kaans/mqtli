@@ -25,7 +25,7 @@ impl MqttHandler {
         }
     }
 
-    pub(crate) fn start_task(&mut self, mut receiver: Receiver<MqttEvent>) {
+    pub fn start_task(&mut self, mut receiver: Receiver<MqttEvent>) {
         let topics = self.topics.clone();
 
         self.task_handle = Some(task::spawn(async move {

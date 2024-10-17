@@ -43,11 +43,12 @@ impl Display for PayloadFormatJson {
 /// # Examples
 ///
 /// ```
+/// use mqtlib::payload::json::PayloadFormatJson;
 /// let input = "{\"content\":\"INPUT\"}";
 ///
 /// let payload_json = PayloadFormatJson::try_from(Vec::from(input)).unwrap();
 ///
-/// assert_eq!("INPUT", result.content.get("content").unwrap().as_str());
+/// assert_eq!("INPUT", payload_json.content().get("content").unwrap().as_str());
 /// ```
 impl TryFrom<Vec<u8>> for PayloadFormatJson {
     type Error = PayloadFormatError;
@@ -66,11 +67,12 @@ impl TryFrom<Vec<u8>> for PayloadFormatJson {
 /// # Examples
 ///
 /// ```
+/// use mqtlib::payload::json::PayloadFormatJson;
 /// let input = String::from("{\"content\":\"INPUT\"}");
 ///
 /// let payload_json = PayloadFormatJson::try_from(input).unwrap();
 ///
-/// assert_eq!("INPUT", result.content.get("content").unwrap().as_str());
+/// assert_eq!("INPUT", payload_json.content().get("content").unwrap().as_str());
 /// ```
 impl TryFrom<String> for PayloadFormatJson {
     type Error = PayloadFormatError;
@@ -85,11 +87,12 @@ impl TryFrom<String> for PayloadFormatJson {
 /// # Examples
 ///
 /// ```
-/// let input = json!({ "content": "INPUT" });
+/// use mqtlib::payload::json::PayloadFormatJson;
+/// let input = serde_json::json!({ "content": "INPUT" });
 ///
 /// let payload_json = PayloadFormatJson::from(input);
 ///
-/// assert_eq!("INPUT", result.content.get("content").unwrap().as_str());
+/// assert_eq!("INPUT", payload_json.content().get("content").unwrap().as_str().unwrap());
 /// ```
 impl From<Value> for PayloadFormatJson {
     fn from(val: Value) -> Self {
@@ -104,6 +107,7 @@ impl From<Value> for PayloadFormatJson {
 /// # Examples
 ///
 /// ```
+/// use serde_json::json;
 /// let input = json!({ "content": "INPUT" });
 ///
 /// let result: Vec<u8> = Vec::from(input);
@@ -123,11 +127,9 @@ impl From<PayloadFormatJson> for Vec<u8> {
 /// # Examples
 ///
 /// ```
-/// let input = json!({ "content": "INPUT" });
+/// let input = serde_json::json!({ "content": "INPUT" });
 ///
-/// let result: String = Vec::from(input);
-///
-/// assert_eq!("{\"content\":\"INPUT\"}", String::from(result));
+/// assert_eq!("{\"content\":\"INPUT\"}", String::from(input));
 /// ```
 impl From<PayloadFormatJson> for String {
     fn from(val: PayloadFormatJson) -> Self {
@@ -152,11 +154,14 @@ impl From<PayloadFormatJson> for String {
 /// # Examples
 ///
 /// ```
+/// use mqtlib::payload::json::PayloadFormatJson;
+/// use mqtlib::payload::text::PayloadFormatText;
+///
 /// let input = PayloadFormatText::from("INPUT");
 ///
 /// let payload_json = PayloadFormatJson::try_from(input).unwrap();
 ///
-/// assert_eq!("INPUT", result.content.get("content").unwrap().as_str());
+/// assert_eq!("INPUT", payload_json.content().get("content").unwrap().as_str());
 /// ```
 impl TryFrom<PayloadFormat> for PayloadFormatJson {
     type Error = PayloadFormatError;

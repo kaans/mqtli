@@ -28,7 +28,7 @@ impl Display for MqtliConfig {
         writeln!(f, "Parsed configuration:")?;
         write!(f, "topics:")?;
         for topic in &self.topics {
-            write!(f, "\n{}\n", topic)?;
+            write!(f, "\n\n{}", topic)?;
         }
 
         Ok(())
@@ -284,15 +284,10 @@ impl Display for Subscription {
         writeln!(f, "Enabled: {}", self.enabled)?;
         writeln!(f, "QoS: {}", self.qos)?;
 
-        writeln!(f, "BBBB: {:?}", self.outputs)?;
-
         for (i, output) in self.outputs.iter().enumerate() {
             writeln!(f, "Output: {i}\n{}", output)?;
-            writeln!(f, "AAAA: {:?}", output)?;
         }
         
-        writeln!(f, "DONE")?;
-
         Ok(())
     }
 }
