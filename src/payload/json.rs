@@ -166,6 +166,12 @@ impl TryFrom<PayloadFormat> for PayloadFormatJson {
     }
 }
 
+impl From<PayloadFormatJson> for PayloadFormat {
+    fn from(value: PayloadFormatJson) -> Self {
+        PayloadFormat::Json(value)
+    }
+}
+
 impl TryFrom<(PayloadFormat, &PayloadJson)> for PayloadFormatJson {
     type Error = PayloadFormatError;
 
