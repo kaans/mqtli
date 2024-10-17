@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display, Formatter};
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -21,6 +21,18 @@ pub struct MqtliConfig {
     log_level: LevelFilter,
     #[validate(nested)]
     pub topics: Vec<Topic>,
+}
+
+impl Display for MqtliConfig {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Parsed configuration:")?;
+        write!(f, "topics:")?;
+        for topic in &self.topics {
+            write!(f, "\n{}\n", topic)?;
+        }
+
+        Ok(())
+    }
 }
 
 impl MqtliConfig {
@@ -58,6 +70,17 @@ pub struct Topic {
     payload: PayloadType,
     #[validate(nested)]
     publish: Option<Publish>,
+}
+
+impl Display for Topic {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "topic: {}", self.topic)?;
+        writeln!(f, "payload type: {}", self.payload)?;
+        writeln!(f, "Subscription:\n{}", self.subscription)?;
+
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Getters, Validate)]
@@ -166,6 +189,15 @@ pub struct Output {
     target: OutputTarget,
 }
 
+impl Display for Output {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "format: {}", self.format)?;
+        writeln!(f, "target: {}", self.target)?;
+
+        Ok(())
+    }
+}
+
 impl From<&args::Output> for Output {
     fn from(value: &args::Output) -> Self {
         Output {
@@ -189,6 +221,7 @@ impl From<&args::Output> for Output {
 }
 
 #[derive(Debug)]
+#[derive(strum_macros::Display)]
 pub enum OutputTarget {
     Console(OutputTargetConsole),
     File(OutputTargetFile),
@@ -244,6 +277,24 @@ pub struct Subscription {
     enabled: bool,
     qos: QoS,
     outputs: Vec<Output>,
+}
+
+impl Display for Subscription {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Enabled: {}", self.enabled)?;
+        writeln!(f, "QoS: {}", self.qos)?;
+
+        writeln!(f, "BBBB: {:?}", self.outputs)?;
+
+        for (i, output) in self.outputs.iter().enumerate() {
+            writeln!(f, "Output: {i}\n{}", output)?;
+            writeln!(f, "AAAA: {:?}", output)?;
+        }
+        
+        writeln!(f, "DONE")?;
+
+        Ok(())
+    }
 }
 
 impl Default for Subscription {

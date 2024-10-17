@@ -2,7 +2,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use anyhow::Context;
-use log::{error, info, LevelFilter};
+use log::{debug, error, info, LevelFilter};
 use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
 use tokio::sync::{broadcast, Mutex};
 use tokio::{signal, task};
@@ -26,6 +26,8 @@ async fn main() -> anyhow::Result<()> {
     let config = parse_config().with_context(|| "Error while parsing configuration")?;
 
     init_logger(config.log_level());
+
+    debug!("{}", config);
 
     let mqtt_service: Arc<Mutex<dyn MqttService>> = match config.broker().mqtt_version() {
         MqttVersion::V311 => Arc::new(Mutex::new(MqttServiceV311::new(Arc::new(

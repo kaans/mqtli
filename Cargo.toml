@@ -36,3 +36,4 @@ tokio-cron-scheduler = { version = "0.13.0", features = [] }
 uuid = { version = "1.11.0", features = ["v4"] }
 futures = "0.3.31"
 colored = "2.1.0"
+strum_macros = "0.26.4"
