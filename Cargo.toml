@@ -9,6 +9,14 @@ readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+name = "mqtlib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "mqtli"
+path = "src/bin.rs"
+
 [dependencies]
 anyhow = "1.0.89"
 clap = { version = "4.5.20", features = ["derive", "env"] }
