@@ -5,7 +5,6 @@ use tokio::sync::broadcast::Receiver;
 use tokio::task;
 use tokio::task::JoinHandle;
 
-use crate::config::mqtli_config::OutputTarget::Console;
 use crate::config::mqtli_config::{Output, OutputTarget, Topic};
 use crate::mqtt::{MqttEvent, QoS};
 use crate::output::console::ConsoleOutput;
@@ -102,7 +101,7 @@ impl MqttHandler {
         let conv = PayloadFormat::try_from((content, output.format()))?;
 
         let result = match output.target() {
-            Console(_options) => ConsoleOutput::output(topic, conv.try_into()?, qos, retain),
+            OutputTarget::Console(_options) => ConsoleOutput::output(topic, conv.try_into()?, qos, retain),
             OutputTarget::File(file) => FileOutput::output(conv.try_into()?, file),
         };
 

@@ -21,6 +21,7 @@ pub enum ConfigError {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(strum_macros::Display)]
 #[serde(tag = "type")]
 pub enum PayloadType {
     #[serde(rename = "text")]
