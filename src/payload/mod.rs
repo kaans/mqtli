@@ -155,20 +155,6 @@ impl TryInto<String> for PayloadFormat {
     }
 }
 
-pub struct PayloadFormatTopic {
-    payload_type: PayloadType,
-    content: Vec<u8>,
-}
-
-impl PayloadFormatTopic {
-    pub fn new(payload_type: PayloadType, content: Vec<u8>) -> Self {
-        Self {
-            payload_type,
-            content,
-        }
-    }
-}
-
 impl TryFrom<(PayloadFormat, &PayloadType)> for PayloadFormat {
     type Error = PayloadFormatError;
 
@@ -195,40 +181,40 @@ impl TryFrom<(PayloadFormat, &PayloadType)> for PayloadFormat {
     }
 }
 
-impl TryFrom<PayloadFormatTopic> for PayloadFormat {
+impl TryFrom<(PayloadType, Vec<u8>)> for PayloadFormat {
     type Error = PayloadFormatError;
 
-    fn try_from(value: PayloadFormatTopic) -> Result<Self, Self::Error> {
-        Ok(match value.payload_type {
+    fn try_from((payload_type, content): (PayloadType, Vec<u8>)) -> Result<Self, Self::Error> {
+        Ok(match payload_type {
             PayloadType::Text(_options) => {
-                PayloadFormat::Text(PayloadFormatText::try_from(value.content)?)
+                PayloadFormat::Text(PayloadFormatText::try_from(content)?)
             }
             PayloadType::Protobuf(options) => PayloadFormat::Protobuf(PayloadFormatProtobuf::new(
-                value.content,
+                content,
                 options.definition(),
                 options.message().clone(),
             )?),
             PayloadType::Json(_options) => {
-                PayloadFormat::Json(PayloadFormatJson::try_from(value.content)?)
+                PayloadFormat::Json(PayloadFormatJson::try_from(content)?)
             }
             PayloadType::Yaml(_options) => {
-                PayloadFormat::Yaml(PayloadFormatYaml::try_from(value.content)?)
+                PayloadFormat::Yaml(PayloadFormatYaml::try_from(content)?)
             }
-            PayloadType::Hex(_options) => PayloadFormat::Hex(PayloadFormatHex::from(value.content)),
+            PayloadType::Hex(_options) => PayloadFormat::Hex(PayloadFormatHex::from(content)),
             PayloadType::Base64(_options) => {
-                PayloadFormat::Base64(PayloadFormatBase64::from(value.content))
+                PayloadFormat::Base64(PayloadFormatBase64::from(content))
             }
-            PayloadType::Raw(_options) => PayloadFormat::Raw(PayloadFormatRaw::from(value.content)),
+            PayloadType::Raw(_options) => PayloadFormat::Raw(PayloadFormatRaw::from(content)),
         })
     }
 }
 
 impl PayloadFormat {
     pub fn new(
-        input: &PublishInputType,
-        output: &PayloadType,
+        input_type: &PublishInputType,
+        output_type: &PayloadType,
     ) -> Result<PayloadFormat, PayloadFormatError> {
-        let content = match input {
+        let content = match input_type {
             PublishInputType::Text(input) => {
                 let c = read_input_type_content_path(input)?;
                 PayloadFormat::Text(PayloadFormatText::try_from(c)?)
@@ -255,7 +241,7 @@ impl PayloadFormat {
             }
         };
 
-        match output {
+        match output_type {
             PayloadType::Text(_options) => {
                 Ok(PayloadFormat::Text(PayloadFormatText::try_from(content)?))
             }

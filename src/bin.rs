@@ -92,11 +92,10 @@ async fn start_scheduler(topics: Arc<Vec<Topic>>, mqtt_service: Arc<Mutex<dyn Mq
                             value.interval(),
                             value.count(),
                             value.initial_delay(),
-                            topic.topic(),
+                            topic,
                             publish.qos(),
                             *publish.retain(),
                             publish.input(),
-                            topic.payload(),
                         )
                         .await
                     {

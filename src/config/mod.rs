@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::fmt::{Display, Formatter};
 use std::io;
 use std::path::PathBuf;
 
@@ -21,7 +22,6 @@ pub enum ConfigError {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
-#[derive(strum_macros::Display)]
 #[serde(tag = "type")]
 pub enum PayloadType {
     #[serde(rename = "text")]
@@ -46,6 +46,34 @@ impl Default for PayloadType {
     }
 }
 
+impl Display for PayloadType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PayloadType::Text(value) => {
+                write!(f, "Text [Options: {}]", value)
+            }
+            PayloadType::Protobuf(value) => {
+                write!(f, "Protobuf [Options: {}]", value)
+            }
+            PayloadType::Json(value) => {
+                write!(f, "Json [Options: {}]", value)
+            }
+            PayloadType::Yaml(value) => {
+                write!(f, "Yaml [Options: {}]", value)
+            }
+            PayloadType::Hex(value) => {
+                write!(f, "Hex [Options: {}]", value)
+            }
+            PayloadType::Base64(value) => {
+                write!(f, "Base64 [Options: {}]", value)
+            }
+            PayloadType::Raw(value) => {
+                write!(f, "Raw [Options: {}]", value)
+            }
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct PayloadText {
     #[serde(default)]
@@ -59,15 +87,29 @@ impl PayloadText {
     }
 }
 
+impl Display for PayloadText {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "raw as: {:?}", self.raw_as_type)
+    }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct PayloadProtobuf {
     definition: PathBuf,
     message: String,
 }
 
+impl Display for PayloadProtobuf {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "definition: {:?}", self.definition)?;
+        write!(f, "message: {:?}", self.message)
+    }
+}
+
 /// The format to which bytes get decoded to.
 /// Default is hex.
 #[derive(Clone, Debug, Default, Deserialize, PartialEq)]
+#[derive(strum_macros::Display)]
 pub enum PayloadOptionRawFormat {
     #[default]
     #[serde(rename = "hex")]
@@ -91,6 +133,12 @@ impl PayloadJson {
     }
 }
 
+impl Display for PayloadJson {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "raw as: {:?}", self.raw_as_type)
+    }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct PayloadYaml {
     #[serde(default)]
@@ -104,14 +152,38 @@ impl PayloadYaml {
     }
 }
 
+impl Display for PayloadYaml {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "raw as: {:?}", self.raw_as_type)
+    }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct PayloadHex {}
+
+impl Display for PayloadHex {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "")
+    }
+}
 
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct PayloadBase64 {}
 
+impl Display for PayloadBase64 {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "")
+    }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct PayloadRaw {}
+
+impl Display for PayloadRaw {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "")
+    }
+}
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "type")]

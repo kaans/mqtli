@@ -9,7 +9,8 @@ use tokio::task;
 use tokio_cron_scheduler::{Job, JobScheduler, JobSchedulerError};
 use uuid::Uuid;
 
-use crate::config::{PayloadType, PublishInputType};
+use crate::config::mqtli_config::Topic;
+use crate::config::PublishInputType;
 use crate::mqtt::{MqttService, QoS};
 use crate::payload::PayloadFormat;
 use crate::publish::TriggerError;
@@ -78,18 +79,18 @@ impl TriggerPeriodic {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn add_schedule(
         &mut self,
         interval: &Duration,
         count: &Option<u32>,
         initial_delay: &Duration,
-        topic: &str,
+        output_topic: &Topic,
         qos: &QoS,
         retain: bool,
-        input: &PublishInputType,
-        output_format: &PayloadType,
+        input_type: &PublishInputType,
     ) -> Result<(), TriggerError> {
-        let payload: Vec<u8> = match PayloadFormat::new(input, output_format) {
+        let payload: Vec<u8> = match PayloadFormat::new(input_type, output_topic.payload()) {
             Ok(payload) => payload.try_into()?,
             Err(e) => return Err(TriggerError::CouldNotConvertPayload(e)),
         };
@@ -100,7 +101,7 @@ impl TriggerPeriodic {
         let scheduler = self.scheduler.clone();
         let initial_delay = *initial_delay;
         let contexts = self.job_contexts.clone();
-        let topic = topic.to_owned();
+        let topic = output_topic.topic().to_owned();
         let count = *count;
         let interval = *interval;
 
@@ -128,7 +129,7 @@ impl TriggerPeriodic {
                 )
                 .expect("Could not create job");
 
-                let _ = scheduler.lock().await.add(job_initial).await;
+                scheduler.lock().await.add(job_initial).await.expect("Could not add job");
 
                 task::spawn(async move {
                     tokio::time::sleep(initial_delay).await;
@@ -145,7 +146,7 @@ impl TriggerPeriodic {
                     )
                     .expect("Could not create job");
 
-                    let _ = scheduler.lock().await.add(job_repeated).await;
+                    scheduler.lock().await.add(job_repeated).await.expect("Could not add job");
                 });
             }
             None => {
@@ -159,7 +160,7 @@ impl TriggerPeriodic {
                 )
                 .expect("Could not create job");
 
-                let _ = scheduler.lock().await.add(job_initial).await;
+                scheduler.lock().await.add(job_initial).await.expect("Could not add job");
 
                 task::spawn(async move {
                     tokio::time::sleep(initial_delay).await;
@@ -174,7 +175,7 @@ impl TriggerPeriodic {
                     )
                     .expect("Could not create job");
 
-                    let _ = scheduler.lock().await.add(job_repeated).await;
+                    scheduler.lock().await.add(job_repeated).await.expect("Could not add job");
                 });
             }
         };
