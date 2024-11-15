@@ -210,6 +210,7 @@ impl TriggerPeriodic {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn create_job_repeated_count(
         contexts: Arc<Mutex<JobContextStorage>>,
         interval: &Duration,

@@ -44,7 +44,7 @@ impl MqttHandler {
         }
     }
 
-    pub fn handle_event(event: MqttEvent, topics: &Vec<Topic>) {
+    pub fn handle_event(event: MqttEvent, topics: &[Topic]) {
         match event {
             MqttEvent::V5(event) => {
                 v5::handle_event(event, topics);
@@ -154,7 +154,7 @@ mod v311 {
     use crate::mqtt::mqtt_handler::MqttHandler;
     use crate::mqtt::QoS;
 
-    pub fn handle_event(event: Event, topics: &Vec<Topic>) {
+    pub fn handle_event(event: Event, topics: &[Topic]) {
         match event {
             Event::Incoming(event) => {
                 if let Incoming::Publish(value) = event {
