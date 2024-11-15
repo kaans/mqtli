@@ -10,7 +10,7 @@ use crate::mqtt::{MqttEvent, QoS};
 use crate::output::console::ConsoleOutput;
 use crate::output::file::FileOutput;
 use crate::output::OutputError;
-use crate::payload::{PayloadFormat, PayloadFormatTopic};
+use crate::payload::PayloadFormat;
 
 pub struct MqttHandler {
     task_handle: Option<JoinHandle<()>>,
@@ -56,25 +56,26 @@ impl MqttHandler {
     }
 
     fn handle_incoming_message(
-        topics: &Vec<Topic>,
-        value: Vec<u8>,
-        incoming_topic: &str,
+        topics: &[Topic],
+        incoming_value: Vec<u8>,
+        incoming_topic_str: &str,
         qos: QoS,
         retain: bool,
     ) {
-        for topic in topics {
-            if topic.topic() == incoming_topic && *topic.subscription().enabled() {
-                for output in topic.subscription().outputs() {
-                    let result = PayloadFormat::try_from(PayloadFormatTopic::new(
-                        topic.payload().clone(),
-                        value.clone(),
+        topics.iter()
+            .filter(|topic| topic.topic() == incoming_topic_str && *topic.subscription().enabled())
+            .for_each(|incoming_topic| {
+                for output in incoming_topic.subscription().outputs() {
+                    let result = PayloadFormat::try_from((
+                        incoming_topic.payload().clone(),
+                        incoming_value.clone()
                     ));
 
                     match result {
                         Ok(content) => {
                             if let Err(e) = Self::forward_to_output(
                                 output,
-                                incoming_topic,
+                                incoming_topic_str,
                                 content,
                                 qos,
                                 retain,
@@ -87,8 +88,7 @@ impl MqttHandler {
                         }
                     };
                 }
-            }
-        }
+            })
     }
 
     fn forward_to_output(
@@ -119,11 +119,11 @@ mod v5 {
     use crate::mqtt::mqtt_handler::MqttHandler;
     use crate::mqtt::QoS;
 
-    pub fn handle_event(event: Event, topics: &Vec<Topic>) {
+    pub fn handle_event(event: Event, topics: &[Topic]) {
         match event {
             Event::Incoming(event) => {
                 if let Incoming::Publish(value) = event {
-                    let incoming_topic = from_utf8(value.topic.as_ref()).unwrap();
+                    let incoming_topic = from_utf8(value.topic.as_ref()).expect("Topic is not in UTF-8 format");
 
                     info!(
                         "Incoming message on topic {} (QoS: {:?})",
