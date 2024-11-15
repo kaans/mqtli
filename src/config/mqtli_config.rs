@@ -376,7 +376,7 @@ pub enum MqttProtocol {
 
 #[derive(Clone, Debug, Getters, Validate)]
 #[validate(schema(function = "validate_credentials", skip_on_field_errors = false))]
-#[validate(schema(function = "validate_tls_client", skip_on_field_errors = false))]
+#[validate(schema(function = "validate_tls_client"))]
 pub struct MqttBrokerConnectArgs {
     #[validate(length(min = 1, message = "Hostname must be given"))]
     host: String,
