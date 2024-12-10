@@ -7,7 +7,7 @@ use crate::payload::{PayloadFormat, PayloadFormatError};
 
 #[derive(Clone, Debug)]
 pub struct PayloadFormatBase64 {
-    content: String,
+    content: Vec<u8>,
 }
 
 impl PayloadFormatBase64 {
@@ -23,7 +23,7 @@ impl PayloadFormatBase64 {
 /// Displays the base64 encoded content.
 impl Display for PayloadFormatBase64 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.content)
+        write!(f, "{}", Self::encode_to_base64(self.content.clone()))
     }
 }
 
@@ -31,7 +31,7 @@ impl Display for PayloadFormatBase64 {
 impl From<Vec<u8>> for PayloadFormatBase64 {
     fn from(value: Vec<u8>) -> Self {
         Self {
-            content: Self::encode_to_base64(value),
+            content: value,
         }
     }
 }
@@ -43,11 +43,11 @@ impl TryFrom<String> for PayloadFormatBase64 {
     type Error = PayloadFormatError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        if Self::decode_from_base64(&value).is_err() {
-            return Err(PayloadFormatError::ValueIsNotValidHex(value));
+        if let Ok(decoded) = Self::decode_from_base64(&value) {
+            Ok(Self { content: decoded })
+        } else {
+            Err(PayloadFormatError::ValueIsNotValidHex(value))
         }
-
-        Ok(Self { content: value })
     }
 }
 
@@ -66,23 +66,23 @@ impl TryFrom<&str> for PayloadFormatBase64 {
 ///
 /// # Examples
 /// ```
+/// use mqtlib::payload::base64::PayloadFormatBase64;
 /// let input = PayloadFormatBase64::from(String::from("SU5QVVQ="));
 /// let v: Vec<u8> = Vec::from(input);
 ///
 /// assert_eq!(vec![0x49, 0x4e, 0x50, 0x55, 0x54], v);
 /// ```
-impl TryFrom<PayloadFormatBase64> for Vec<u8> {
-    type Error = PayloadFormatError;
+impl From<PayloadFormatBase64> for Vec<u8> {
 
-    fn try_from(value: PayloadFormatBase64) -> Result<Self, Self::Error> {
-        PayloadFormatBase64::decode_from_base64(value.content)
+    fn from(value: PayloadFormatBase64) -> Self {
+        value.content
     }
 }
 
 /// Decodes into the string of the base64 encoded value.
 impl From<PayloadFormatBase64> for String {
     fn from(val: PayloadFormatBase64) -> Self {
-        val.content
+        PayloadFormatBase64::encode_to_base64(val.content)
     }
 }
 
@@ -155,6 +155,7 @@ mod tests {
     const INPUT_STRING: &str = "INPUT";
     const INPUT_STRING_BASE64: &str = "SU5QVVQ="; // INPUT
 
+
     fn get_input() -> Vec<u8> {
         INPUT_STRING.into()
     }
@@ -163,18 +164,22 @@ mod tests {
         INPUT_STRING_BASE64.into()
     }
 
+    fn get_input_base64_as_vec() -> Vec<u8> {
+        PayloadFormatBase64::decode_from_base64(INPUT_STRING_BASE64).unwrap()
+    }
+
     #[test]
     fn from_vec_u8() {
         let result = PayloadFormatBase64::from(get_input());
 
-        assert_eq!(INPUT_STRING_BASE64, result.content);
+        assert_eq!(get_input_base64_as_vec(), result.content);
     }
 
     #[test]
     fn from_valid_string() {
         let result = PayloadFormatBase64::try_from(get_input_base64()).unwrap();
 
-        assert_eq!(INPUT_STRING_BASE64, result.content);
+        assert_eq!(get_input_base64_as_vec(), result.content);
     }
 
     #[test]
@@ -188,8 +193,8 @@ mod tests {
     fn to_vec_u8_into() {
         let input = PayloadFormatBase64::from(get_input());
 
-        let result: Vec<u8> = input.try_into().unwrap();
-        assert_eq!(INPUT_STRING.as_bytes(), result.as_slice());
+        let result: Vec<u8> = input.into();
+        assert_eq!(get_input_base64_as_vec(), result.as_slice());
     }
 
     #[test]
@@ -197,7 +202,7 @@ mod tests {
         let input = PayloadFormatBase64::from(get_input());
 
         let result: Vec<u8> = Vec::try_from(input).unwrap();
-        assert_eq!(INPUT_STRING.as_bytes(), result.as_slice());
+        assert_eq!(get_input_base64_as_vec(), result.as_slice());
     }
 
     #[test]
@@ -221,7 +226,7 @@ mod tests {
         let input = PayloadFormatText::try_from(get_input()).unwrap();
         let result = PayloadFormatBase64::try_from(PayloadFormat::Text(input)).unwrap();
 
-        assert_eq!(INPUT_STRING_BASE64, result.content);
+        assert_eq!(get_input_base64_as_vec(), result.content);
     }
 
     #[test]
@@ -229,7 +234,7 @@ mod tests {
         let input = PayloadFormatRaw::from(get_input());
         let result = PayloadFormatBase64::try_from(PayloadFormat::Raw(input)).unwrap();
 
-        assert_eq!(INPUT_STRING_BASE64, result.content);
+        assert_eq!(get_input_base64_as_vec(), result.content);
     }
 
     #[test]
@@ -237,7 +242,7 @@ mod tests {
         let input = PayloadFormatHex::from(get_input());
         let result = PayloadFormatBase64::try_from(PayloadFormat::Hex(input)).unwrap();
 
-        assert_eq!(INPUT_STRING_BASE64, result.content);
+        assert_eq!(get_input_base64_as_vec(), result.content);
     }
 
     #[test]
@@ -245,7 +250,7 @@ mod tests {
         let input = PayloadFormatBase64::from(get_input());
         let result = PayloadFormatBase64::try_from(PayloadFormat::Base64(input)).unwrap();
 
-        assert_eq!(INPUT_STRING_BASE64, result.content);
+        assert_eq!(get_input_base64_as_vec(), result.content);
     }
 
     #[test]
@@ -257,7 +262,7 @@ mod tests {
         .unwrap();
         let result = PayloadFormatBase64::try_from(PayloadFormat::Json(input)).unwrap();
 
-        assert_eq!(INPUT_STRING_BASE64, result.content);
+        assert_eq!(get_input_base64_as_vec(), result.content);
     }
 
     #[test]
@@ -269,6 +274,6 @@ mod tests {
         .unwrap();
         let result = PayloadFormatBase64::try_from(PayloadFormat::Yaml(input)).unwrap();
 
-        assert_eq!(INPUT_STRING_BASE64, result.content);
+        assert_eq!(get_input_base64_as_vec(), result.content);
     }
 }
