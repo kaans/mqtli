@@ -4,11 +4,15 @@ use std::ops::Deref;
 use std::string::FromUtf8Error;
 
 use crate::config::PayloadText;
-use crate::payload::{convert_raw_type, PayloadFormat, PayloadFormatError};
+use crate::payload::{PayloadFormat, PayloadFormatError};
 
+/// Represents a lossy UTF-8 encoded String.
+/// Any vector of u8 can be used to construct this String.
+/// Non-UTF-8 characters will be ignored when rendering the
+/// underlying vector as UTF-8.
 #[derive(Clone, Debug)]
 pub struct PayloadFormatText {
-    content: String,
+    content: Vec<u8>,
 }
 
 impl PayloadFormatText {
@@ -16,26 +20,23 @@ impl PayloadFormatText {
         value.into_bytes()
     }
 
-    fn encode_to_utf8(value: Vec<u8>) -> Result<String, FromUtf8Error> {
-        String::from_utf8(value)
+    fn encode_to_utf8(value: Vec<u8>) -> String {
+        String::from_utf8_lossy(value.as_slice()).to_string()
     }
 }
 
 /// Displays the UTF-8 encoded content.
 impl Display for PayloadFormatText {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.content)
+        write!(f, "{}", Self::encode_to_utf8(self.content.clone()))
     }
 }
 
 /// Encodes the given bytes as UTF-8 string.
-impl TryFrom<Vec<u8>> for PayloadFormatText {
-    type Error = PayloadFormatError;
+impl From<Vec<u8>> for PayloadFormatText {
 
-    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        Ok(Self {
-            content: Self::encode_to_utf8(value)?,
-        })
+    fn from(value: Vec<u8>) -> Self {
+        Self { content : value }
     }
 }
 
@@ -43,7 +44,9 @@ impl TryFrom<Vec<u8>> for PayloadFormatText {
 /// The value is not modified, only moved to the new instance.
 impl From<String> for PayloadFormatText {
     fn from(val: String) -> Self {
-        Self { content: val }
+        Self {
+            content: Self::decode_from_utf8(val),
+        }
     }
 }
 
@@ -59,6 +62,7 @@ impl From<&str> for PayloadFormatText {
 ///
 /// # Examples
 /// ```
+/// use mqtlib::payload::text::PayloadFormatText;
 /// let input = PayloadFormatText::from(String::from("INPUT"));
 /// let v: Vec<u8> = Vec::from(input);
 ///
@@ -66,13 +70,13 @@ impl From<&str> for PayloadFormatText {
 /// ```
 impl From<PayloadFormatText> for Vec<u8> {
     fn from(val: PayloadFormatText) -> Self {
-        PayloadFormatText::decode_from_utf8(<PayloadFormatText as Into<String>>::into(val))
+        val.content
     }
 }
 
 impl From<PayloadFormatText> for String {
     fn from(val: PayloadFormatText) -> Self {
-        val.content
+        PayloadFormatText::encode_to_utf8(val.content)
     }
 }
 
@@ -99,21 +103,21 @@ impl TryFrom<(PayloadFormat, &PayloadText)> for PayloadFormatText {
         match value {
             PayloadFormat::Text(value) => Ok(value),
             PayloadFormat::Raw(value) => Ok(Self {
-                content: convert_raw_type(options.raw_as_type(), value.into()),
+                content: value.into(),
             }),
             PayloadFormat::Protobuf(value) => Ok(Self {
-                content: print_to_string_pretty(value.content().deref()),
+                content: value.try_into()?,
             }),
             PayloadFormat::Hex(value) => {
-                let a: Vec<u8> = value.try_into()?;
+                let a: Vec<u8> = value.into();
                 Ok(Self {
-                    content: convert_raw_type(options.raw_as_type(), a),
+                    content: a,
                 })
             }
             PayloadFormat::Base64(value) => {
-                let a: Vec<u8> = value.try_into()?;
+                let a: Vec<u8> = value.into();
                 Ok(Self {
-                    content: convert_raw_type(options.raw_as_type(), a),
+                    content: a,
                 })
             }
             PayloadFormat::Json(value) => {
@@ -182,28 +186,28 @@ mod tests {
     fn from_valid_vec_u8() {
         let result = PayloadFormatText::try_from(get_input()).unwrap();
 
-        assert_eq!(INPUT_STRING.to_owned(), result.content);
+        assert_eq!(get_input(), result.content);
     }
 
     #[test]
     fn from_invalid_vec_u8() {
         let result = PayloadFormatText::try_from(vec![0xc3, 0x28]);
 
-        assert!(result.is_err());
+        assert!(result.is_ok());
     }
 
     #[test]
     fn from_string() {
         let result = PayloadFormatText::from(INPUT_STRING.to_string());
 
-        assert_eq!(INPUT_STRING.to_owned(), result.content);
+        assert_eq!(get_input(), result.content);
     }
 
     #[test]
     fn from_string_ref() {
         let result = PayloadFormatText::from(INPUT_STRING);
 
-        assert_eq!(INPUT_STRING.to_owned(), result.content);
+        assert_eq!(get_input(), result.content);
     }
 
     #[test]
@@ -243,7 +247,7 @@ mod tests {
         let input = PayloadFormatText::try_from(get_input()).unwrap();
         let result = PayloadFormatText::try_from(PayloadFormat::Text(input)).unwrap();
 
-        assert_eq!(INPUT_STRING.to_owned(), result.content);
+        assert_eq!(get_input(), result.content);
     }
 
     #[test]
@@ -252,7 +256,7 @@ mod tests {
         let options = PayloadText::default();
         let result = PayloadFormatText::try_from((PayloadFormat::Raw(input), &options)).unwrap();
 
-        assert_eq!(INPUT_STRING_HEX.to_string(), result.content);
+        assert_eq!(get_input(), result.content);
     }
 
     #[test]
@@ -261,7 +265,7 @@ mod tests {
         let options = PayloadText::new(PayloadOptionRawFormat::Base64);
         let result = PayloadFormatText::try_from((PayloadFormat::Raw(input), &options)).unwrap();
 
-        assert_eq!(INPUT_STRING_BASE64.to_string(), result.content);
+        assert_eq!(get_input(), result.content);
     }
 
     #[test]
@@ -270,7 +274,7 @@ mod tests {
         let options = PayloadText::new(PayloadOptionRawFormat::Utf8);
         let result = PayloadFormatText::try_from((PayloadFormat::Raw(input), &options)).unwrap();
 
-        assert_eq!(INPUT_STRING.to_string(), result.content);
+        assert_eq!(get_input(), result.content);
     }
 
     #[test]
@@ -278,7 +282,7 @@ mod tests {
         let input = PayloadFormatHex::try_from(INPUT_STRING_HEX.to_owned()).unwrap();
         let result = PayloadFormatText::try_from(PayloadFormat::Hex(input)).unwrap();
 
-        assert_eq!(INPUT_STRING_HEX.to_owned(), result.content);
+        assert_eq!(get_input(), result.content);
     }
 
     #[test]
@@ -286,7 +290,7 @@ mod tests {
         let input = PayloadFormatBase64::try_from(INPUT_STRING_BASE64.to_owned()).unwrap();
         let result = PayloadFormatText::try_from(PayloadFormat::Base64(input)).unwrap();
 
-        assert_eq!(INPUT_STRING_HEX.to_owned(), result.content);
+        assert_eq!(get_input(), result.content);
     }
 
     #[test]
@@ -298,7 +302,7 @@ mod tests {
         ))
         .unwrap();
 
-        assert_eq!(INPUT_STRING_BASE64.to_owned(), result.content);
+        assert_eq!(get_input(), result.content);
     }
 
     #[test]
@@ -310,7 +314,7 @@ mod tests {
         ))
         .unwrap();
 
-        assert_eq!(INPUT_STRING_BASE64.to_owned(), result.content);
+        assert_eq!(get_input(), result.content);
     }
 
     #[test]
@@ -322,7 +326,7 @@ mod tests {
         ))
         .unwrap();
 
-        assert_eq!(INPUT_STRING.to_owned(), result.content);
+        assert_eq!(get_input(), result.content);
     }
 
     #[test]
@@ -334,7 +338,7 @@ mod tests {
         ))
         .unwrap();
 
-        assert_eq!(INPUT_STRING.to_owned(), result.content);
+        assert_eq!(get_input(), result.content);
     }
 
     #[test]
@@ -346,7 +350,7 @@ mod tests {
         .unwrap();
         let result = PayloadFormatText::try_from(PayloadFormat::Json(input)).unwrap();
 
-        assert_eq!(INPUT_STRING.to_owned(), result.content);
+        assert_eq!(get_input(), result.content);
     }
 
     #[test]
@@ -356,7 +360,7 @@ mod tests {
                 .unwrap();
         let result = PayloadFormatText::try_from(PayloadFormat::Yaml(input)).unwrap();
 
-        assert_eq!(INPUT_STRING.to_owned(), result.content);
+        assert_eq!(get_input(), result.content);
     }
 
     #[test]
@@ -368,6 +372,6 @@ mod tests {
         );
         let result = PayloadFormatText::try_from(PayloadFormat::Protobuf(input.unwrap())).unwrap();
 
-        assert_eq!("distance: 32\ninside {\n  kind: \"kindof\"\n}\nposition: POSITION_INSIDE\nraw: \"\\303(\"\n".to_owned(), result.content);
+        assert_eq!(hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(), result.content);
     }
 }
