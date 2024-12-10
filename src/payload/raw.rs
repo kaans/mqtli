@@ -15,6 +15,7 @@ impl From<Vec<u8>> for PayloadFormatRaw {
 ///
 /// # Examples
 /// ```
+/// use mqtlib::payload::raw::PayloadFormatRaw;
 /// let input = PayloadFormatRaw::from(vec![0x49, 0x4e, 0x50, 0x55, 0x54]);
 /// let v: Vec<u8> = Vec::from(input);
 ///
@@ -41,11 +42,11 @@ impl TryFrom<PayloadFormat> for PayloadFormatRaw {
                 Ok(Self::from(a))
             }
             PayloadFormat::Hex(value) => {
-                let a: Vec<u8> = value.try_into()?;
+                let a: Vec<u8> = value.into();
                 Ok(Self::from(a))
             }
             PayloadFormat::Base64(value) => {
-                let a: Vec<u8> = value.try_into()?;
+                let a: Vec<u8> = value.into();
                 Ok(Self::from(a))
             }
             PayloadFormat::Json(value) => {

@@ -15,7 +15,7 @@ impl PayloadFormatBase64 {
         Ok(general_purpose::STANDARD.decode(value)?)
     }
 
-    fn encode_to_base64(value: Vec<u8>) -> String {
+    fn encode_to_base64(value: &Vec<u8>) -> String {
         general_purpose::STANDARD.encode(value)
     }
 }
@@ -23,7 +23,7 @@ impl PayloadFormatBase64 {
 /// Displays the base64 encoded content.
 impl Display for PayloadFormatBase64 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", Self::encode_to_base64(self.content.clone()))
+        write!(f, "{}", Self::encode_to_base64(&self.content.clone()))
     }
 }
 
@@ -43,8 +43,8 @@ impl TryFrom<String> for PayloadFormatBase64 {
     type Error = PayloadFormatError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        if let Ok(decoded) = Self::decode_from_base64(&value) {
-            Ok(Self { content: decoded })
+        if let Ok(value) = Self::decode_from_base64(&value) {
+            Ok(Self { content: value })
         } else {
             Err(PayloadFormatError::ValueIsNotValidHex(value))
         }
@@ -79,10 +79,10 @@ impl From<PayloadFormatBase64> for Vec<u8> {
     }
 }
 
-/// Decodes into the string of the base64 encoded value.
+/// Encodes into a string of the base64 encoded value.
 impl From<PayloadFormatBase64> for String {
     fn from(val: PayloadFormatBase64) -> Self {
-        PayloadFormatBase64::encode_to_base64(val.content)
+        PayloadFormatBase64::encode_to_base64(&val.content)
     }
 }
 
@@ -105,7 +105,7 @@ impl TryFrom<PayloadFormat> for PayloadFormatBase64 {
             }
             PayloadFormat::Base64(value) => Ok(value),
             PayloadFormat::Hex(value) => {
-                let a: Vec<u8> = value.try_into()?;
+                let a: Vec<u8> = value.into();
                 Ok(Self::from(a))
             }
             PayloadFormat::Json(value) => {
