@@ -127,8 +127,8 @@ impl TryInto<Vec<u8>> for PayloadFormat {
             PayloadFormat::Text(value) => Ok(value.into()),
             PayloadFormat::Raw(value) => Ok(value.into()),
             PayloadFormat::Protobuf(value) => Ok(value.try_into()?),
-            PayloadFormat::Hex(value) => Ok(value.try_into()?),
-            PayloadFormat::Base64(value) => Ok(value.try_into()?),
+            PayloadFormat::Hex(value) => Ok(value.into()),
+            PayloadFormat::Base64(value) => Ok(value.into()),
             PayloadFormat::Json(value) => Ok(value.into()),
             PayloadFormat::Yaml(value) => value.try_into(),
         }
@@ -161,7 +161,7 @@ impl TryFrom<(PayloadFormat, &PayloadType)> for PayloadFormat {
     fn try_from((value, payload_type): (PayloadFormat, &PayloadType)) -> Result<Self, Self::Error> {
         Ok(match payload_type {
             PayloadType::Text(options) => {
-                PayloadFormat::Text(PayloadFormatText::try_from((value, options))?)
+                PayloadFormat::Text(PayloadFormatText::try_from(value)?)
             }
             PayloadType::Json(options) => {
                 PayloadFormat::Json(PayloadFormatJson::try_from((value, options))?)
@@ -187,7 +187,7 @@ impl TryFrom<(PayloadType, Vec<u8>)> for PayloadFormat {
     fn try_from((payload_type, content): (PayloadType, Vec<u8>)) -> Result<Self, Self::Error> {
         Ok(match payload_type {
             PayloadType::Text(_options) => {
-                PayloadFormat::Text(PayloadFormatText::try_from(content)?)
+                PayloadFormat::Text(PayloadFormatText::from(content))
             }
             PayloadType::Protobuf(options) => PayloadFormat::Protobuf(PayloadFormatProtobuf::new(
                 content,
@@ -217,7 +217,7 @@ impl PayloadFormat {
         let content = match input_type {
             PublishInputType::Text(input) => {
                 let c = read_input_type_content_path(input)?;
-                PayloadFormat::Text(PayloadFormatText::try_from(c)?)
+                PayloadFormat::Text(PayloadFormatText::from(c))
             }
             PublishInputType::Raw(input) => {
                 let c = read_from_path(input.path())?;

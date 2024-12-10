@@ -53,10 +53,10 @@ impl PayloadFormatProtobuf {
             }
             PayloadFormat::Protobuf(value) => value.content,
             PayloadFormat::Hex(value) => {
-                Self::convert_from_vec(Vec::try_from(value)?, definition_file, message_name)?
+                Self::convert_from_vec(Vec::from(value), definition_file, message_name)?
             }
             PayloadFormat::Base64(value) => {
-                Self::convert_from_vec(Vec::try_from(value)?, definition_file, message_name)?
+                Self::convert_from_vec(Vec::from(value), definition_file, message_name)?
             }
             PayloadFormat::Json(value) => {
                 Self::convert_from_json(value, definition_file, message_name)?
