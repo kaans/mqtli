@@ -4,15 +4,14 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::string::FromUtf8Error;
 
-use ::base64::engine::general_purpose;
-use ::base64::{DecodeError, Engine};
+use ::base64::DecodeError;
 use ::hex::FromHexError;
 use log::error;
 use protobuf_json_mapping::PrintError;
 use thiserror::Error;
 
 use crate::config::{
-    PayloadOptionRawFormat, PayloadType, PublishInputType, PublishInputTypeContentPath,
+    PayloadType, PublishInputType, PublishInputTypeContentPath,
 };
 use crate::payload::base64::PayloadFormatBase64;
 use crate::payload::hex::PayloadFormatHex;
@@ -164,10 +163,10 @@ impl TryFrom<(PayloadFormat, &PayloadType)> for PayloadFormat {
                 PayloadFormat::Text(PayloadFormatText::try_from(value)?)
             }
             PayloadType::Json(options) => {
-                PayloadFormat::Json(PayloadFormatJson::try_from((value, options))?)
+                PayloadFormat::Json(PayloadFormatJson::try_from(value)?)
             }
             PayloadType::Yaml(options) => {
-                PayloadFormat::Yaml(PayloadFormatYaml::try_from((value, options))?)
+                PayloadFormat::Yaml(PayloadFormatYaml::try_from(value)?)
             }
             PayloadType::Hex(_options) => PayloadFormat::Hex(PayloadFormatHex::try_from(value)?),
             PayloadType::Base64(_options) => {
@@ -302,12 +301,4 @@ fn read_from_path(path: &PathBuf) -> Result<Vec<u8>, PayloadFormatError> {
         ));
     };
     Ok(buf)
-}
-
-fn convert_raw_type(option: &PayloadOptionRawFormat, value: Vec<u8>) -> String {
-    match option {
-        PayloadOptionRawFormat::Hex => ::hex::encode(value),
-        PayloadOptionRawFormat::Base64 => general_purpose::STANDARD.encode(value),
-        PayloadOptionRawFormat::Utf8 => String::from_utf8_lossy(value.as_slice()).to_string(),
-    }
 }

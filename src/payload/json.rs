@@ -5,8 +5,7 @@ use derive_getters::Getters;
 use protobuf_json_mapping::print_to_string;
 use serde_json::{from_slice, Value};
 
-use crate::config::PayloadJson;
-use crate::payload::{convert_raw_type, PayloadFormat, PayloadFormatError};
+use crate::payload::{PayloadFormat, PayloadFormatError};
 
 /// This payload format contains a JSON payload. Its value is encoded as
 /// `serde_json::Value`.
@@ -16,7 +15,7 @@ use crate::payload::{convert_raw_type, PayloadFormat, PayloadFormatError};
 /// the value: `{ "content": "..." }`
 #[derive(Clone, Debug, Default, Getters)]
 pub struct PayloadFormatJson {
-    content: Value
+    content: Value,
 }
 
 impl PayloadFormatJson {
@@ -55,7 +54,7 @@ impl TryFrom<Vec<u8>> for PayloadFormatJson {
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
         Ok(Self {
-            content: Self::encode_to_json(value)?
+            content: Self::encode_to_json(value)?,
         })
     }
 }
@@ -117,7 +116,7 @@ impl From<Value> for PayloadFormatJson {
 /// ```
 impl From<PayloadFormatJson> for Vec<u8> {
     fn from(val: PayloadFormatJson) -> Self {
-        <PayloadFormatJson as Into<String>>::into(val).into_bytes()
+        PayloadFormatJson::decode_from_json_payload(&val).into_bytes()
     }
 }
 
@@ -153,65 +152,32 @@ impl From<PayloadFormatJson> for String {
 /// | Base64     | `{ "content": "..." }` |
 /// | JSON     | the incoming value itself (no conversion is done) |
 /// | YAML     | The structure of the YAML input as JSON |
-///
-/// # Examples
-///
-/// ```
-/// use mqtlib::payload::json::PayloadFormatJson;
-/// use mqtlib::payload::PayloadFormat;
-/// use mqtlib::payload::text::PayloadFormatText;
-///
-/// let input = PayloadFormat::Text(PayloadFormatText::from("INPUT"));
-///
-/// let payload_json = PayloadFormatJson::try_from(input).unwrap();
-///
-/// assert_eq!("INPUT", payload_json.content().get("content").unwrap().as_str().unwrap());
-/// ```
 impl TryFrom<PayloadFormat> for PayloadFormatJson {
     type Error = PayloadFormatError;
 
     fn try_from(value: PayloadFormat) -> Result<Self, Self::Error> {
-        Self::try_from((value, &PayloadJson::default()))
-    }
-}
-
-impl From<PayloadFormatJson> for PayloadFormat {
-    fn from(value: PayloadFormatJson) -> Self {
-        PayloadFormat::Json(value)
-    }
-}
-
-impl TryFrom<(PayloadFormat, &PayloadJson)> for PayloadFormatJson {
-    type Error = PayloadFormatError;
-
-    fn try_from((value, options): (PayloadFormat, &PayloadJson)) -> Result<Self, Self::Error> {
-        fn encode_to_json_with_string_content(
-            value: String,
-        ) -> Result<PayloadFormatJson, PayloadFormatError> {
-            Ok(PayloadFormatJson::from(PayloadFormatJson::encode_to_json(
-                format!("{{\"content\": \"{}\"}}", value).into_bytes(),
-            )?))
-        }
-
         match value {
-            PayloadFormat::Text(value) => encode_to_json_with_string_content(value.into()),
-            PayloadFormat::Raw(value) => encode_to_json_with_string_content(convert_raw_type(
-                options.raw_as_type(),
-                value.into(),
-            )),
+            PayloadFormat::Text(value) => PayloadFormatJson::try_from(Vec::<u8>::from(value)),
+            PayloadFormat::Raw(value) => PayloadFormatJson::try_from(Vec::<u8>::from(value)),
             PayloadFormat::Protobuf(value) => {
                 let json_string = print_to_string(value.content().deref())?;
                 Ok(PayloadFormatJson::from(PayloadFormatJson::encode_to_json(
                     json_string.into_bytes(),
                 )?))
             }
-            PayloadFormat::Hex(value) => encode_to_json_with_string_content(value.into()),
-            PayloadFormat::Base64(value) => encode_to_json_with_string_content(value.into()),
+            PayloadFormat::Hex(value) => PayloadFormatJson::try_from(Vec::<u8>::from(value)),
+            PayloadFormat::Base64(value) => PayloadFormatJson::try_from(Vec::<u8>::from(value)),
             PayloadFormat::Json(value) => Ok(value),
             PayloadFormat::Yaml(value) => Ok(Self {
                 content: serde_yaml::from_value::<Value>(value.content().clone())?,
             }),
         }
+    }
+}
+
+impl From<PayloadFormatJson> for PayloadFormat {
+    fn from(value: PayloadFormatJson) -> Self {
+        PayloadFormat::Json(value)
     }
 }
 
@@ -222,7 +188,6 @@ mod tests {
 
     use serde_json::from_str;
 
-    use crate::config::PayloadOptionRawFormat;
     use crate::payload::base64::PayloadFormatBase64;
     use crate::payload::hex::PayloadFormatHex;
     use crate::payload::json::PayloadFormatJson;
@@ -234,8 +199,8 @@ mod tests {
     use super::*;
 
     const INPUT_STRING: &str = "INPUT";
-    const INPUT_STRING_HEX: &str = "494e505554";
-    const INPUT_STRING_BASE64: &str = "SU5QVVQ=";
+    const INPUT_STRING_HEX: &str = "7b22636f6e74656e74223a22494e505554227d";
+    const INPUT_STRING_BASE64: &str = "eyJjb250ZW50IjoiSU5QVVQifQ==";
     const INPUT_STRING_PROTOBUF_AS_HEX: &str = "082012080a066b696e646f6618012202c328";
     const MESSAGE_NAME: &str = "Response";
 
@@ -243,90 +208,71 @@ mod tests {
         static ref INPUT_PATH_MESSAGE: PathBuf = PathBuf::from("test/data/message.proto");
     }
 
-    fn get_input() -> Vec<u8> {
-        get_input_json(INPUT_STRING).into()
+    fn get_input_json_vec() -> Vec<u8> {
+        get_input_json_string(INPUT_STRING).into()
     }
 
-    fn get_input_json(value: &str) -> String {
+    fn get_input_json_string(value: &str) -> String {
         format!("{{\"content\":\"{}\"}}", value)
     }
 
-    fn get_json_value(value: &str) -> Value {
-        from_str(get_input_json(value).as_str()).unwrap()
+    fn get_input_json_value(value: &str) -> Value {
+        from_str(get_input_json_string(value).as_str()).unwrap()
     }
 
     #[test]
     fn from_vec_u8() {
-        let result = PayloadFormatJson::try_from(get_input()).unwrap();
+        let result = PayloadFormatJson::try_from(get_input_json_vec()).unwrap();
 
-        assert_eq!(get_json_value(INPUT_STRING), result.content);
+        assert_eq!(get_input_json_value(INPUT_STRING), result.content);
     }
 
     #[test]
     fn to_vec_u8_into() {
-        let input = PayloadFormatJson::try_from(get_input()).unwrap();
+        let input = PayloadFormatJson::try_from(get_input_json_vec()).unwrap();
 
         let result: Vec<u8> = input.into();
-        assert_eq!(get_input_json(INPUT_STRING).as_bytes(), result.as_slice());
+        assert_eq!(get_input_json_vec(), result.as_slice());
     }
 
     #[test]
     fn to_vec_u8_from() {
-        let input = PayloadFormatJson::try_from(get_input()).unwrap();
+        let input = PayloadFormatJson::try_from(get_input_json_vec()).unwrap();
 
         let result: Vec<u8> = Vec::from(input);
-        assert_eq!(get_input_json(INPUT_STRING).as_bytes(), result.as_slice());
+        assert_eq!(get_input_json_vec(), result.as_slice());
     }
 
     #[test]
     fn to_string_into() {
-        let input = PayloadFormatJson::try_from(get_input()).unwrap();
+        let input = PayloadFormatJson::try_from(get_input_json_vec()).unwrap();
 
         let result: String = input.into();
-        assert_eq!(get_input_json(INPUT_STRING), result.as_str());
+        assert_eq!(get_input_json_string(INPUT_STRING), result.as_str());
     }
 
     #[test]
     fn to_string_from() {
-        let input = PayloadFormatJson::try_from(get_input()).unwrap();
+        let input = PayloadFormatJson::try_from(get_input_json_vec()).unwrap();
 
         let result: String = String::from(input);
-        assert_eq!(get_input_json(INPUT_STRING), result.as_str());
+        assert_eq!(get_input_json_string(INPUT_STRING), result.as_str());
     }
 
     #[test]
     fn from_text() {
-        let input = PayloadFormatText::from(INPUT_STRING.to_string());
+        let input = PayloadFormatText::from(get_input_json_string(INPUT_STRING));
         let result = PayloadFormatJson::try_from(PayloadFormat::Text(input)).unwrap();
 
-        assert_eq!(get_json_value(INPUT_STRING), result.content);
+        assert_eq!(get_input_json_value(INPUT_STRING), result.content);
     }
 
     #[test]
-    fn from_raw_as_hex() {
-        let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
-        let options = PayloadJson::default();
-        let result = PayloadFormatJson::try_from((PayloadFormat::Raw(input), &options)).unwrap();
+    fn from_raw() {
+        let input = PayloadFormatRaw::try_from(get_input_json_vec()).unwrap();
+        let result = PayloadFormatJson::try_from(PayloadFormat::Raw(input)).unwrap();
 
-        assert_eq!(get_json_value(INPUT_STRING_HEX), result.content);
-    }
-
-    #[test]
-    fn from_raw_as_base64() {
-        let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
-        let options = PayloadJson::new(PayloadOptionRawFormat::Base64);
-        let result = PayloadFormatJson::try_from((PayloadFormat::Raw(input), &options)).unwrap();
-
-        assert_eq!(get_json_value(INPUT_STRING_BASE64), result.content);
-    }
-
-    #[test]
-    fn from_raw_as_utf8() {
-        let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
-        let options = PayloadJson::new(PayloadOptionRawFormat::Utf8);
-        let result = PayloadFormatJson::try_from((PayloadFormat::Raw(input), &options)).unwrap();
-
-        assert_eq!(get_json_value(INPUT_STRING), result.content);
+        assert_eq!(get_input_json_value(INPUT_STRING), result.content);
     }
 
     #[test]
@@ -334,7 +280,7 @@ mod tests {
         let input = PayloadFormatHex::try_from(INPUT_STRING_HEX.to_owned()).unwrap();
         let result = PayloadFormatJson::try_from(PayloadFormat::Hex(input)).unwrap();
 
-        assert_eq!(get_json_value(INPUT_STRING_HEX), result.content);
+        assert_eq!(get_input_json_value(INPUT_STRING), result.content);
     }
 
     #[test]
@@ -342,16 +288,17 @@ mod tests {
         let input = PayloadFormatBase64::try_from(INPUT_STRING_BASE64.to_owned()).unwrap();
         let result = PayloadFormatJson::try_from(PayloadFormat::Base64(input)).unwrap();
 
-        assert_eq!(get_json_value(INPUT_STRING_BASE64), result.content);
+        assert_eq!(get_input_json_value(INPUT_STRING), result.content);
     }
 
     #[test]
     fn from_json() {
         let input =
-            PayloadFormatJson::try_from(Vec::<u8>::from(get_input_json(INPUT_STRING))).unwrap();
+            PayloadFormatJson::try_from(Vec::<u8>::from(get_input_json_string(INPUT_STRING)))
+                .unwrap();
         let result = PayloadFormatJson::try_from(PayloadFormat::Json(input)).unwrap();
 
-        assert_eq!(get_json_value(INPUT_STRING), result.content);
+        assert_eq!(get_input_json_value(INPUT_STRING), result.content);
     }
 
     #[test]

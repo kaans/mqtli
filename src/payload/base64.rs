@@ -46,7 +46,7 @@ impl TryFrom<String> for PayloadFormatBase64 {
         if let Ok(value) = Self::decode_from_base64(&value) {
             Ok(Self { content: value })
         } else {
-            Err(PayloadFormatError::ValueIsNotValidHex(value))
+            Err(PayloadFormatError::ValueIsNotValidBase64(value))
         }
     }
 }
