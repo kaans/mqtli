@@ -67,7 +67,7 @@ impl MqttHandler {
             .for_each(|incoming_topic| {
                 for output in incoming_topic.subscription().outputs() {
                     let result = PayloadFormat::try_from((
-                        incoming_topic.payload().clone(),
+                        incoming_topic.payload_type().clone(),
                         incoming_value.clone()
                     ));
 

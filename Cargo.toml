@@ -45,3 +45,4 @@ uuid = { version = "1.11.0", features = ["v4"] }
 futures = "0.3.31"
 colored = "2.1.0"
 strum_macros = "0.26.4"
+jsonpath-rust = "0.7.3"
