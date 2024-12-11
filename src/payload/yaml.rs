@@ -2,11 +2,10 @@ use std::fmt::{Display, Formatter};
 
 use derive_getters::Getters;
 use log::error;
-use serde_yaml::{from_slice, from_str, Value};
+use serde_yaml::{from_slice, Value};
 
-use crate::config::PayloadYaml;
 use crate::payload::json::PayloadFormatJson;
-use crate::payload::{convert_raw_type, PayloadFormat, PayloadFormatError};
+use crate::payload::{PayloadFormat, PayloadFormatError};
 
 #[derive(Clone, Debug, Getters)]
 pub struct PayloadFormatYaml {
@@ -83,32 +82,17 @@ impl TryFrom<PayloadFormat> for PayloadFormatYaml {
     type Error = PayloadFormatError;
 
     fn try_from(value: PayloadFormat) -> Result<Self, Self::Error> {
-        Self::try_from((value, &PayloadYaml::default()))
-    }
-}
-
-impl TryFrom<(PayloadFormat, &PayloadYaml)> for PayloadFormatYaml {
-    type Error = PayloadFormatError;
-
-    fn try_from((value, options): (PayloadFormat, &PayloadYaml)) -> Result<Self, Self::Error> {
-        fn convert_from_value(value: String) -> Result<PayloadFormatYaml, PayloadFormatError> {
-            let yaml: Value = from_str(format!("content: {}", value).as_str())?;
-            Ok(PayloadFormatYaml::from(yaml))
-        }
-
         match value {
-            PayloadFormat::Text(value) => convert_from_value(value.into()),
-            PayloadFormat::Raw(value) => {
-                convert_from_value(convert_raw_type(options.raw_as_type(), value.into()))
-            }
+            PayloadFormat::Text(value) => PayloadFormatYaml::try_from(Vec::<u8>::from(value)),
+            PayloadFormat::Raw(value) => PayloadFormatYaml::try_from(Vec::<u8>::from(value)),
             PayloadFormat::Protobuf(value) => {
                 let json = PayloadFormatJson::try_from(PayloadFormat::Protobuf(value))?;
                 Ok(Self {
                     content: serde_json::from_value::<Value>(json.content().clone())?,
                 })
             }
-            PayloadFormat::Hex(value) => convert_from_value(value.into()),
-            PayloadFormat::Base64(value) => convert_from_value(value.into()),
+            PayloadFormat::Hex(value) => PayloadFormatYaml::try_from(Vec::<u8>::from(value)),
+            PayloadFormat::Base64(value) => PayloadFormatYaml::try_from(Vec::<u8>::from(value)),
             PayloadFormat::Yaml(value) => Ok(value),
             PayloadFormat::Json(value) => Ok(Self {
                 content: serde_json::from_value::<Value>(value.content().clone())?,
@@ -119,7 +103,6 @@ impl TryFrom<(PayloadFormat, &PayloadYaml)> for PayloadFormatYaml {
 
 #[cfg(test)]
 mod tests {
-    use crate::config::PayloadOptionRawFormat;
     use lazy_static::lazy_static;
     use serde_yaml::from_str;
     use std::path::PathBuf;
@@ -135,8 +118,8 @@ mod tests {
     use super::*;
 
     const INPUT_STRING: &str = "INPUT";
-    const INPUT_STRING_HEX: &str = "494e505554";
-    const INPUT_STRING_BASE64: &str = "SU5QVVQ=";
+    const INPUT_STRING_HEX: &str = "636f6e74656e743a20494e505554";
+    const INPUT_STRING_BASE64: &str = "Y29udGVudDogSU5QVVQ=";
     const INPUT_STRING_PROTOBUF_AS_HEX: &str = "082012080a066b696e646f6618012202c328";
     const MESSAGE_NAME: &str = "Response";
 
@@ -144,90 +127,71 @@ mod tests {
         static ref INPUT_PATH_MESSAGE: PathBuf = PathBuf::from("test/data/message.proto");
     }
 
-    fn get_input() -> Vec<u8> {
-        get_input_yaml(INPUT_STRING).into()
+    fn get_input_yaml_vec() -> Vec<u8> {
+        get_input_yaml_string().into()
     }
 
-    fn get_input_yaml(value: &str) -> String {
-        format!("content: {}\n", value)
+    fn get_input_yaml_string() -> String {
+        format!("content: {}\n", INPUT_STRING)
     }
 
-    fn get_yaml_value(value: &str) -> Value {
-        from_str(get_input_yaml(value).as_str()).unwrap()
+    fn get_input_yaml_value() -> Value {
+        from_str(get_input_yaml_string().as_str()).unwrap()
     }
 
     #[test]
     fn from_vec_u8() {
-        let result = PayloadFormatYaml::try_from(get_input()).unwrap();
+        let result = PayloadFormatYaml::try_from(get_input_yaml_vec()).unwrap();
 
-        assert_eq!(get_yaml_value(INPUT_STRING), result.content);
+        assert_eq!(get_input_yaml_value(), result.content);
     }
 
     #[test]
     fn to_vec_u8_into() {
-        let input = PayloadFormatYaml::try_from(get_input()).unwrap();
+        let input = PayloadFormatYaml::try_from(get_input_yaml_vec()).unwrap();
 
         let result: Vec<u8> = input.try_into().unwrap();
-        assert_eq!(get_input_yaml(INPUT_STRING).as_bytes(), result.as_slice());
+        assert_eq!(get_input_yaml_string().as_bytes(), result.as_slice());
     }
 
     #[test]
     fn to_vec_u8_from() {
-        let input = PayloadFormatYaml::try_from(get_input()).unwrap();
+        let input = PayloadFormatYaml::try_from(get_input_yaml_vec()).unwrap();
 
         let result: Vec<u8> = Vec::try_from(input).unwrap();
-        assert_eq!(get_input_yaml(INPUT_STRING).as_bytes(), result.as_slice());
+        assert_eq!(get_input_yaml_string().as_bytes(), result.as_slice());
     }
 
     #[test]
     fn to_string_into() {
-        let input = PayloadFormatYaml::try_from(get_input()).unwrap();
+        let input = PayloadFormatYaml::try_from(get_input_yaml_vec()).unwrap();
 
         let result: String = input.try_into().unwrap();
-        assert_eq!(get_input_yaml(INPUT_STRING), result.as_str());
+        assert_eq!(get_input_yaml_string(), result.as_str());
     }
 
     #[test]
     fn to_string_from() {
-        let input = PayloadFormatYaml::try_from(get_input()).unwrap();
+        let input = PayloadFormatYaml::try_from(get_input_yaml_vec()).unwrap();
 
         let result: String = String::try_from(input).unwrap();
-        assert_eq!(get_input_yaml(INPUT_STRING), result.as_str());
+        assert_eq!(get_input_yaml_string(), result.as_str());
     }
 
     #[test]
     fn from_text() {
-        let input = PayloadFormatText::from(INPUT_STRING.to_string());
+        let input = PayloadFormatText::from(get_input_yaml_string());
         let result = PayloadFormatYaml::try_from(PayloadFormat::Text(input)).unwrap();
 
-        assert_eq!(get_yaml_value(INPUT_STRING), result.content);
+        assert_eq!(get_input_yaml_value(), result.content);
     }
 
     #[test]
-    fn from_raw_as_hex() {
-        let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
-        let options = PayloadYaml::default();
-        let result = PayloadFormatYaml::try_from((PayloadFormat::Raw(input), &options)).unwrap();
+    fn from_raw() {
+        let input = PayloadFormatRaw::try_from(get_input_yaml_vec()).unwrap();
+        let result = PayloadFormatYaml::try_from(PayloadFormat::Raw(input)).unwrap();
 
-        assert_eq!(get_yaml_value(INPUT_STRING_HEX), result.content);
-    }
-
-    #[test]
-    fn from_raw_as_base64() {
-        let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
-        let options = PayloadYaml::new(PayloadOptionRawFormat::Base64);
-        let result = PayloadFormatYaml::try_from((PayloadFormat::Raw(input), &options)).unwrap();
-
-        assert_eq!(get_yaml_value(INPUT_STRING_BASE64), result.content);
-    }
-
-    #[test]
-    fn from_raw_as_utf8() {
-        let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
-        let options = PayloadYaml::new(PayloadOptionRawFormat::Utf8);
-        let result = PayloadFormatYaml::try_from((PayloadFormat::Raw(input), &options)).unwrap();
-
-        assert_eq!(get_yaml_value(INPUT_STRING), result.content);
+        assert_eq!(get_input_yaml_value(), result.content);
     }
 
     #[test]
@@ -235,7 +199,7 @@ mod tests {
         let input = PayloadFormatHex::try_from(INPUT_STRING_HEX.to_owned()).unwrap();
         let result = PayloadFormatYaml::try_from(PayloadFormat::Hex(input)).unwrap();
 
-        assert_eq!(get_yaml_value(INPUT_STRING_HEX), result.content);
+        assert_eq!(get_input_yaml_value(), result.content);
     }
 
     #[test]
@@ -243,16 +207,16 @@ mod tests {
         let input = PayloadFormatBase64::try_from(INPUT_STRING_BASE64.to_owned()).unwrap();
         let result = PayloadFormatYaml::try_from(PayloadFormat::Base64(input)).unwrap();
 
-        assert_eq!(get_yaml_value(INPUT_STRING_BASE64), result.content);
+        assert_eq!(get_input_yaml_value(), result.content);
     }
 
     #[test]
     fn from_yaml() {
         let input =
-            PayloadFormatYaml::try_from(Vec::<u8>::from(get_input_yaml(INPUT_STRING))).unwrap();
+            PayloadFormatYaml::try_from(Vec::<u8>::from(get_input_yaml_string())).unwrap();
         let result = PayloadFormatYaml::try_from(PayloadFormat::Yaml(input)).unwrap();
 
-        assert_eq!(get_yaml_value(INPUT_STRING), result.content);
+        assert_eq!(get_input_yaml_value(), result.content);
     }
 
     #[test]

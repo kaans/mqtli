@@ -1,7 +1,4 @@
-use protobuf::text_format::print_to_string_pretty;
 use std::fmt::{Display, Formatter};
-use std::ops::Deref;
-use std::string::FromUtf8Error;
 
 use crate::config::PayloadText;
 use crate::payload::{PayloadFormat, PayloadFormatError};
