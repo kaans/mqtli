@@ -67,7 +67,7 @@ pub struct Topic {
     topic: String,
     #[validate(nested)]
     subscription: Subscription,
-    payload: PayloadType,
+    payload_type: PayloadType,
     #[validate(nested)]
     publish: Option<Publish>,
 }
@@ -75,7 +75,7 @@ pub struct Topic {
 impl Display for Topic {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "topic: {}", self.topic)?;
-        writeln!(f, "payload type: {}", self.payload)?;
+        writeln!(f, "payload type: {}", self.payload_type)?;
         writeln!(f, "Subscription:\n{}", self.subscription)?;
 
 
@@ -327,7 +327,7 @@ impl From<&args::Topic> for Topic {
                 None => Subscription::default(),
                 Some(value) => Subscription::from(value),
             },
-            payload: match value.payload() {
+            payload_type: match value.payload() {
                 None => PayloadType::default(),
                 Some(value) => value.clone(),
             },

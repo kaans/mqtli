@@ -67,7 +67,7 @@ impl TryFrom<&str> for PayloadFormatBase64 {
 /// # Examples
 /// ```
 /// use mqtlib::payload::base64::PayloadFormatBase64;
-/// let input = PayloadFormatBase64::from(String::from("SU5QVVQ="));
+/// let input = PayloadFormatBase64::try_from(String::from("SU5QVVQ=")).unwrap();
 /// let v: Vec<u8> = Vec::from(input);
 ///
 /// assert_eq!(vec![0x49, 0x4e, 0x50, 0x55, 0x54], v);

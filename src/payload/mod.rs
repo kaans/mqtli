@@ -194,7 +194,7 @@ impl TryFrom<(PayloadType, Vec<u8>)> for PayloadFormat {
                 options.definition(),
                 options.message().clone(),
             )?),
-            PayloadType::Json(_options) => {
+            PayloadType::Json(options) => {
                 PayloadFormat::Json(PayloadFormatJson::try_from(content)?)
             }
             PayloadType::Yaml(_options) => {

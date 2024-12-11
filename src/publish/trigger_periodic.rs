@@ -90,7 +90,7 @@ impl TriggerPeriodic {
         retain: bool,
         input_type: &PublishInputType,
     ) -> Result<(), TriggerError> {
-        let payload: Vec<u8> = match PayloadFormat::new(input_type, output_topic.payload()) {
+        let payload: Vec<u8> = match PayloadFormat::new(input_type, output_topic.payload_type()) {
             Ok(payload) => payload.try_into()?,
             Err(e) => return Err(TriggerError::CouldNotConvertPayload(e)),
         };

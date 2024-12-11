@@ -75,7 +75,7 @@ impl TryFrom<&str> for PayloadFormatHex {
 /// # Examples
 /// ```
 /// use mqtlib::payload::hex::PayloadFormatHex;
-/// let input = PayloadFormatHex::from(String::from("494e505554"));
+/// let input = PayloadFormatHex::try_from(String::from("494e505554")).unwrap();
 /// let v: Vec<u8> = Vec::from(input);
 ///
 /// assert_eq!(vec![0x49, 0x4e, 0x50, 0x55, 0x54], v);
