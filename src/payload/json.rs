@@ -31,7 +31,7 @@ impl PayloadFormatJson {
 /// Displays the hex encoded content.
 impl Display for PayloadFormatJson {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.content.to_string())
+        write!(f, "{}", self.content)
     }
 }
 

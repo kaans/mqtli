@@ -21,10 +21,11 @@ pub enum ConfigError {
     InvalidConfiguration(#[source] ValidationErrors),
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq)]
 #[serde(tag = "type")]
 pub enum PayloadType {
     #[serde(rename = "text")]
+    #[default]
     Text,
     #[serde(rename = "protobuf")]
     Protobuf(PayloadProtobuf),
@@ -38,12 +39,6 @@ pub enum PayloadType {
     Base64,
     #[serde(rename = "raw")]
     Raw,
-}
-
-impl Default for PayloadType {
-    fn default() -> Self {
-        PayloadType::Text
-    }
 }
 
 impl Display for PayloadType {
