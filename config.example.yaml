@@ -12,11 +12,21 @@ broker:
 topics:
   - topic: mqtli/test
     subscription:
-      enabled: true
+      enabled: false
       qos: 1
       outputs:
         - format:
-            type: yaml # target is console; protobuf message will be shown as yaml
+            type: yaml
+        - format:
+            type: json
+        - format:
+            type: text
+        - format:
+            type: hex
+        - format:
+            type: base64
+        - format:
+            type: raw
         - format:
             type: base64
           target:
@@ -26,11 +36,48 @@ topics:
             prepend: "MESSAGE: " # prepends the string "MESSAGE: " to the beginning of the base64 encoded message
             append: "\n" # appends a new line to the end of the message
     payload:
-      type: text
+      type: raw
+    publish:
+      enabled: false
+      input:
+        type: hex
+        content: AB23F6E983
+      trigger:
+        - type: periodic # default trigger: periodic with no count (indefinitely) and interval 1 second
+
+  - topic: mqtli/protobuf
+    subscription:
+      enabled: true
+      qos: 1
+      outputs:
+        - format:
+            type: yaml
+        - format:
+            type: json
+        - format:
+            type: text
+        - format:
+            type: hex
+        - format:
+            type: base64
+        - format:
+            type: raw
+        - format:
+            type: base64
+          target:
+            type: file
+            path: "log.txt"
+            overwrite: false
+            prepend: "MESSAGE: " # prepends the string "MESSAGE: " to the beginning of the base64 encoded message
+            append: "\n" # appends a new line to the end of the message
+    payload:
+      type: protobuf
+      definition: "test/data/message.proto"
+      message: "Response" # Response is the name of the protobuf message
     publish:
       enabled: true
       input:
         type: hex
-        content: AB23F6E983 # this must be a valid protobuf message according to the payload format (encoded as hex)
+        content: 082d12080a066b696e646f66180222024142 # this must be a valid protobuf message according to the payload format (encoded as hex)
       trigger:
         - type: periodic # default trigger: periodic with no count (indefinitely) and interval 1 second
