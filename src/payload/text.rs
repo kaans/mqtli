@@ -1,6 +1,5 @@
 use std::fmt::{Display, Formatter};
 
-use crate::config::PayloadText;
 use crate::payload::{PayloadFormat, PayloadFormatError};
 
 /// Represents a lossy UTF-8 encoded String.
@@ -81,22 +80,6 @@ impl TryFrom<PayloadFormat> for PayloadFormatText {
     type Error = PayloadFormatError;
 
     fn try_from(value: PayloadFormat) -> Result<Self, Self::Error> {
-        Self::try_from((value, &PayloadText::default()))
-    }
-}
-
-impl TryFrom<(PayloadFormat, PayloadText)> for PayloadFormatText {
-    type Error = PayloadFormatError;
-
-    fn try_from((value, options): (PayloadFormat, PayloadText)) -> Result<Self, Self::Error> {
-        Self::try_from((value, &options))
-    }
-}
-
-impl TryFrom<(PayloadFormat, &PayloadText)> for PayloadFormatText {
-    type Error = PayloadFormatError;
-
-    fn try_from((value, options): (PayloadFormat, &PayloadText)) -> Result<Self, Self::Error> {
         match value {
             PayloadFormat::Text(value) => Ok(value),
             PayloadFormat::Raw(value) => Ok(Self {
@@ -118,34 +101,10 @@ impl TryFrom<(PayloadFormat, &PayloadText)> for PayloadFormatText {
                 })
             }
             PayloadFormat::Json(value) => {
-                let Some(text_node) = value.content().get("content") else {
-                    return Err(PayloadFormatError::CouldNotConvertFromJson(
-                        "Attribute \"content\" not found".to_string(),
-                    ));
-                };
-
-                let Some(text_node) = text_node.as_str() else {
-                    return Err(PayloadFormatError::CouldNotConvertFromJson(
-                        "Could not read attribute \"content\" as string".to_string(),
-                    ));
-                };
-
-                Ok(Self::from(text_node))
+                Ok(Self::from(value.to_string()))
             }
             PayloadFormat::Yaml(value) => {
-                let Some(text_node) = value.content().get("content") else {
-                    return Err(PayloadFormatError::CouldNotConvertFromYaml(
-                        "Attribute \"content\" not found".to_string(),
-                    ));
-                };
-
-                let Some(text_node) = text_node.as_str() else {
-                    return Err(PayloadFormatError::CouldNotConvertFromYaml(
-                        "Could not read attribute \"content\" as string".to_string(),
-                    ));
-                };
-
-                Ok(Self::from(text_node))
+                Ok(Self::from(value.to_string()))
             }
         }
     }
@@ -153,7 +112,6 @@ impl TryFrom<(PayloadFormat, &PayloadText)> for PayloadFormatText {
 
 #[cfg(test)]
 mod tests {
-    use crate::config::PayloadOptionRawFormat;
     use crate::payload::base64::PayloadFormatBase64;
     use crate::payload::hex::PayloadFormatHex;
     use crate::payload::json::PayloadFormatJson;
@@ -250,8 +208,7 @@ mod tests {
     #[test]
     fn from_raw_as_hex() {
         let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
-        let options = PayloadText::default();
-        let result = PayloadFormatText::try_from((PayloadFormat::Raw(input), &options)).unwrap();
+        let result = PayloadFormatText::try_from(PayloadFormat::Raw(input)).unwrap();
 
         assert_eq!(get_input(), result.content);
     }
@@ -259,8 +216,7 @@ mod tests {
     #[test]
     fn from_raw_as_base64() {
         let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
-        let options = PayloadText::new(PayloadOptionRawFormat::Base64);
-        let result = PayloadFormatText::try_from((PayloadFormat::Raw(input), &options)).unwrap();
+        let result = PayloadFormatText::try_from(PayloadFormat::Raw(input)).unwrap();
 
         assert_eq!(get_input(), result.content);
     }
@@ -268,8 +224,7 @@ mod tests {
     #[test]
     fn from_raw_as_utf8() {
         let input = PayloadFormatRaw::try_from(Vec::from(INPUT_STRING)).unwrap();
-        let options = PayloadText::new(PayloadOptionRawFormat::Utf8);
-        let result = PayloadFormatText::try_from((PayloadFormat::Raw(input), &options)).unwrap();
+        let result = PayloadFormatText::try_from(PayloadFormat::Raw(input)).unwrap();
 
         assert_eq!(get_input(), result.content);
     }
@@ -293,10 +248,7 @@ mod tests {
     #[test]
     fn from_hex_as_base64() {
         let input = PayloadFormatHex::try_from(INPUT_STRING_HEX.to_owned()).unwrap();
-        let result = PayloadFormatText::try_from((
-            PayloadFormat::Hex(input),
-            PayloadText::new(PayloadOptionRawFormat::Base64),
-        ))
+        let result = PayloadFormatText::try_from(PayloadFormat::Hex(input))
         .unwrap();
 
         assert_eq!(get_input(), result.content);
@@ -305,10 +257,7 @@ mod tests {
     #[test]
     fn from_base64_as_base64() {
         let input = PayloadFormatBase64::try_from(INPUT_STRING_BASE64.to_owned()).unwrap();
-        let result = PayloadFormatText::try_from((
-            PayloadFormat::Base64(input),
-            PayloadText::new(PayloadOptionRawFormat::Base64),
-        ))
+        let result = PayloadFormatText::try_from(PayloadFormat::Base64(input))
         .unwrap();
 
         assert_eq!(get_input(), result.content);
@@ -317,10 +266,7 @@ mod tests {
     #[test]
     fn from_hex_as_text() {
         let input = PayloadFormatHex::try_from(INPUT_STRING_HEX.to_owned()).unwrap();
-        let result = PayloadFormatText::try_from((
-            PayloadFormat::Hex(input),
-            PayloadText::new(PayloadOptionRawFormat::Utf8),
-        ))
+        let result = PayloadFormatText::try_from(PayloadFormat::Hex(input))
         .unwrap();
 
         assert_eq!(get_input(), result.content);
@@ -329,10 +275,7 @@ mod tests {
     #[test]
     fn from_base64_as_text() {
         let input = PayloadFormatBase64::try_from(INPUT_STRING_BASE64.to_owned()).unwrap();
-        let result = PayloadFormatText::try_from((
-            PayloadFormat::Base64(input),
-            PayloadText::new(PayloadOptionRawFormat::Utf8),
-        ))
+        let result = PayloadFormatText::try_from(PayloadFormat::Base64(input))
         .unwrap();
 
         assert_eq!(get_input(), result.content);
