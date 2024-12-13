@@ -2,25 +2,21 @@ use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 
 use derive_getters::Getters;
-use protobuf_json_mapping::print_to_string;
+use protobuf_json_mapping::print_to_string as print_protobuf_to_json_string;
 use serde_json::{from_slice, Value};
 
 use crate::payload::{PayloadFormat, PayloadFormatError};
 
 /// This payload format contains a JSON payload. Its value is encoded as
 /// `serde_json::Value`.
-///
-/// If this payload is constructed from a format which cannot be converted
-/// to JSON, a JSON object is constructed with one field `content` which holds
-/// the value: `{ "content": "..." }`
 #[derive(Clone, Debug, Default, Getters)]
 pub struct PayloadFormatJson {
     content: Value,
 }
 
 impl PayloadFormatJson {
-    fn decode_from_json_payload(value: &PayloadFormatJson) -> String {
-        value.content.to_string()
+    fn decode_from_json_payload(self: &Self) -> String {
+        self.content.to_string()
     }
 
     fn encode_to_json(value: Vec<u8>) -> serde_json::Result<Value> {
@@ -45,7 +41,7 @@ impl Display for PayloadFormatJson {
 /// use mqtlib::payload::json::PayloadFormatJson;
 /// let input = "{\"content\":\"INPUT\"}";
 ///
-/// let payload_json = PayloadFormatJson::try_from(Vec::from(input)).unwrap();
+/// let payload_json = PayloadFormatJson::try_from(Vec::<u8>::from(input)).unwrap();
 ///
 /// assert_eq!("INPUT", payload_json.content().get("content").unwrap().as_str().unwrap());
 /// ```
@@ -116,7 +112,7 @@ impl From<Value> for PayloadFormatJson {
 /// ```
 impl From<PayloadFormatJson> for Vec<u8> {
     fn from(val: PayloadFormatJson) -> Self {
-        PayloadFormatJson::decode_from_json_payload(&val).into_bytes()
+        val.decode_from_json_payload().into_bytes()
     }
 }
 
@@ -135,49 +131,28 @@ impl From<PayloadFormatJson> for Vec<u8> {
 /// ```
 impl From<PayloadFormatJson> for String {
     fn from(val: PayloadFormatJson) -> Self {
-        PayloadFormatJson::decode_from_json_payload(&val)
+        val.decode_from_json_payload()
     }
 }
 
-/// Decode JSON payload format from a another `PayloadFormat`.
-///
-/// The resulting JSON value depends on the type of the `PayloadFormat`:
-///
-/// | `PayloadFormat` | Result |
-/// |---------|---------|
-/// | Text     | `{ "content": "..." }` |
-/// | Raw     | conversion not possible (JSON only accepts UTF-8/16/32, raw can be anything) |
-/// | Protobuf     | The structure of the protobuf message as JSON Object |
-/// | Hex     | `{ "content": "..." }` |
-/// | Base64     | `{ "content": "..." }` |
-/// | JSON     | the incoming value itself (no conversion is done) |
-/// | YAML     | The structure of the YAML input as JSON |
+/// Decode JSON payload format from another `PayloadFormat`.
 impl TryFrom<PayloadFormat> for PayloadFormatJson {
     type Error = PayloadFormatError;
 
     fn try_from(value: PayloadFormat) -> Result<Self, Self::Error> {
         match value {
-            PayloadFormat::Text(value) => PayloadFormatJson::try_from(Vec::<u8>::from(value)),
-            PayloadFormat::Raw(value) => PayloadFormatJson::try_from(Vec::<u8>::from(value)),
+            PayloadFormat::Text(value) => Self::try_from(String::from(value)),
+            PayloadFormat::Raw(value) => Self::try_from(Vec::<u8>::from(value)),
             PayloadFormat::Protobuf(value) => {
-                let json_string = print_to_string(value.content().deref())?;
-                Ok(PayloadFormatJson::from(PayloadFormatJson::encode_to_json(
-                    json_string.into_bytes(),
-                )?))
+                Self::try_from(print_protobuf_to_json_string(value.content().deref())?)
             }
-            PayloadFormat::Hex(value) => PayloadFormatJson::try_from(Vec::<u8>::from(value)),
-            PayloadFormat::Base64(value) => PayloadFormatJson::try_from(Vec::<u8>::from(value)),
+            PayloadFormat::Hex(value) => Self::try_from(value.decode_from_hex()?),
+            PayloadFormat::Base64(value) => Self::try_from(value.decode_from_base64()?),
             PayloadFormat::Json(value) => Ok(value),
-            PayloadFormat::Yaml(value) => Ok(Self {
-                content: serde_yaml::from_value::<Value>(value.content().clone())?,
-            }),
+            PayloadFormat::Yaml(value) => Ok(Self::from(serde_yaml::from_value::<Value>(
+                value.content().clone(),
+            )?)),
         }
-    }
-}
-
-impl From<PayloadFormatJson> for PayloadFormat {
-    fn from(value: PayloadFormatJson) -> Self {
-        PayloadFormat::Json(value)
     }
 }
 

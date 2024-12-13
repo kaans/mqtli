@@ -71,12 +71,12 @@ impl MqttServiceV5 {
                                 return;
                             }
                             e => {
-                                error!("Connection error: {:?}", e);
+                                error!("Connection error: {}", e);
                                 return;
                             }
                         },
                         _ => {
-                            error!("Error while processing mqtt loop: {:?}", e);
+                            error!("Error while processing mqtt loop: {}", e);
                             return;
                         }
                     },
@@ -161,7 +161,7 @@ impl MqttService for MqttServiceV5 {
     async fn publish(&self, topic: String, qos: QoS, retain: bool, payload: Vec<u8>) {
         if let Some(client) = self.client.as_ref() {
             if let Err(e) = client.publish(topic, qos.into(), retain, payload).await {
-                error!("Error during publish: {:?}", e);
+                error!("Error during publish: {}", e);
             }
         }
     }

@@ -7,15 +7,15 @@ use crate::payload::{PayloadFormat, PayloadFormatError};
 
 #[derive(Clone, Debug)]
 pub struct PayloadFormatHex {
-    content: Vec<u8>,
+    content: String,
 }
 
 impl PayloadFormatHex {
-    fn decode_from_hex<T: AsRef<[u8]>>(value: T) -> Result<Vec<u8>, PayloadFormatError> {
-        Ok(hex::decode(value)?)
+    pub fn decode_from_hex(self: Self) -> Result<Vec<u8>, PayloadFormatError> {
+        Ok(hex::decode(&self.content)?)
     }
 
-    fn encode_to_hex(value: &Vec<u8>) -> String {
+    pub fn encode_to_hex(value: &Vec<u8>) -> String {
         hex::encode(value)
     }
 }
@@ -23,16 +23,16 @@ impl PayloadFormatHex {
 /// Displays the hex encoded content.
 impl Display for PayloadFormatHex {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", Self::encode_to_hex(&self.content))
+        write!(f, "{}", self.content)
     }
 }
 
 /// Converts the given `Vec<u8>` value to a hex encoded string.
-impl From<Vec<u8>> for PayloadFormatHex {
-    fn from(value: Vec<u8>) -> Self {
-        Self {
-            content: value,
-        }
+impl TryFrom<Vec<u8>> for PayloadFormatHex {
+    type Error = PayloadFormatError;
+
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        Self::try_from(String::from_utf8(value)?)
     }
 }
 
@@ -51,22 +51,7 @@ impl TryFrom<String> for PayloadFormatHex {
             return Err(PayloadFormatError::ValueIsNotValidHex(value));
         }
 
-        if let Ok(value) = Self::decode_from_hex(&value) {
-            Ok(Self { content: value })
-        } else {
-            Err(PayloadFormatError::ValueIsNotValidHex(value))
-        }
-    }
-}
-
-/// Creates a new instance with the given hex encoded string as content.
-/// The value is not modified, only moved to the new instance. Thus, it
-/// must already be encoded as hex, otherwise an error is returned.
-impl TryFrom<&str> for PayloadFormatHex {
-    type Error = PayloadFormatError;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Self::try_from(value.to_string())
+        Ok(Self { content: value })
     }
 }
 
@@ -83,14 +68,14 @@ impl TryFrom<&str> for PayloadFormatHex {
 impl From<PayloadFormatHex> for Vec<u8> {
 
     fn from(value: PayloadFormatHex) -> Self {
-        value.content
+        value.content.into_bytes()
     }
 }
 
 /// Encodes into a string of the hex encoded value.
 impl From<PayloadFormatHex> for String {
     fn from(val: PayloadFormatHex) -> Self {
-        PayloadFormatHex::encode_to_hex(&val.content)
+        val.content
     }
 }
 
@@ -100,27 +85,23 @@ impl TryFrom<PayloadFormat> for PayloadFormatHex {
     fn try_from(value: PayloadFormat) -> Result<Self, Self::Error> {
         match value {
             PayloadFormat::Text(value) => {
-                let a: Vec<u8> = value.into();
-                Ok(Self::from(a))
+                Self::try_from(PayloadFormatHex::encode_to_hex(&Vec::<u8>::from(value)))
             }
             PayloadFormat::Raw(value) => {
-                let a: Vec<u8> = value.into();
-                Ok(Self::from(a))
+                Self::try_from(PayloadFormatHex::encode_to_hex(&Vec::<u8>::from(value)))
             }
             PayloadFormat::Protobuf(value) => {
-                let a: Vec<u8> = value.try_into()?;
-                Ok(Self::from(a))
+                Self::try_from(PayloadFormatHex::encode_to_hex(&Vec::<u8>::try_from(value)?))
             }
             PayloadFormat::Hex(value) => Ok(value),
             PayloadFormat::Base64(value) => {
-                let a: Vec<u8> = value.into();
-                Ok(Self::from(a))
+                Self::try_from(PayloadFormatHex::encode_to_hex(&Vec::<u8>::from(value)))
             }
             PayloadFormat::Json(value) => {
-                Ok(Self::from(Vec::<u8>::from(value)))
+                Self::try_from(PayloadFormatHex::encode_to_hex(&Vec::<u8>::from(value)))
             }
             PayloadFormat::Yaml(value) => {
-                Ok(Self::from(Vec::<u8>::try_from(value)?))
+                Self::try_from(PayloadFormatHex::encode_to_hex(&Vec::<u8>::try_from(value)?))
             }
         }
     }
@@ -150,33 +131,33 @@ mod tests {
     }
 
     fn get_input_hex_as_vec() -> Vec<u8> {
-        PayloadFormatHex::decode_from_hex(INPUT_STRING_HEX).unwrap()
+        get_input_hex().into_bytes()
     }
 
     #[test]
     fn from_vec_u8() {
-        let result = PayloadFormatHex::from(get_input());
+        let result = PayloadFormatHex::try_from(get_input()).unwrap();
 
-        assert_eq!(get_input_hex_as_vec(), result.content);
+        assert_eq!(get_input_hex(), result.content);
     }
 
     #[test]
     fn from_valid_string() {
         let result = PayloadFormatHex::try_from(get_input_hex()).unwrap();
 
-        assert_eq!(get_input_hex_as_vec(), result.content);
+        assert_eq!(get_input_hex(), result.content);
     }
 
     #[test]
     fn from_invalid_string() {
         let result = PayloadFormatHex::try_from(get_input()).unwrap();
 
-        assert_eq!(get_input_hex_as_vec(), result.content);
+        assert_eq!(get_input_hex(), result.content);
     }
 
     #[test]
     fn to_vec_u8_into() {
-        let input = PayloadFormatHex::from(get_input());
+        let input = PayloadFormatHex::try_from(get_input()).unwrap();
 
         let result: Vec<u8> = input.try_into().unwrap();
         assert_eq!(get_input_hex_as_vec(), result.as_slice());
@@ -211,7 +192,7 @@ mod tests {
         let input = PayloadFormatText::try_from(get_input()).unwrap();
         let result = PayloadFormatHex::try_from(PayloadFormat::Text(input)).unwrap();
 
-        assert_eq!(get_input_hex_as_vec(), result.content);
+        assert_eq!(get_input_hex(), result.content);
     }
 
     #[test]
@@ -219,7 +200,7 @@ mod tests {
         let input = PayloadFormatRaw::try_from(get_input()).unwrap();
         let result = PayloadFormatHex::try_from(PayloadFormat::Raw(input)).unwrap();
 
-        assert_eq!(get_input_hex_as_vec(), result.content);
+        assert_eq!(get_input_hex(), result.content);
     }
 
     #[test]
@@ -227,7 +208,7 @@ mod tests {
         let input = PayloadFormatHex::try_from(get_input()).unwrap();
         let result = PayloadFormatHex::try_from(PayloadFormat::Hex(input)).unwrap();
 
-        assert_eq!(get_input_hex_as_vec(), result.content);
+        assert_eq!(get_input_hex(), result.content);
     }
 
     #[test]
@@ -235,7 +216,7 @@ mod tests {
         let input = PayloadFormatBase64::try_from(get_input()).unwrap();
         let result = PayloadFormatHex::try_from(PayloadFormat::Base64(input)).unwrap();
 
-        assert_eq!(get_input_hex_as_vec(), result.content);
+        assert_eq!(get_input_hex(), result.content);
     }
 
     #[test]
@@ -247,7 +228,7 @@ mod tests {
         .unwrap();
         let result = PayloadFormatHex::try_from(PayloadFormat::Json(input)).unwrap();
 
-        assert_eq!(get_input_hex_as_vec(), result.content);
+        assert_eq!(get_input_hex(), result.content);
     }
 
     #[test]
@@ -259,6 +240,6 @@ mod tests {
         .unwrap();
         let result = PayloadFormatHex::try_from(PayloadFormat::Yaml(input)).unwrap();
 
-        assert_eq!(get_input_hex_as_vec(), result.content);
+        assert_eq!(get_input_hex(), result.content);
     }
 }

@@ -32,53 +32,13 @@ impl TryFrom<PayloadFormat> for PayloadFormatRaw {
 
     fn try_from(value: PayloadFormat) -> Result<Self, Self::Error> {
         match value {
-            PayloadFormat::Text(value) => {
-                let a: Vec<u8> = value.into();
-                Ok(Self::from(a))
-            }
+            PayloadFormat::Text(value) => Ok(Self::from(Vec::<u8>::from(value))),
             PayloadFormat::Raw(value) => Ok(value),
-            PayloadFormat::Protobuf(value) => {
-                let a: Vec<u8> = value.try_into()?;
-                Ok(Self::from(a))
-            }
-            PayloadFormat::Hex(value) => {
-                let a: Vec<u8> = value.into();
-                Ok(Self::from(a))
-            }
-            PayloadFormat::Base64(value) => {
-                let a: Vec<u8> = value.into();
-                Ok(Self::from(a))
-            }
-            PayloadFormat::Json(value) => {
-                let Some(text_node) = value.content().get("content") else {
-                    return Err(PayloadFormatError::CouldNotConvertFromJson(
-                        "Attribute \"content\" not found".to_string(),
-                    ));
-                };
-
-                let Some(text_node) = text_node.as_str() else {
-                    return Err(PayloadFormatError::CouldNotConvertFromJson(
-                        "Could not read attribute \"content\" as string".to_string(),
-                    ));
-                };
-
-                Ok(Self::from(Vec::from(text_node)))
-            }
-            PayloadFormat::Yaml(value) => {
-                let Some(text_node) = value.content().get("content") else {
-                    return Err(PayloadFormatError::CouldNotConvertFromYaml(
-                        "Attribute \"content\" not found".to_string(),
-                    ));
-                };
-
-                let Some(text_node) = text_node.as_str() else {
-                    return Err(PayloadFormatError::CouldNotConvertFromYaml(
-                        "Could not read attribute \"content\" as string".to_string(),
-                    ));
-                };
-
-                Ok(Self::from(Vec::from(text_node)))
-            }
+            PayloadFormat::Protobuf(value) => Ok(Self::from(Vec::<u8>::try_from(value)?)),
+            PayloadFormat::Hex(value) => Ok(Self::from(value.decode_from_hex()?)),
+            PayloadFormat::Base64(value) => Ok(Self::from(value.decode_from_base64()?)),
+            PayloadFormat::Json(value) => Ok(Self::from(Vec::<u8>::from(value))),
+            PayloadFormat::Yaml(value) => Ok(Self::from(Vec::<u8>::try_from(value)?))
         }
     }
 }

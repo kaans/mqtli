@@ -14,7 +14,7 @@ pub enum OutputError {
     CouldNotOpenTargetFile(#[source] io::Error, PathBuf),
     #[error("Error while writing to file \"{1}\"")]
     ErrorWhileWritingToFile(#[source] io::Error, PathBuf),
-    #[error("Error while formatting payload")]
+    #[error("Error while formatting payload: {0}")]
     ErrorPayloadFormat(#[source] PayloadFormatError),
 }
 

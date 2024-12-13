@@ -13,8 +13,8 @@ pub struct PayloadFormatYaml {
 }
 
 impl PayloadFormatYaml {
-    fn decode_from_yaml_payload(value: &PayloadFormatYaml) -> serde_yaml::Result<String> {
-        serde_yaml::to_string(&value.content)
+    fn decode_from_yaml_payload(self: &Self) -> serde_yaml::Result<String> {
+        serde_yaml::to_string(&self.content)
     }
 
     fn encode_to_yaml(value: Vec<u8>) -> serde_yaml::Result<Value> {
@@ -22,7 +22,7 @@ impl PayloadFormatYaml {
     }
 }
 
-/// Displays the hex encoded content.
+/// Displays the yaml encoded content.
 impl Display for PayloadFormatYaml {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -30,7 +30,7 @@ impl Display for PayloadFormatYaml {
             "{}",
             Self::decode_from_yaml_payload(self)
                 .map_err(|e| {
-                    error!("Cannot display yaml, error while decoding: {:?}", e);
+                    error!("Cannot display yaml, error while decoding: {}", e);
                     ""
                 })
                 .unwrap()
@@ -66,7 +66,7 @@ impl TryFrom<PayloadFormatYaml> for Vec<u8> {
     type Error = PayloadFormatError;
 
     fn try_from(value: PayloadFormatYaml) -> Result<Self, Self::Error> {
-        Ok(PayloadFormatYaml::decode_from_yaml_payload(&value)?.into_bytes())
+        Ok(String::try_from(value)?.into_bytes())
     }
 }
 
@@ -83,20 +83,18 @@ impl TryFrom<PayloadFormat> for PayloadFormatYaml {
 
     fn try_from(value: PayloadFormat) -> Result<Self, Self::Error> {
         match value {
-            PayloadFormat::Text(value) => PayloadFormatYaml::try_from(Vec::<u8>::from(value)),
-            PayloadFormat::Raw(value) => PayloadFormatYaml::try_from(Vec::<u8>::from(value)),
+            PayloadFormat::Text(value) => Self::try_from(String::from(value)),
+            PayloadFormat::Raw(value) => Self::try_from(Vec::<u8>::from(value)),
             PayloadFormat::Protobuf(value) => {
                 let json = PayloadFormatJson::try_from(PayloadFormat::Protobuf(value))?;
-                Ok(Self {
-                    content: serde_json::from_value::<Value>(json.content().clone())?,
-                })
+                Self::try_from(PayloadFormat::Json(json))
             }
-            PayloadFormat::Hex(value) => PayloadFormatYaml::try_from(Vec::<u8>::from(value)),
-            PayloadFormat::Base64(value) => PayloadFormatYaml::try_from(Vec::<u8>::from(value)),
+            PayloadFormat::Hex(value) => Self::try_from(value.decode_from_hex()?),
+            PayloadFormat::Base64(value) => Self::try_from(value.decode_from_base64()?),
             PayloadFormat::Yaml(value) => Ok(value),
-            PayloadFormat::Json(value) => Ok(Self {
-                content: serde_json::from_value::<Value>(value.content().clone())?,
-            }),
+            PayloadFormat::Json(value) => Ok(Self::from(serde_json::from_value::<Value>(
+                value.content().clone(),
+            )?)),
         }
     }
 }
