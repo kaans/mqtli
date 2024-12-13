@@ -25,71 +25,52 @@ pub enum ConfigError {
 #[serde(tag = "type")]
 pub enum PayloadType {
     #[serde(rename = "text")]
-    Text(PayloadText),
+    Text,
     #[serde(rename = "protobuf")]
     Protobuf(PayloadProtobuf),
     #[serde(rename = "json")]
-    Json(PayloadJson),
+    Json,
     #[serde(rename = "yaml")]
-    Yaml(PayloadYaml),
+    Yaml,
     #[serde(rename = "hex")]
-    Hex(PayloadHex),
+    Hex,
     #[serde(rename = "base64")]
-    Base64(PayloadBase64),
+    Base64,
     #[serde(rename = "raw")]
-    Raw(PayloadRaw),
+    Raw,
 }
 
 impl Default for PayloadType {
     fn default() -> Self {
-        PayloadType::Text(PayloadText::default())
+        PayloadType::Text
     }
 }
 
 impl Display for PayloadType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            PayloadType::Text(value) => {
-                write!(f, "Text [Options: {}]", value)
-            }
             PayloadType::Protobuf(value) => {
                 write!(f, "Protobuf [Options: {}]", value)
             }
-            PayloadType::Json(value) => {
-                write!(f, "Json [Options: {}]", value)
+            PayloadType::Text => {
+                write!(f, "Text")
             }
-            PayloadType::Yaml(value) => {
-                write!(f, "Yaml [Options: {}]", value)
+            PayloadType::Json => {
+                write!(f, "Json")
             }
-            PayloadType::Hex(value) => {
-                write!(f, "Hex [Options: {}]", value)
+            PayloadType::Yaml => {
+                write!(f, "Yaml")
             }
-            PayloadType::Base64(value) => {
-                write!(f, "Base64 [Options: {}]", value)
+            PayloadType::Hex => {
+                write!(f, "Hex")
             }
-            PayloadType::Raw(value) => {
-                write!(f, "Raw [Options: {}]", value)
+            PayloadType::Base64 => {
+                write!(f, "Base64")
+            }
+            PayloadType::Raw => {
+                write!(f, "Raw")
             }
         }
-    }
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct PayloadText {
-    #[serde(default)]
-    #[serde(rename = "raw_as")]
-    raw_as_type: PayloadOptionRawFormat,
-}
-
-impl PayloadText {
-    pub fn new(raw_as_type: PayloadOptionRawFormat) -> Self {
-        Self { raw_as_type }
-    }
-}
-
-impl Display for PayloadText {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "raw as: {:?}", self.raw_as_type)
     }
 }
 
@@ -103,85 +84,6 @@ impl Display for PayloadProtobuf {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "definition: {:?}", self.definition)?;
         write!(f, "message: {:?}", self.message)
-    }
-}
-
-/// The format to which bytes get decoded to.
-/// Default is hex.
-#[derive(Clone, Debug, Default, Deserialize, PartialEq)]
-#[derive(strum_macros::Display)]
-pub enum PayloadOptionRawFormat {
-    #[default]
-    #[serde(rename = "hex")]
-    Hex,
-    #[serde(rename = "base64")]
-    Base64,
-    #[serde(rename = "utf8")]
-    Utf8,
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct PayloadJson {
-    #[serde(default)]
-    #[serde(rename = "raw_as")]
-    raw_as_type: PayloadOptionRawFormat,
-}
-
-impl PayloadJson {
-    pub fn new(raw_as_type: PayloadOptionRawFormat) -> Self {
-        Self { raw_as_type }
-    }
-}
-
-impl Display for PayloadJson {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "raw as: {:?}", self.raw_as_type)
-    }
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct PayloadYaml {
-    #[serde(default)]
-    #[serde(rename = "raw_as")]
-    raw_as_type: PayloadOptionRawFormat,
-}
-
-impl PayloadYaml {
-    pub fn new(raw_as_type: PayloadOptionRawFormat) -> Self {
-        Self { raw_as_type }
-    }
-}
-
-impl Display for PayloadYaml {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "raw as: {:?}", self.raw_as_type)
-    }
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct PayloadHex {}
-
-impl Display for PayloadHex {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "")
-    }
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct PayloadBase64 {}
-
-impl Display for PayloadBase64 {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "")
-    }
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct PayloadRaw {}
-
-impl Display for PayloadRaw {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "")
     }
 }
 

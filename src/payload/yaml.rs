@@ -66,7 +66,7 @@ impl TryFrom<PayloadFormatYaml> for Vec<u8> {
     type Error = PayloadFormatError;
 
     fn try_from(value: PayloadFormatYaml) -> Result<Self, Self::Error> {
-        Ok(<PayloadFormatYaml as TryInto<String>>::try_into(value)?.into_bytes())
+        Ok(PayloadFormatYaml::decode_from_yaml_payload(&value)?.into_bytes())
     }
 }
 

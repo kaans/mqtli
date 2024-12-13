@@ -117,34 +117,10 @@ impl TryFrom<PayloadFormat> for PayloadFormatHex {
                 Ok(Self::from(a))
             }
             PayloadFormat::Json(value) => {
-                let Some(text_node) = value.content().get("content") else {
-                    return Err(PayloadFormatError::CouldNotConvertFromJson(
-                        "Attribute \"content\" not found".to_string(),
-                    ));
-                };
-
-                let Some(text_node) = text_node.as_str() else {
-                    return Err(PayloadFormatError::CouldNotConvertFromJson(
-                        "Could not read attribute \"content\" as string".to_string(),
-                    ));
-                };
-
-                Self::try_from(text_node.to_owned())
+                Ok(Self::from(Vec::<u8>::from(value)))
             }
             PayloadFormat::Yaml(value) => {
-                let Some(text_node) = value.content().get("content") else {
-                    return Err(PayloadFormatError::CouldNotConvertFromYaml(
-                        "Attribute \"content\" not found".to_string(),
-                    ));
-                };
-
-                let Some(text_node) = text_node.as_str() else {
-                    return Err(PayloadFormatError::CouldNotConvertFromYaml(
-                        "Could not read attribute \"content\" as string".to_string(),
-                    ));
-                };
-
-                Self::try_from(text_node.to_owned())
+                Ok(Self::from(Vec::<u8>::try_from(value)?))
             }
         }
     }
