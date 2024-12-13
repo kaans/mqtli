@@ -1,6 +1,8 @@
 on:
   workflow_dispatch:
 
+name: Run tests and qa
+
 jobs:
   cargo-test:
     name: cargo test
