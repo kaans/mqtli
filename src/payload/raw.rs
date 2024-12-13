@@ -127,16 +127,16 @@ mod tests {
         .unwrap();
         let result = PayloadFormatRaw::try_from(PayloadFormat::Json(input)).unwrap();
 
-        assert_eq!(get_input(), result.content);
+        assert_eq!("{\"content\":\"INPUT\"}".as_bytes(), result.content);
     }
 
     #[test]
     fn from_yaml() {
         let input =
-            PayloadFormatYaml::try_from(Vec::<u8>::from(format!("content: \"{}\"", INPUT_STRING)))
+            PayloadFormatYaml::try_from(Vec::<u8>::from(format!("content: {}", INPUT_STRING)))
                 .unwrap();
         let result = PayloadFormatRaw::try_from(PayloadFormat::Yaml(input)).unwrap();
 
-        assert_eq!(get_input(), result.content);
+        assert_eq!("content: INPUT\n".as_bytes(), result.content);
     }
 }

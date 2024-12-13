@@ -290,7 +290,7 @@ mod tests {
         .unwrap();
         let result = PayloadFormatText::try_from(PayloadFormat::Json(input)).unwrap();
 
-        assert_eq!(get_input(), result.content);
+        assert_eq!("{\"content\":\"INPUT\"}".as_bytes(), result.content);
     }
 
     #[test]
@@ -300,7 +300,7 @@ mod tests {
                 .unwrap();
         let result = PayloadFormatText::try_from(PayloadFormat::Yaml(input)).unwrap();
 
-        assert_eq!(get_input(), result.content);
+        assert_eq!("content: INPUT\n".as_bytes(), result.content);
     }
 
     #[test]
@@ -310,8 +310,12 @@ mod tests {
             &INPUT_PATH_MESSAGE,
             MESSAGE_NAME.to_string(),
         );
-        let result = PayloadFormatText::try_from(PayloadFormat::Protobuf(input.unwrap())).unwrap();
+        let value = input.unwrap();
+        let result = PayloadFormatText::try_from(PayloadFormat::Protobuf(value.clone())).unwrap();
 
-        assert_eq!(hex::decode(INPUT_STRING_PROTOBUF_AS_HEX).unwrap(), result.content);
+        let msg: Box<dyn MessageDyn> = value.into();
+        let pretty = print_to_string_pretty(&*msg);
+
+        assert_eq!(pretty.as_bytes(), result.content);
     }
 }
