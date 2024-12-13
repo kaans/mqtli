@@ -73,11 +73,11 @@ pub enum PayloadFormatError {
     ValueIsNotValidHex(String),
     #[error("The value is not valid base64 formatted: {0}")]
     ValueIsNotValidBase64(String),
-    #[error("Error while converting protobuf to JSON")]
+    #[error("Error while converting protobuf to JSON: {0}")]
     ProtobufJsonConversionError(#[from] PrintError),
-    #[error("Error while parsing protobuf from JSON")]
+    #[error("Error while parsing protobuf: {0}")]
     ProtobufParseError(#[from] ::protobuf::Error),
-    #[error("Error while parsing protobuf from JSON")]
+    #[error("Error while parsing protobuf from JSON: {0}")]
     ProtobufJsonMappingError(#[from] protobuf_json_mapping::ParseError),
 }
 

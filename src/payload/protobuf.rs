@@ -1,13 +1,11 @@
 use std::path::PathBuf;
 
-use derive_getters::Getters;
-use protobuf::reflect::{FileDescriptor, MessageDescriptor};
-use protobuf::MessageDyn;
-use protobuf_json_mapping::parse_dyn_from_str;
-
 use crate::config::PayloadProtobuf;
 use crate::payload::json::PayloadFormatJson;
 use crate::payload::{PayloadFormat, PayloadFormatError};
+use derive_getters::Getters;
+use protobuf::reflect::{FileDescriptor, MessageDescriptor};
+use protobuf::MessageDyn;
 
 #[derive(Clone, Debug, Getters)]
 pub struct PayloadFormatProtobuf {
@@ -23,17 +21,6 @@ impl PayloadFormatProtobuf {
         let result = Self::convert_from_vec(content, definition_file, message_name.as_str())?;
 
         Ok(Self { content: result })
-    }
-
-    fn convert_from_vec(
-        content: Vec<u8>,
-        definition_file: &PathBuf,
-        message_name: &str,
-    ) -> Result<Box<dyn MessageDyn>, PayloadFormatError> {
-        let md = Self::get_message_descriptor(definition_file, message_name)?;
-
-        let result = md.parse_from_bytes(content.as_slice())?;
-        Ok(result)
     }
 
     pub fn convert_from(
@@ -53,10 +40,10 @@ impl PayloadFormatProtobuf {
             }
             PayloadFormat::Protobuf(value) => value.content,
             PayloadFormat::Hex(value) => {
-                Self::convert_from_vec(Vec::from(value), definition_file, message_name)?
+                Self::convert_from_vec(value.decode_from_hex()?, definition_file, message_name)?
             }
             PayloadFormat::Base64(value) => {
-                Self::convert_from_vec(Vec::from(value), definition_file, message_name)?
+                Self::convert_from_vec(value.decode_from_base64()?, definition_file, message_name)?
             }
             PayloadFormat::Json(value) => {
                 Self::convert_from_json(value, definition_file, message_name)?
@@ -68,6 +55,29 @@ impl PayloadFormatProtobuf {
         };
 
         Ok(Self { content })
+    }
+
+    fn convert_from_vec(
+        content: Vec<u8>,
+        definition_file: &PathBuf,
+        message_name: &str,
+    ) -> Result<Box<dyn MessageDyn>, PayloadFormatError> {
+        let md = Self::get_message_descriptor(definition_file, message_name)?;
+
+        let result = md.parse_from_bytes(content.as_slice())?;
+        Ok(result)
+    }
+
+    fn convert_from_json(
+        value: PayloadFormatJson,
+        definition_file: &PathBuf,
+        message_name: &str,
+    ) -> Result<Box<dyn MessageDyn>, PayloadFormatError> {
+        Self::convert_from_vec(
+            value.to_string().into_bytes(),
+            definition_file,
+            message_name,
+        )
     }
 
     fn get_message_descriptor(
@@ -94,16 +104,6 @@ impl PayloadFormatProtobuf {
                 message_name.to_string(),
             ))
     }
-
-    fn convert_from_json(
-        value: PayloadFormatJson,
-        definition_file: &PathBuf,
-        message_name: &str,
-    ) -> Result<Box<dyn MessageDyn>, PayloadFormatError> {
-        let md = Self::get_message_descriptor(definition_file, message_name)?;
-
-        Ok(parse_dyn_from_str(&md, value.to_string().as_str())?)
-    }
 }
 
 /// Encodes the protobuf message and returns its byte representation.
@@ -120,6 +120,12 @@ impl TryFrom<(PayloadFormat, &PayloadProtobuf)> for PayloadFormatProtobuf {
 
     fn try_from((value, options): (PayloadFormat, &PayloadProtobuf)) -> Result<Self, Self::Error> {
         Self::convert_from(value, options.definition(), options.message())
+    }
+}
+
+impl From<PayloadFormatProtobuf> for Box<dyn MessageDyn> {
+    fn from(value: PayloadFormatProtobuf) -> Self {
+        value.content
     }
 }
 
