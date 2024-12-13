@@ -18,6 +18,8 @@ use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
 use tokio::sync::{broadcast, Mutex};
 use tokio::{signal, task};
 
+use mqtlib::built_info::PKG_VERSION;
+
 use crate::config::mqtli_config::PublishTriggerType::Periodic;
 use crate::config::mqtli_config::{parse_config, MqttVersion, Topic};
 use crate::mqtt::mqtt_handler::MqttHandler;
@@ -37,6 +39,11 @@ async fn main() -> anyhow::Result<()> {
     let config = parse_config().with_context(|| "Error while parsing configuration")?;
 
     init_logger(config.log_level());
+
+    info!(
+        "MQTli version {} starting",
+        PKG_VERSION
+    );
 
     debug!("{}", config);
 
