@@ -113,33 +113,33 @@ mod v5 {
     use std::str::from_utf8;
 
     use log::info;
-    use rumqttc::v5::{Event, Incoming};
 
     use crate::config::mqtli_config::Topic;
     use crate::mqtt::mqtt_handler::MqttHandler;
     use crate::mqtt::QoS;
 
-    pub fn handle_event(event: Event, topics: &[Topic]) {
+    pub fn handle_event(event: rumqttc::v5::Event, topics: &[Topic]) {
         match event {
-            Event::Incoming(event) => {
-                if let Incoming::Publish(value) = event {
+            rumqttc::v5::Event::Incoming(event) => {
+                if let rumqttc::v5::Incoming::Publish(value) = event {
                     let incoming_topic = from_utf8(value.topic.as_ref()).expect("Topic is not in UTF-8 format");
+                    let qos = QoS::from(value.qos);
 
                     info!(
-                        "Incoming message on topic {} (QoS: {:?})",
-                        incoming_topic, value.qos
+                        "Incoming message on topic {} (QoS: {})",
+                        incoming_topic, qos
                     );
 
                     MqttHandler::handle_incoming_message(
                         topics,
                         value.payload.to_vec(),
                         incoming_topic,
-                        QoS::from(value.qos),
+                        qos,
                         value.retain,
                     );
                 }
             }
-            Event::Outgoing(_event) => {}
+            rumqttc::v5::Event::Outgoing(_event) => {}
         }
     }
 }
@@ -148,33 +148,33 @@ mod v311 {
     use std::str::from_utf8;
 
     use log::info;
-    use rumqttc::{Event, Incoming};
 
     use crate::config::mqtli_config::Topic;
     use crate::mqtt::mqtt_handler::MqttHandler;
     use crate::mqtt::QoS;
 
-    pub fn handle_event(event: Event, topics: &[Topic]) {
+    pub fn handle_event(event: rumqttc::Event, topics: &[Topic]) {
         match event {
-            Event::Incoming(event) => {
-                if let Incoming::Publish(value) = event {
-                    let incoming_topic = from_utf8(value.topic.as_ref()).unwrap();
+            rumqttc::Event::Incoming(event) => {
+                if let rumqttc::Incoming::Publish(value) = event {
+                    let incoming_topic = from_utf8(value.topic.as_ref()).expect("Topic is not in UTF-8 format");
+                    let qos = QoS::from(value.qos);
 
                     info!(
-                        "Incoming message on topic {} (QoS: {:?})",
-                        incoming_topic, value.qos
+                        "Incoming message on topic {} (QoS: {})",
+                        incoming_topic, qos
                     );
 
                     MqttHandler::handle_incoming_message(
                         topics,
                         value.payload.to_vec(),
                         incoming_topic,
-                        QoS::from(value.qos),
+                        QoS::from(qos),
                         value.retain,
                     );
                 }
             }
-            Event::Outgoing(_event) => {}
+            rumqttc::Event::Outgoing(_event) => {}
         }
     }
 }

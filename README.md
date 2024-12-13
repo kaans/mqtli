@@ -7,6 +7,7 @@ when reading input data for publish and outputting data for subscribe.
 The supported data formats and the conversion rules are listed under [supported payload formats](#supported-formats)
 
 ## Main features:
+
 - support of many payload formats (json, yaml, protobuf, hex, base64, utf-8, raw)
 - convert seamlessly between different payload formats (e.g. from json to protobuf or vice versa)
 - automatically publish messages using triggers (periodically, messages on topics)
