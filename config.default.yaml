@@ -3,7 +3,7 @@
 #  port: 1883
 #  protocol: tcp # tcp or websocket
 #
-#  client_id: "mqtcli"
+#  client_id: "mqtli"
 #  keep_alive: 5 # in seconds
 #  username: ""
 #  password: ""
@@ -15,14 +15,14 @@
 #  tls_version: all #all, v12, v13
 #
 #  last_will:
-#    topic: ""
-#    payload: []
+#    topic: "lwt"
+#    payload: ""
 #    qos: 0
 #    retain: false
 #
 #log_level: info # off, error, warn, info, debug, trace
 #
-# no topics are defined by default
+## no topics are defined by default
 #
 #topics:
 #  - topic: mqtli/topic
@@ -32,7 +32,6 @@
 #      outputs: # by default no output is defined
 #        - format:
 #            type: yaml
-#            raw_as: hex # defines how raw binary data is converted (hex, base64 or utf8)
 #          target:
 #            type: console # console is default and can be omitted
 #        - format:
@@ -54,7 +53,7 @@
 #      input:
 #        type: text # text, raw, hex, base64, json, yaml
 #        content: "content_to_send"
-#        path: content.txt
+#        #path: content.txt
 #      trigger:
 #        - type: periodic # default trigger: periodic with no count (indefinitely) and interval 1 second
 #          #count: 1 # 0 is indefinitely
