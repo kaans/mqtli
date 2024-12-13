@@ -1,0 +1,19 @@
+on:
+  workflow_dispatch:
+
+jobs:
+  cargo-test:
+    name: cargo test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: rustfmt, clippy
+      - name: Test
+        run: cargo test
+      - name: Rustfmt Check
+        uses: actions-rust-lang/rustfmt@v1
+      - name: Clippy
+        run: cargo clippy
