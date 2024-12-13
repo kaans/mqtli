@@ -85,19 +85,15 @@ impl TryFrom<PayloadFormat> for PayloadFormatText {
             PayloadFormat::Raw(value) => Ok(Self {
                 content: value.into(),
             }),
-            PayloadFormat::Protobuf(value) => Ok(Self {
-                content: value.try_into()?,
-            }),
+            PayloadFormat::Protobuf(_value) => Err(PayloadFormatError::CouldNotConvertFromProtobuf("text")),
             PayloadFormat::Hex(value) => {
-                let a: Vec<u8> = value.into();
                 Ok(Self {
-                    content: a,
+                    content: value.decode_from_hex()?,
                 })
             }
             PayloadFormat::Base64(value) => {
-                let a: Vec<u8> = value.into();
                 Ok(Self {
-                    content: a,
+                    content: value.decode_from_base64()?,
                 })
             }
             PayloadFormat::Json(value) => {

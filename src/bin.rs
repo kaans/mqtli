@@ -110,7 +110,7 @@ async fn start_scheduler(topics: Arc<Vec<Topic>>, mqtt_service: Arc<Mutex<dyn Mq
                         )
                         .await
                     {
-                        error!("Error while adding schedule: {:?}", e);
+                        error!("Error while adding schedule: {}", e);
                     };
                 }
             }
@@ -133,7 +133,7 @@ async fn start_exit_task(client: Arc<Mutex<dyn MqttService>>) {
                 info!("Successfully disconnected");
             }
             Err(e) => {
-                error!("Error during disconnect: {:?}", e);
+                error!("Error during disconnect: {}", e);
             }
         };
     });

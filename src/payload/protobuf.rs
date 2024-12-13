@@ -9,7 +9,7 @@ use crate::config::PayloadProtobuf;
 use crate::payload::json::PayloadFormatJson;
 use crate::payload::{PayloadFormat, PayloadFormatError};
 
-#[derive(Debug, Getters)]
+#[derive(Clone, Debug, Getters)]
 pub struct PayloadFormatProtobuf {
     content: Box<dyn MessageDyn>,
 }

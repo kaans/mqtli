@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io;
 use std::io::Read;
@@ -8,6 +9,7 @@ use ::base64::DecodeError;
 use ::hex::FromHexError;
 use log::error;
 use protobuf_json_mapping::PrintError;
+use strum_macros::IntoStaticStr;
 use thiserror::Error;
 
 use crate::config::{
@@ -61,6 +63,8 @@ pub enum PayloadFormatError {
     CouldNotConvertToJson(#[source] serde_json::Error),
     #[error("Could not convert payload from json")]
     CouldNotConvertFromJson(String),
+    #[error("Could not convert payload from protobuf to format {0}")]
+    CouldNotConvertFromProtobuf(&'static str),
     #[error("Could not convert payload to hex")]
     CouldNotConvertToHex(#[source] FromHexError),
     #[error("Could not convert payload to base64")]
@@ -107,7 +111,7 @@ impl From<DecodeError> for PayloadFormatError {
     }
 }
 
-#[derive(Debug)]
+#[derive(IntoStaticStr, Clone, Debug)]
 pub enum PayloadFormat {
     Text(PayloadFormatText),
     Raw(PayloadFormatRaw),
@@ -118,6 +122,12 @@ pub enum PayloadFormat {
     Yaml(PayloadFormatYaml),
 }
 
+impl Display for PayloadFormat {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let name: &'static str = self.into();
+        write!(f, "{}", name)
+    }
+}
 impl TryInto<Vec<u8>> for PayloadFormat {
     type Error = PayloadFormatError;
 
@@ -140,9 +150,7 @@ impl TryInto<String> for PayloadFormat {
     fn try_into(self) -> Result<String, Self::Error> {
         match self {
             PayloadFormat::Text(value) => Ok(value.into()),
-            PayloadFormat::Raw(_value) => {
-                Err(PayloadFormatError::DisplayNotPossible(String::from("raw")))
-            }
+            PayloadFormat::Raw(value) => Ok(String::from_utf8_lossy(Vec::<u8>::from(value).as_slice()).to_string()),
             PayloadFormat::Protobuf(_value) => Err(PayloadFormatError::DisplayNotPossible(
                 String::from("protobuf"),
             )),
@@ -180,6 +188,9 @@ impl TryFrom<(PayloadFormat, &PayloadType)> for PayloadFormat {
     }
 }
 
+/// Converts the data given in the Vec<u8> to the corresponding payload
+/// format using the PayloadType. The PayloadType indicates what format
+/// the data in the Vec<u8> is.
 impl TryFrom<(PayloadType, Vec<u8>)> for PayloadFormat {
     type Error = PayloadFormatError;
 
@@ -199,9 +210,9 @@ impl TryFrom<(PayloadType, Vec<u8>)> for PayloadFormat {
             PayloadType::Yaml => {
                 PayloadFormat::Yaml(PayloadFormatYaml::try_from(content)?)
             }
-            PayloadType::Hex => PayloadFormat::Hex(PayloadFormatHex::from(content)),
+            PayloadType::Hex => PayloadFormat::Hex(PayloadFormatHex::try_from(content)?),
             PayloadType::Base64 => {
-                PayloadFormat::Base64(PayloadFormatBase64::from(content))
+                PayloadFormat::Base64(PayloadFormatBase64::try_from(content)?)
             }
             PayloadType::Raw => PayloadFormat::Raw(PayloadFormatRaw::from(content)),
         })

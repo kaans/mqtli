@@ -80,11 +80,11 @@ impl MqttHandler {
                                 qos,
                                 retain,
                             ) {
-                                error!("{:?}", e);
+                                error!("{}", e);
                             }
                         }
                         Err(e) => {
-                            error!("{:?}", e);
+                            error!("{}", e);
                         }
                     };
                 }
@@ -101,7 +101,7 @@ impl MqttHandler {
         let conv = PayloadFormat::try_from((content, output.format()))?;
 
         let result = match output.target() {
-            OutputTarget::Console(_options) => ConsoleOutput::output(topic, conv.try_into()?, qos, retain),
+            OutputTarget::Console(_options) => ConsoleOutput::output(topic, conv.clone().try_into()?, conv, qos, retain),
             OutputTarget::File(file) => FileOutput::output(conv.try_into()?, file),
         };
 
