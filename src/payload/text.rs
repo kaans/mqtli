@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
-
+use protobuf::MessageDyn;
+use protobuf::text_format::print_to_string_pretty;
 use crate::payload::{PayloadFormat, PayloadFormatError};
 
 /// Represents a lossy UTF-8 encoded String.
@@ -85,7 +86,10 @@ impl TryFrom<PayloadFormat> for PayloadFormatText {
             PayloadFormat::Raw(value) => Ok(Self {
                 content: value.into(),
             }),
-            PayloadFormat::Protobuf(_value) => Err(PayloadFormatError::CouldNotConvertFromProtobuf("text")),
+            PayloadFormat::Protobuf(value) => {
+                let msg: Box<dyn MessageDyn> = value.into();
+                Ok(Self::from(print_to_string_pretty(&*msg)))
+            }
             PayloadFormat::Hex(value) => {
                 Ok(Self {
                     content: value.decode_from_hex()?,
