@@ -38,7 +38,7 @@ impl TryFrom<PayloadFormat> for PayloadFormatRaw {
             PayloadFormat::Hex(value) => Ok(Self::from(value.decode_from_hex()?)),
             PayloadFormat::Base64(value) => Ok(Self::from(value.decode_from_base64()?)),
             PayloadFormat::Json(value) => Ok(Self::from(Vec::<u8>::from(value))),
-            PayloadFormat::Yaml(value) => Ok(Self::from(Vec::<u8>::try_from(value)?))
+            PayloadFormat::Yaml(value) => Ok(Self::from(Vec::<u8>::try_from(value)?)),
         }
     }
 }

@@ -66,7 +66,6 @@ impl TryFrom<String> for PayloadFormatHex {
 /// assert_eq!(vec![0x34,0x39,0x34,0x65,0x35,0x30,0x35,0x35,0x35,0x34], v);
 /// ```
 impl From<PayloadFormatHex> for Vec<u8> {
-
     fn from(value: PayloadFormatHex) -> Self {
         value.content.into_bytes()
     }
@@ -90,19 +89,19 @@ impl TryFrom<PayloadFormat> for PayloadFormatHex {
             PayloadFormat::Raw(value) => {
                 Self::try_from(PayloadFormatHex::encode_to_hex(&Vec::<u8>::from(value)))
             }
-            PayloadFormat::Protobuf(value) => {
-                Self::try_from(PayloadFormatHex::encode_to_hex(&Vec::<u8>::try_from(value)?))
-            }
+            PayloadFormat::Protobuf(value) => Self::try_from(PayloadFormatHex::encode_to_hex(
+                &Vec::<u8>::try_from(value)?,
+            )),
             PayloadFormat::Hex(value) => Ok(value),
-            PayloadFormat::Base64(value) => {
-                Self::try_from(PayloadFormatHex::encode_to_hex(&value.decode_from_base64()?))
-            }
+            PayloadFormat::Base64(value) => Self::try_from(PayloadFormatHex::encode_to_hex(
+                &value.decode_from_base64()?,
+            )),
             PayloadFormat::Json(value) => {
                 Self::try_from(PayloadFormatHex::encode_to_hex(&Vec::<u8>::from(value)))
             }
-            PayloadFormat::Yaml(value) => {
-                Self::try_from(PayloadFormatHex::encode_to_hex(&Vec::<u8>::try_from(value)?))
-            }
+            PayloadFormat::Yaml(value) => Self::try_from(PayloadFormatHex::encode_to_hex(
+                &Vec::<u8>::try_from(value)?,
+            )),
         }
     }
 }
@@ -233,16 +232,17 @@ mod tests {
         .unwrap();
         let result = PayloadFormatHex::try_from(PayloadFormat::Json(input)).unwrap();
 
-        assert_eq!("7b22636f6e74656e74223a22494e505554227d".to_string(), result.content);
+        assert_eq!(
+            "7b22636f6e74656e74223a22494e505554227d".to_string(),
+            result.content
+        );
     }
 
     #[test]
     fn from_yaml() {
-        let input = PayloadFormatYaml::try_from(Vec::<u8>::from(format!(
-            "content: \"{}\"",
-            INPUT_STRING
-        )))
-        .unwrap();
+        let input =
+            PayloadFormatYaml::try_from(Vec::<u8>::from(format!("content: \"{}\"", INPUT_STRING)))
+                .unwrap();
         let result = PayloadFormatHex::try_from(PayloadFormat::Yaml(input)).unwrap();
 
         assert_eq!("636f6e74656e743a20494e5055540a".to_string(), result.content);

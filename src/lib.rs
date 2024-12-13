@@ -1,6 +1,6 @@
-pub mod payload;
+pub mod built_info;
 pub mod config;
 pub mod mqtt;
-pub mod publish;
 pub mod output;
-pub mod built_info;
+pub mod payload;
+pub mod publish;

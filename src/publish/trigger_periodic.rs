@@ -129,7 +129,12 @@ impl TriggerPeriodic {
                 )
                 .expect("Could not create job");
 
-                scheduler.lock().await.add(job_initial).await.expect("Could not add job");
+                scheduler
+                    .lock()
+                    .await
+                    .add(job_initial)
+                    .await
+                    .expect("Could not add job");
 
                 task::spawn(async move {
                     tokio::time::sleep(initial_delay).await;
@@ -146,7 +151,12 @@ impl TriggerPeriodic {
                     )
                     .expect("Could not create job");
 
-                    scheduler.lock().await.add(job_repeated).await.expect("Could not add job");
+                    scheduler
+                        .lock()
+                        .await
+                        .add(job_repeated)
+                        .await
+                        .expect("Could not add job");
                 });
             }
             None => {
@@ -160,7 +170,12 @@ impl TriggerPeriodic {
                 )
                 .expect("Could not create job");
 
-                scheduler.lock().await.add(job_initial).await.expect("Could not add job");
+                scheduler
+                    .lock()
+                    .await
+                    .add(job_initial)
+                    .await
+                    .expect("Could not add job");
 
                 task::spawn(async move {
                     tokio::time::sleep(initial_delay).await;
@@ -175,7 +190,12 @@ impl TriggerPeriodic {
                     )
                     .expect("Could not create job");
 
-                    scheduler.lock().await.add(job_repeated).await.expect("Could not add job");
+                    scheduler
+                        .lock()
+                        .await
+                        .add(job_repeated)
+                        .await
+                        .expect("Could not add job");
                 });
             }
         };

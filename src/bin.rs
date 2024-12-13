@@ -40,10 +40,7 @@ async fn main() -> anyhow::Result<()> {
 
     init_logger(config.log_level());
 
-    info!(
-        "MQTli version {} starting",
-        PKG_VERSION
-    );
+    info!("MQTli version {} starting", PKG_VERSION);
 
     debug!("{}", config);
 

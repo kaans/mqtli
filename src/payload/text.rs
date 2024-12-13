@@ -1,7 +1,7 @@
-use std::fmt::{Display, Formatter};
-use protobuf::MessageDyn;
-use protobuf::text_format::print_to_string_pretty;
 use crate::payload::{PayloadFormat, PayloadFormatError};
+use protobuf::text_format::print_to_string_pretty;
+use protobuf::MessageDyn;
+use std::fmt::{Display, Formatter};
 
 /// Represents a lossy UTF-8 encoded String.
 /// Any vector of u8 can be used to construct this String.
@@ -31,9 +31,8 @@ impl Display for PayloadFormatText {
 
 /// Encodes the given bytes as UTF-8 string.
 impl From<Vec<u8>> for PayloadFormatText {
-
     fn from(value: Vec<u8>) -> Self {
-        Self { content : value }
+        Self { content: value }
     }
 }
 
@@ -90,22 +89,14 @@ impl TryFrom<PayloadFormat> for PayloadFormatText {
                 let msg: Box<dyn MessageDyn> = value.into();
                 Ok(Self::from(print_to_string_pretty(&*msg)))
             }
-            PayloadFormat::Hex(value) => {
-                Ok(Self {
-                    content: value.decode_from_hex()?,
-                })
-            }
-            PayloadFormat::Base64(value) => {
-                Ok(Self {
-                    content: value.decode_from_base64()?,
-                })
-            }
-            PayloadFormat::Json(value) => {
-                Ok(Self::from(value.to_string()))
-            }
-            PayloadFormat::Yaml(value) => {
-                Ok(Self::from(value.to_string()))
-            }
+            PayloadFormat::Hex(value) => Ok(Self {
+                content: value.decode_from_hex()?,
+            }),
+            PayloadFormat::Base64(value) => Ok(Self {
+                content: value.decode_from_base64()?,
+            }),
+            PayloadFormat::Json(value) => Ok(Self::from(value.to_string())),
+            PayloadFormat::Yaml(value) => Ok(Self::from(value.to_string())),
         }
     }
 }
@@ -248,8 +239,7 @@ mod tests {
     #[test]
     fn from_hex_as_base64() {
         let input = PayloadFormatHex::try_from(INPUT_STRING_HEX.to_owned()).unwrap();
-        let result = PayloadFormatText::try_from(PayloadFormat::Hex(input))
-        .unwrap();
+        let result = PayloadFormatText::try_from(PayloadFormat::Hex(input)).unwrap();
 
         assert_eq!(get_input(), result.content);
     }
@@ -257,8 +247,7 @@ mod tests {
     #[test]
     fn from_base64_as_base64() {
         let input = PayloadFormatBase64::try_from(INPUT_STRING_BASE64.to_owned()).unwrap();
-        let result = PayloadFormatText::try_from(PayloadFormat::Base64(input))
-        .unwrap();
+        let result = PayloadFormatText::try_from(PayloadFormat::Base64(input)).unwrap();
 
         assert_eq!(get_input(), result.content);
     }
@@ -266,8 +255,7 @@ mod tests {
     #[test]
     fn from_hex_as_text() {
         let input = PayloadFormatHex::try_from(INPUT_STRING_HEX.to_owned()).unwrap();
-        let result = PayloadFormatText::try_from(PayloadFormat::Hex(input))
-        .unwrap();
+        let result = PayloadFormatText::try_from(PayloadFormat::Hex(input)).unwrap();
 
         assert_eq!(get_input(), result.content);
     }
@@ -275,8 +263,7 @@ mod tests {
     #[test]
     fn from_base64_as_text() {
         let input = PayloadFormatBase64::try_from(INPUT_STRING_BASE64.to_owned()).unwrap();
-        let result = PayloadFormatText::try_from(PayloadFormat::Base64(input))
-        .unwrap();
+        let result = PayloadFormatText::try_from(PayloadFormat::Base64(input)).unwrap();
 
         assert_eq!(get_input(), result.content);
     }

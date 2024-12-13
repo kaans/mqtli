@@ -210,8 +210,7 @@ mod tests {
 
     #[test]
     fn from_yaml() {
-        let input =
-            PayloadFormatYaml::try_from(Vec::<u8>::from(get_input_yaml_string())).unwrap();
+        let input = PayloadFormatYaml::try_from(Vec::<u8>::from(get_input_yaml_string())).unwrap();
         let result = PayloadFormatYaml::try_from(PayloadFormat::Yaml(input)).unwrap();
 
         assert_eq!(get_input_yaml_value(), result.content);

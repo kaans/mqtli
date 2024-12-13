@@ -234,11 +234,9 @@ mod tests {
 
     #[test]
     fn from_yaml() {
-        let input = PayloadFormatYaml::try_from(Vec::<u8>::from(format!(
-            "content: \"{}\"",
-            INPUT_STRING
-        )))
-        .unwrap();
+        let input =
+            PayloadFormatYaml::try_from(Vec::<u8>::from(format!("content: \"{}\"", INPUT_STRING)))
+                .unwrap();
         let result = PayloadFormatBase64::try_from(PayloadFormat::Yaml(input)).unwrap();
 
         assert_eq!("Y29udGVudDogSU5QVVQK".to_string(), result.content);

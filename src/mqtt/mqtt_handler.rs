@@ -62,13 +62,14 @@ impl MqttHandler {
         qos: QoS,
         retain: bool,
     ) {
-        topics.iter()
+        topics
+            .iter()
             .filter(|topic| topic.topic() == incoming_topic_str && *topic.subscription().enabled())
             .for_each(|incoming_topic| {
                 for output in incoming_topic.subscription().outputs() {
                     let result = PayloadFormat::try_from((
                         incoming_topic.payload_type().clone(),
-                        incoming_value.clone()
+                        incoming_value.clone(),
                     ));
 
                     match result {
@@ -101,7 +102,9 @@ impl MqttHandler {
         let conv = PayloadFormat::try_from((content, output.format()))?;
 
         let result = match output.target() {
-            OutputTarget::Console(_options) => ConsoleOutput::output(topic, conv.clone().try_into()?, conv, qos, retain),
+            OutputTarget::Console(_options) => {
+                ConsoleOutput::output(topic, conv.clone().try_into()?, conv, qos, retain)
+            }
             OutputTarget::File(file) => FileOutput::output(conv.try_into()?, file),
         };
 
@@ -122,7 +125,8 @@ mod v5 {
         match event {
             rumqttc::v5::Event::Incoming(event) => {
                 if let rumqttc::v5::Incoming::Publish(value) = event {
-                    let incoming_topic = from_utf8(value.topic.as_ref()).expect("Topic is not in UTF-8 format");
+                    let incoming_topic =
+                        from_utf8(value.topic.as_ref()).expect("Topic is not in UTF-8 format");
                     let qos = QoS::from(value.qos);
 
                     info!(
@@ -157,7 +161,8 @@ mod v311 {
         match event {
             rumqttc::Event::Incoming(event) => {
                 if let rumqttc::Incoming::Publish(value) = event {
-                    let incoming_topic = from_utf8(value.topic.as_ref()).expect("Topic is not in UTF-8 format");
+                    let incoming_topic =
+                        from_utf8(value.topic.as_ref()).expect("Topic is not in UTF-8 format");
                     let qos = QoS::from(value.qos);
 
                     info!(

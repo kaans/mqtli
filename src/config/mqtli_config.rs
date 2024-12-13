@@ -78,7 +78,6 @@ impl Display for Topic {
         writeln!(f, "payload type: {}", self.payload_type)?;
         writeln!(f, "Subscription:\n{}", self.subscription)?;
 
-
         Ok(())
     }
 }
@@ -220,8 +219,7 @@ impl From<&args::Output> for Output {
     }
 }
 
-#[derive(Debug)]
-#[derive(strum_macros::Display)]
+#[derive(Debug, strum_macros::Display)]
 pub enum OutputTarget {
     Console(OutputTargetConsole),
     File(OutputTargetFile),
@@ -287,7 +285,7 @@ impl Display for Subscription {
         for (i, output) in self.outputs.iter().enumerate() {
             writeln!(f, "Output: {i}\n{}", output)?;
         }
-        
+
         Ok(())
     }
 }
