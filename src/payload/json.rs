@@ -15,7 +15,7 @@ pub struct PayloadFormatJson {
 }
 
 impl PayloadFormatJson {
-    fn decode_from_json_payload(self: &Self) -> String {
+    fn decode_from_json_payload(&self) -> String {
         self.content.to_string()
     }
 

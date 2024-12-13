@@ -169,7 +169,7 @@ mod v311 {
                         topics,
                         value.payload.to_vec(),
                         incoming_topic,
-                        QoS::from(qos),
+                        qos,
                         value.retain,
                     );
                 }

@@ -13,7 +13,7 @@ pub struct PayloadFormatYaml {
 }
 
 impl PayloadFormatYaml {
-    fn decode_from_yaml_payload(self: &Self) -> serde_yaml::Result<String> {
+    fn decode_from_yaml_payload(&self) -> serde_yaml::Result<String> {
         serde_yaml::to_string(&self.content)
     }
 

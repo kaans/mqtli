@@ -11,7 +11,7 @@ pub struct PayloadFormatHex {
 }
 
 impl PayloadFormatHex {
-    pub fn decode_from_hex(self: Self) -> Result<Vec<u8>, PayloadFormatError> {
+    pub fn decode_from_hex(self) -> Result<Vec<u8>, PayloadFormatError> {
         Ok(hex::decode(&self.content)?)
     }
 

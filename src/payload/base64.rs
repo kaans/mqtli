@@ -11,7 +11,7 @@ pub struct PayloadFormatBase64 {
 }
 
 impl PayloadFormatBase64 {
-    pub fn decode_from_base64(self: Self) -> Result<Vec<u8>, PayloadFormatError> {
+    pub fn decode_from_base64(self) -> Result<Vec<u8>, PayloadFormatError> {
         Ok(general_purpose::STANDARD.decode(self.content)?)
     }
 
