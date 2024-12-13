@@ -6,6 +6,14 @@ It can be configured to automatically convert between different payload formats
 when reading input data for publish and outputting data for subscribe.
 The supported data formats and the conversion rules are listed under [supported payload formats](#supported-formats)
 
+## Main features:
+- support of many payload formats (json, yaml, protobuf, hex, base64, utf-8, raw)
+- convert seamlessly between different payload formats (e.g. from json to protobuf or vice versa)
+- automatically publish messages using triggers (periodically, messages on topics)
+- subscribe to topics and output messages to console or to file
+- support of multiple inputs and outputs per topic
+- configuration is stored in a file to support complex configuration scenarios and share them
+
 ## How to use
 
 1. Download the latest release for your platform [from the releases](https://github.com/kaans/mqtli/releases/latest).
