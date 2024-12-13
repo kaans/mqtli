@@ -1,3 +1,14 @@
+//! # MQTli
+//! A multi-payload format CLI tool for communication with an MQTT broker.
+//!
+//! Main features:
+//! - support of many payload formats (json, yaml, protobuf, hex, base64, utf-8, raw)
+//! - convert seamlessly between different payload formats (e.g. from json to protobuf)
+//! - automatically publish messages using triggers (periodically, messages on topics)
+//! - subscribe to topics and output messages to console or to file
+//! - support of multiple inputs and outputs per topic
+//! - configuration is stored in a file to support complex configuration scenarios and share them
+//!
 use std::ops::Deref;
 use std::sync::Arc;
 
