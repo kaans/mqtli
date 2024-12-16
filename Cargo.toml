@@ -41,7 +41,7 @@ protobuf-parse = "3.7.1"
 protobuf-json-mapping = "3.7.1"
 tokio-cron-scheduler = { version = "0.13.0", features = [] }
 uuid = { version = "1.11.0", features = ["v4"] }
-colored = "2.1.0"
+colored = "2.2.0"
 strum_macros = "0.26.4"
 
 [build-dependencies]
