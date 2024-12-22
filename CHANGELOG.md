@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/kaans/mqtli/compare/v0.5.1...v0.5.2) (2024-12-22)
+
+
+### Miscellaneous Chores
+
+* Set version to 0.5.2
+
 ## [0.5.1](https://github.com/kaans/mqtli/compare/v0.5.0...v0.5.1) (2024-12-22)
 
 
