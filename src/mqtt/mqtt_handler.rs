@@ -77,18 +77,20 @@ impl MqttHandler {
                         Ok(content) => {
                             match incoming_topic.subscription().apply_filters(content) {
                                 Ok(content) => {
-                                    if let Err(e) = Self::forward_to_output(
+                                    content.iter().for_each(|content| {
+                                        if let Err(e) = Self::forward_to_output(
                                         output,
                                         incoming_topic_str,
-                                        content,
+                                        content.clone(),
                                         qos,
                                         retain,
                                     ) {
                                         error!("{}", e);
                                     }
+                                    })
                                 }
                                 Err(e) => {
-                                    error!("{}", e);
+                                    error!("{:?}", e);
                                 }
                             }
 

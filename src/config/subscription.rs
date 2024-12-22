@@ -1,28 +1,40 @@
-use derive_getters::Getters;
-use validator::Validate;
-use std::fmt::{Display, Formatter};
-use std::path::PathBuf;
-use log::debug;
-use crate::config::{args, PayloadType};
 use crate::config::filter::{FilterError, FilterImpl, FilterType};
+use crate::config::{args, PayloadType};
 use crate::mqtt::QoS;
 use crate::payload::PayloadFormat;
-
+use derive_getters::Getters;
+use log::debug;
+use std::fmt::{Display, Formatter};
+use std::path::PathBuf;
+use validator::Validate;
 
 #[derive(Debug, Getters, Validate)]
 pub struct Subscription {
     enabled: bool,
     qos: QoS,
     outputs: Vec<Output>,
-    filters: Vec<FilterType>
+    filters: Vec<FilterType>,
 }
 
 impl Subscription {
-    pub fn apply_filters(&self, data: PayloadFormat) -> Result<PayloadFormat, FilterError> {
+    pub fn apply_filters(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
         debug!("Applying filters {:?}", self.filters);
 
-        let result: Result<PayloadFormat, FilterError> = self.filters.iter()
-            .try_fold(data, |acc, filter| FilterImpl::apply(filter, acc));
+        let result: Result<Vec<PayloadFormat>, FilterError> =
+            self.filters
+                .iter()
+                .try_fold(vec![data], |payloads, filter| {
+                    let result: Result<Vec<PayloadFormat>, FilterError> = payloads
+                        .iter()
+                        .map(|payload| FilterImpl::apply(filter, payload.clone()))
+                        .try_fold(vec![], |mut unrolled, result| {
+                            unrolled.extend(result?);
+                            Ok(unrolled)
+                        });
+
+                    result
+                });
+
         result
     }
 }
