@@ -110,6 +110,26 @@ impl FilterImpl for FilterTypeToText {
     }
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
+pub struct FilterTypeToJson {
+}
+
+impl FilterImpl for FilterTypeToJson {
+    fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
+        let result: Result<Vec<PayloadFormat>, FilterError> = match data {
+            data => {
+                Ok(vec![
+                    PayloadFormat::Json(
+                        PayloadFormatJson::try_from(data).map_err(|e| FilterError::PayloadFormatError(e))?
+                    )
+                ])
+            }
+        };
+
+        result
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[serde(tag = "type")]
 pub enum FilterType {
@@ -119,6 +139,8 @@ pub enum FilterType {
     ToUpperCase(FilterTypeToUpperCase),
     #[serde(rename = "to_text")]
     ToText(FilterTypeToText),
+    #[serde(rename = "to_json")]
+    ToJson(FilterTypeToJson),
 }
 
 impl Default for FilterType {
@@ -133,6 +155,7 @@ impl FilterImpl for FilterType {
             FilterType::ExtractJson(filter) => filter.apply(data),
             FilterType::ToUpperCase(filter) => filter.apply(data),
             FilterType::ToText(filter) => filter.apply(data),
+            FilterType::ToJson(filter) => filter.apply(data),
         }
     }
 }

@@ -75,8 +75,6 @@ impl MqttHandler {
 
                     match result {
                         Ok(content) => {
-                            println!("Filters {:?}", incoming_topic.subscription().filters());
-
                             match incoming_topic.subscription().apply_filters(content) {
                                 Ok(content) => {
                                     content.iter().for_each(|content| {
