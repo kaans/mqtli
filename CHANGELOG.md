@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/kaans/mqtli/compare/v0.5.0...v0.5.1) (2024-12-22)
+
+
+### Miscellaneous Chores
+
+* Set rust version to 1.81.0 in release workflow
+
+
 ## [0.5.0](https://github.com/kaans/mqtli/compare/v0.4.0...v0.5.0) (2024-12-22)
 
 
