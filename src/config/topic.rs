@@ -34,7 +34,7 @@ impl Topic {
 
                 ((l == r || l == "+") && !is_last_on_either_side) || l == "#"
             })
-            .fold(true, |prev, part| prev && part);
+            .all(|part| part);
 
         result
     }
