@@ -1,7 +1,7 @@
 == MQTli
 
 [#img-release,link=https://github.com/kaans/mqtli/releases]
-image::https://img.shields.io/github/release-pre/kaans/mqtli.svg
+image::https://img.shields.io/github/release-pre/kaans/mqtli.svg[]
 
 MQTli is a multi-topic payload-converting MQTT cli client written in Rust.
 
