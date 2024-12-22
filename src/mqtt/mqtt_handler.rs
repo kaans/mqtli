@@ -5,7 +5,8 @@ use tokio::sync::broadcast::Receiver;
 use tokio::task;
 use tokio::task::JoinHandle;
 
-use crate::config::mqtli_config::{Output, OutputTarget, Topic};
+use crate::config::mqtli_config::{Output, OutputTarget};
+use crate::config::topic::Topic;
 use crate::mqtt::{MqttEvent, QoS};
 use crate::output::console::ConsoleOutput;
 use crate::output::file::FileOutput;
@@ -64,7 +65,7 @@ impl MqttHandler {
     ) {
         topics
             .iter()
-            .filter(|topic| topic.topic() == incoming_topic_str && *topic.subscription().enabled())
+            .filter(|topic| topic.contains(incoming_topic_str) && *topic.subscription().enabled())
             .for_each(|incoming_topic| {
                 for output in incoming_topic.subscription().outputs() {
                     let result = PayloadFormat::try_from((
@@ -117,7 +118,7 @@ mod v5 {
 
     use log::info;
 
-    use crate::config::mqtli_config::Topic;
+    use crate::config::topic::Topic;
     use crate::mqtt::mqtt_handler::MqttHandler;
     use crate::mqtt::QoS;
 
@@ -153,7 +154,7 @@ mod v311 {
 
     use log::info;
 
-    use crate::config::mqtli_config::Topic;
+    use crate::config::topic::Topic;
     use crate::mqtt::mqtt_handler::MqttHandler;
     use crate::mqtt::QoS;
 

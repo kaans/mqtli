@@ -12,6 +12,7 @@ use validator::{Validate, ValidationError};
 use crate::config::args;
 use crate::config::args::{read_cli_args, read_config};
 use crate::config::{ConfigError, PayloadType, PublishInputType};
+use crate::config::topic::Topic;
 use crate::mqtt::QoS;
 
 #[derive(Debug, Getters, Validate)]
@@ -61,33 +62,12 @@ impl Default for MqtliConfig {
     }
 }
 
-#[derive(Debug, Default, Getters, Validate)]
-pub struct Topic {
-    #[validate(length(min = 1, message = "Topic must be given"))]
-    topic: String,
-    #[validate(nested)]
-    subscription: Subscription,
-    payload_type: PayloadType,
-    #[validate(nested)]
-    publish: Option<Publish>,
-}
-
-impl Display for Topic {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "topic: {}", self.topic)?;
-        writeln!(f, "payload type: {}", self.payload_type)?;
-        writeln!(f, "Subscription:\n{}", self.subscription)?;
-
-        Ok(())
-    }
-}
-
 #[derive(Debug, Getters, Validate)]
 pub struct Publish {
     enabled: bool,
     qos: QoS,
     retain: bool,
-    trigger: Vec<PublishTriggerType>,
+    trigger: Vec<PublishTriggerTypeMQTLICONFIG>,
     #[validate(nested)]
     input: PublishInputType,
 }
@@ -106,11 +86,11 @@ impl Default for Publish {
 
 impl From<&args::Publish> for Publish {
     fn from(value: &args::Publish) -> Self {
-        let trigger: Vec<PublishTriggerType> = match value.trigger() {
+        let trigger: Vec<PublishTriggerTypeMQTLICONFIG> = match value.trigger() {
             None => {
-                vec![PublishTriggerType::default()]
+                vec![PublishTriggerTypeMQTLICONFIG::default()]
             }
-            Some(trigger) => trigger.iter().map(PublishTriggerType::from).collect(),
+            Some(trigger) => trigger.iter().map(PublishTriggerTypeMQTLICONFIG::from).collect(),
         };
 
         Publish {
@@ -162,21 +142,21 @@ impl From<&args::PublishTriggerTypePeriodic> for PublishTriggerTypePeriodic {
 }
 
 #[derive(Debug)]
-pub enum PublishTriggerType {
+pub enum PublishTriggerTypeMQTLICONFIG {
     Periodic(PublishTriggerTypePeriodic),
 }
 
-impl From<&args::PublishTriggerType> for PublishTriggerType {
+impl From<&args::PublishTriggerType> for PublishTriggerTypeMQTLICONFIG {
     fn from(value: &args::PublishTriggerType) -> Self {
         match value {
             args::PublishTriggerType::Periodic(value) => {
-                PublishTriggerType::Periodic(PublishTriggerTypePeriodic::from(value))
+                PublishTriggerTypeMQTLICONFIG::Periodic(PublishTriggerTypePeriodic::from(value))
             }
         }
     }
 }
 
-impl Default for PublishTriggerType {
+impl Default for PublishTriggerTypeMQTLICONFIG {
     fn default() -> Self {
         Self::Periodic(PublishTriggerTypePeriodic::default())
     }
@@ -313,23 +293,6 @@ impl From<&args::Subscription> for Subscription {
             enabled: *value.enabled(),
             qos: *value.qos(),
             outputs,
-        }
-    }
-}
-
-impl From<&args::Topic> for Topic {
-    fn from(value: &args::Topic) -> Self {
-        Topic {
-            topic: String::from(value.topic()),
-            subscription: match value.subscription() {
-                None => Subscription::default(),
-                Some(value) => Subscription::from(value),
-            },
-            payload_type: match value.payload() {
-                None => PayloadType::default(),
-                Some(value) => value.clone(),
-            },
-            publish: value.publish().as_ref().map(Publish::from),
         }
     }
 }

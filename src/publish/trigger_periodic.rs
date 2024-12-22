@@ -9,8 +9,8 @@ use tokio::task;
 use tokio_cron_scheduler::{Job, JobScheduler, JobSchedulerError};
 use uuid::Uuid;
 
-use crate::config::mqtli_config::Topic;
 use crate::config::PublishInputType;
+use crate::config::topic::Topic;
 use crate::mqtt::{MqttService, QoS};
 use crate::payload::PayloadFormat;
 use crate::publish::TriggerError;
