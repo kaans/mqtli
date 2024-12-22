@@ -1,5 +1,7 @@
 == MQTli
 
+[![release](https://img.shields.io/github/release-pre/kaans/mqtli.svg)](https://github.com/kaans/mqtli/releases)
+
 MQTli is a multi-topic payload-converting MQTT cli client written in Rust.
 
 It can be configured to automatically convert between different payload formats when reading input data for publish and outputting data for subscribe.

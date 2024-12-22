@@ -6,6 +6,7 @@ description = "MQTT multi-topic and payload converting cli client"
 license = "Apache-2.0"
 repository = "https://github.com/kaans/mqtli"
 readme = "README.adoc"
+rust-version = "1.81.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -26,10 +27,10 @@ rumqttc = { git = "https://github.com/bytebeamio/rumqtt.git", rev = "431be1b", f
 serde = { version = "1.0.216", features = ["derive"] }
 serde_yaml = "0.9.30"
 simplelog = { version = "0.12.2", features = ["paris"] }
-thiserror = "2.0.6"
+thiserror = "2.0.9"
 tokio = { version = "1.42.0", features = ["macros", "rt", "rt-multi-thread", "sync", "signal"] }
 validator = { version = "0.19.0", features = ["derive"] }
-serde_json = "1.0.133"
+serde_json = "1.0.134"
 base64 = "0.22.1"
 hex = "0.4.3"
 rustls-pemfile = "1.0.4"
@@ -41,7 +42,7 @@ protobuf-parse = "3.7.1"
 protobuf-json-mapping = "3.7.1"
 tokio-cron-scheduler = { version = "0.13.0", features = [] }
 uuid = { version = "1.11.0", features = ["v4"] }
-colored = "2.1.0"
+colored = "2.2.0"
 strum_macros = "0.26.4"
 
 [build-dependencies]
