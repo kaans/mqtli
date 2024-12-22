@@ -5,7 +5,7 @@ edition = "2021"
 description = "MQTT multi-topic and payload converting cli client"
 license = "Apache-2.0"
 repository = "https://github.com/kaans/mqtli"
-readme = "README.md"
+readme = "README.adoc"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
