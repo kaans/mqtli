@@ -22,6 +22,7 @@ pub trait FilterImpl {
 pub struct FilterTypeExtractJson {
     jsonpath: String,
     #[serde(rename = "ignore_non_json")]
+    #[serde(default)]
     ignore_none_json_payload: bool
 }
 
