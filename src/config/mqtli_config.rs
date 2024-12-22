@@ -11,8 +11,8 @@ use validator::{Validate, ValidationError};
 
 use crate::config::args;
 use crate::config::args::{read_cli_args, read_config};
-use crate::config::{ConfigError, PayloadType, PublishInputType};
 use crate::config::topic::Topic;
+use crate::config::{ConfigError, PayloadType, PublishInputType};
 use crate::mqtt::QoS;
 
 #[derive(Debug, Getters, Validate)]
@@ -90,7 +90,10 @@ impl From<&args::Publish> for Publish {
             None => {
                 vec![PublishTriggerTypeMQTLICONFIG::default()]
             }
-            Some(trigger) => trigger.iter().map(PublishTriggerTypeMQTLICONFIG::from).collect(),
+            Some(trigger) => trigger
+                .iter()
+                .map(PublishTriggerTypeMQTLICONFIG::from)
+                .collect(),
         };
 
         Publish {

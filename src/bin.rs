@@ -18,15 +18,15 @@ use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
 use tokio::sync::{broadcast, Mutex};
 use tokio::{signal, task};
 
-use mqtlib::built_info::PKG_VERSION;
-use crate::config::topic::Topic;
 use crate::config::mqtli_config::PublishTriggerTypeMQTLICONFIG::Periodic;
 use crate::config::mqtli_config::{parse_config, MqttVersion};
+use crate::config::topic::Topic;
 use crate::mqtt::mqtt_handler::MqttHandler;
 use crate::mqtt::v311::mqtt_service::MqttServiceV311;
 use crate::mqtt::v5::mqtt_service::MqttServiceV5;
 use crate::mqtt::{MqttEvent, MqttService};
 use crate::publish::trigger_periodic::TriggerPeriodic;
+use mqtlib::built_info::PKG_VERSION;
 
 mod config;
 mod mqtt;
