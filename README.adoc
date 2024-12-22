@@ -26,6 +26,8 @@ MQTli is a multi-topic payload-converting MQTT cli client written in Rust.
 It can be configured to automatically convert between different payload formats when reading input data for publish and outputting data for subscribe.
 The supported data formats and the conversion rules are listed under <<_supported_payload_formats>>.
 
+image:assets/mqtli_example.png[]]
+
 === Features:
 
 * automatically publish messages using triggers (periodically, messages on topics)
