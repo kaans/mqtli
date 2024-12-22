@@ -15,7 +15,7 @@ pub enum FilterError {
 }
 
 pub trait FilterImpl {
-    fn apply(&self, data: PayloadFormat) -> Result<PayloadFormat, FilterError>;
+    fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError>;
 }
 
 #[derive(Clone, Debug, Deserialize, Getters, PartialEq)]
@@ -35,16 +35,16 @@ impl Default for FilterTypeExtractJson {
 }
 
 impl FilterImpl for FilterTypeExtractJson {
-    fn apply(&self, data: PayloadFormat) -> Result<PayloadFormat, FilterError> {
-        let result: Result<PayloadFormat, FilterError> = match data {
+    fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
+        let result: Result<Vec<PayloadFormat>, FilterError> = match data {
             PayloadFormat::Json(data) => {
-                let result: Result<PayloadFormat, FilterError> = match JsonPath::from_str(self.jsonpath.as_str()) {
+                let result: Result<Vec<PayloadFormat>, FilterError> = match JsonPath::from_str(self.jsonpath.as_str()) {
                     Ok(path) => {
-                        if let Some(first) = path.find_slice(data.content()).first() {
-                            Ok(PayloadFormat::Json(PayloadFormatJson::from(first.clone().to_data())))
-                        } else {
-                            Ok(PayloadFormat::Json(PayloadFormatJson::default()))
-                        }
+                        let res: Vec<PayloadFormat> = path.find_slice(data.content()).iter().map(|v| {
+                            PayloadFormat::Json(PayloadFormatJson::from(v.clone().to_data()))
+                        }).collect();
+
+                        Ok(res)
                     }
                     Err(e) => {
                         return Err(FilterError::WrongJsonPath(e));
@@ -55,7 +55,7 @@ impl FilterImpl for FilterTypeExtractJson {
             }
             data => {
                 if self.ignore_none_json_payload {
-                    Ok(data)
+                    Ok(vec![data])
                 } else {
                     Err(FilterError::WrongPayloadFormat("json".into()))
                 }
@@ -80,7 +80,7 @@ impl Default for FilterType {
 }
 
 impl FilterImpl for FilterType {
-    fn apply(&self, data: PayloadFormat) -> Result<PayloadFormat, FilterError> {
+    fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
         match self {
             FilterType::ExtractJson(filter) => filter.apply(data)
         }
