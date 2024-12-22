@@ -10,9 +10,9 @@ use log::LevelFilter;
 use serde::de::{Error, Unexpected};
 use serde::{Deserialize, Deserializer};
 
+use crate::config::filter::FilterType;
 use crate::config::mqtli_config::{MqttProtocol, MqttVersion, TlsVersion};
 use crate::config::{args, ConfigError, PayloadType, PublishInputType};
-use crate::config::filter::FilterType;
 use crate::mqtt::QoS;
 
 #[derive(Debug, Deserialize, Parser)]

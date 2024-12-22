@@ -1,8 +1,8 @@
 use crate::payload::{PayloadFormat, PayloadFormatError};
+use derive_getters::Getters;
 use protobuf::text_format::print_to_string_pretty;
 use protobuf::MessageDyn;
 use std::fmt::{Display, Formatter};
-use derive_getters::Getters;
 
 /// Represents a lossy UTF-8 encoded String.
 /// Any vector of u8 can be used to construct this String.

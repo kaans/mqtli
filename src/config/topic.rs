@@ -1,9 +1,9 @@
 use crate::config::mqtli_config::Publish;
+use crate::config::subscription::Subscription;
 use crate::config::{args, PayloadType};
 use derive_getters::Getters;
 use std::fmt::{Display, Formatter};
 use validator::Validate;
-use crate::config::subscription::Subscription;
 
 #[derive(Debug, Default, Getters, Validate)]
 pub struct Topic {
