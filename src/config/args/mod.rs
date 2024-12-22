@@ -12,6 +12,7 @@ use serde::{Deserialize, Deserializer};
 
 use crate::config::mqtli_config::{MqttProtocol, MqttVersion, TlsVersion};
 use crate::config::{args, ConfigError, PayloadType, PublishInputType};
+use crate::config::filter::FilterType;
 use crate::mqtt::QoS;
 
 #[derive(Debug, Deserialize, Parser)]
@@ -290,6 +291,7 @@ pub struct Subscription {
     #[serde(deserialize_with = "deserialize_qos")]
     qos: QoS,
     outputs: Option<Vec<Output>>,
+    filters: Option<Vec<FilterType>>,
 }
 
 pub fn read_config(buf: &PathBuf) -> Result<MqtliArgs, ConfigError> {

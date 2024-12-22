@@ -75,15 +75,24 @@ impl MqttHandler {
 
                     match result {
                         Ok(content) => {
-                            if let Err(e) = Self::forward_to_output(
-                                output,
-                                incoming_topic_str,
-                                content,
-                                qos,
-                                retain,
-                            ) {
-                                error!("{}", e);
+                            match incoming_topic.subscription().apply_filters(content) {
+                                Ok(content) => {
+                                    if let Err(e) = Self::forward_to_output(
+                                        output,
+                                        incoming_topic_str,
+                                        content,
+                                        qos,
+                                        retain,
+                                    ) {
+                                        error!("{}", e);
+                                    }
+                                }
+                                Err(e) => {
+                                    error!("{}", e);
+                                }
                             }
+
+
                         }
                         Err(e) => {
                             error!("{}", e);

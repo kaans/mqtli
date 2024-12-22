@@ -1,31 +1,31 @@
+use anyhow::Result;
 use derive_getters::Getters;
 use validator::Validate;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
+use log::debug;
 use crate::config::{args, PayloadType};
+use crate::config::filter::{FilterImpl, FilterType};
 use crate::mqtt::QoS;
+use crate::payload::PayloadFormat;
 
-#[derive(Debug)]
-struct FilterTypeExtract {
-    jsonpath: String
-}
-
-#[derive(Debug)]
-enum FilterType {
-    Extract(FilterTypeExtract)
-}
-
-#[derive(Debug, Getters, Validate)]
-pub struct Filter {
-    name: FilterType
-}
 
 #[derive(Debug, Getters, Validate)]
 pub struct Subscription {
     enabled: bool,
     qos: QoS,
     outputs: Vec<Output>,
-    filters: Vec<Filter>
+    filters: Vec<FilterType>
+}
+
+impl Subscription {
+    pub fn apply_filters(&self, data: PayloadFormat) -> Result<PayloadFormat> {
+        debug!("Applying filters {:?}", self.filters);
+
+        let result: Result<PayloadFormat> = self.filters.iter()
+            .try_fold(data, |acc, filter| FilterImpl::apply(filter, acc));
+        result
+    }
 }
 
 impl Display for Subscription {
@@ -61,11 +61,18 @@ impl From<&args::Subscription> for Subscription {
             Some(outputs) => outputs.iter().map(Output::from).collect(),
         };
 
+        let filters: Vec<FilterType> = match value.filters() {
+            None => {
+                vec![FilterType::default()]
+            }
+            Some(filters) => filters.to_vec(),
+        };
+
         Subscription {
             enabled: *value.enabled(),
             qos: *value.qos(),
             outputs,
-            ..Default::default()
+            filters,
         }
     }
 }
