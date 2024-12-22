@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/kaans/mqtli/compare/v0.4.0...v0.5.0) (2024-12-22)
+
+
+### Features
+
+* check if topic is included in another topic ([432bff7](https://github.com/kaans/mqtli/commit/432bff7799237130858c3aaad89d805f3e7883d3))
+
 ## 0.4.0 (2024-12-13)
 
 
