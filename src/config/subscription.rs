@@ -75,7 +75,7 @@ impl From<&args::Subscription> for Subscription {
         let filters: Vec<FilterType> = value
             .filters()
             .as_ref()
-            .map_or_else(|| vec![], |v| v.clone());
+            .map_or_else(Vec::new, |v| v.clone());
 
         Subscription {
             enabled: *value.enabled(),

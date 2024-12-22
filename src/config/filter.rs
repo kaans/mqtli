@@ -100,14 +100,10 @@ pub struct FilterTypeToText {}
 
 impl FilterImpl for FilterTypeToText {
     fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
-        let result: Result<Vec<PayloadFormat>, FilterError> = match data {
-            data => Ok(vec![PayloadFormat::Text(
-                PayloadFormatText::try_from(data)
-                    .map_err(|e| FilterError::PayloadFormatError(e))?,
-            )]),
-        };
-
-        result
+        Ok(vec![PayloadFormat::Text(
+            PayloadFormatText::try_from(data)
+                .map_err(FilterError::PayloadFormatError)?,
+        )])
     }
 }
 
@@ -116,14 +112,10 @@ pub struct FilterTypeToJson {}
 
 impl FilterImpl for FilterTypeToJson {
     fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
-        let result: Result<Vec<PayloadFormat>, FilterError> = match data {
-            data => Ok(vec![PayloadFormat::Json(
-                PayloadFormatJson::try_from(data)
-                    .map_err(|e| FilterError::PayloadFormatError(e))?,
-            )]),
-        };
-
-        result
+        Ok(vec![PayloadFormat::Json(
+            PayloadFormatJson::try_from(data)
+                .map_err(FilterError::PayloadFormatError)?,
+        )])
     }
 }
 
