@@ -1,16 +1,20 @@
 == MQTli
 
+[.float-group]
+--
+
 [#img-release,link=https://github.com/kaans/mqtli/releases]
-image:https://img.shields.io/github/release-pre/kaans/mqtli.svg[https://github.com/kaans/mqtli/releases]
+image::https://img.shields.io/github/release-pre/kaans/mqtli.svg[]
 
 [#img-license,link=https://github.com/kaans/mqtli/blob/master/LICENSE]
-image:https://img.shields.io/badge/License-Apache%202.0-blue.svg[https://github.com/kaans/mqtli/blob/master/LICENSE]
+image::https://img.shields.io/badge/License-Apache%202.0-blue.svg[]
 
 [#img-downloads,link=https://github.com/kaans/mqtli/releases]
-image:https://img.shields.io/github/downloads/kaans/mqtli/total.svg[https://github.com/kaans/mqtli/releases]
+image::https://img.shields.io/github/downloads/kaans/mqtli/total.svg[]
 
 [#img-build-status,link=https://github.com/kaans/mqtli/actions]
-image:https://img.shields.io/github/actions/workflow/status/kaans/mqtli/release.yml[https://github.com/kaans/mqtli/actions]
+image::https://img.shields.io/github/actions/workflow/status/kaans/mqtli/release.yml[]
+--
 
 :toc:
 
