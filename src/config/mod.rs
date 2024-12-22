@@ -9,10 +9,10 @@ use thiserror::Error;
 use validator::{Validate, ValidationError, ValidationErrors};
 
 mod args;
-pub mod mqtli_config;
-pub mod topic;
-pub mod subscription;
 mod filter;
+pub mod mqtli_config;
+pub mod subscription;
+pub mod topic;
 
 #[derive(Error, Debug)]
 pub enum ConfigError {

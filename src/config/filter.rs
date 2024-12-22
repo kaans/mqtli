@@ -1,11 +1,11 @@
-use std::str::FromStr;
-use serde::Deserialize;
-use derive_getters::Getters;
-use jsonpath_rust::{JsonPath, JsonPathParserError};
-use crate::payload::{PayloadFormat, PayloadFormatError};
-use thiserror::Error;
 use crate::payload::json::PayloadFormatJson;
 use crate::payload::text::PayloadFormatText;
+use crate::payload::{PayloadFormat, PayloadFormatError};
+use derive_getters::Getters;
+use jsonpath_rust::{JsonPath, JsonPathParserError};
+use serde::Deserialize;
+use std::str::FromStr;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum FilterError {
@@ -26,25 +26,32 @@ pub struct FilterTypeExtractJson {
     jsonpath: String,
     #[serde(rename = "ignore_non_json")]
     #[serde(default)]
-    ignore_none_json_payload: bool
+    ignore_none_json_payload: bool,
 }
 
 impl FilterImpl for FilterTypeExtractJson {
     fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
         let result: Result<Vec<PayloadFormat>, FilterError> = match data {
             PayloadFormat::Json(data) => {
-                let result: Result<Vec<PayloadFormat>, FilterError> = match JsonPath::from_str(self.jsonpath.as_str()) {
-                    Ok(path) => {
-                        let res: Vec<PayloadFormat> = path.find_slice(data.content()).iter().map(|v| {
-                            PayloadFormat::Json(PayloadFormatJson::from(v.clone().to_data()))
-                        }).collect();
+                let result: Result<Vec<PayloadFormat>, FilterError> =
+                    match JsonPath::from_str(self.jsonpath.as_str()) {
+                        Ok(path) => {
+                            let res: Vec<PayloadFormat> = path
+                                .find_slice(data.content())
+                                .iter()
+                                .map(|v| {
+                                    PayloadFormat::Json(PayloadFormatJson::from(
+                                        v.clone().to_data(),
+                                    ))
+                                })
+                                .collect();
 
-                        Ok(res)
-                    }
-                    Err(e) => {
-                        return Err(FilterError::WrongJsonPath(e));
-                    }
-                };
+                            Ok(res)
+                        }
+                        Err(e) => {
+                            return Err(FilterError::WrongJsonPath(e));
+                        }
+                    };
 
                 result
             }
@@ -61,12 +68,11 @@ impl FilterImpl for FilterTypeExtractJson {
     }
 }
 
-
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct FilterTypeToUpperCase {
     #[serde(rename = "ignore_non_text")]
     #[serde(default)]
-    ignore_none_text_payload: bool
+    ignore_none_text_payload: bool,
 }
 
 impl FilterImpl for FilterTypeToUpperCase {
@@ -89,21 +95,16 @@ impl FilterImpl for FilterTypeToUpperCase {
     }
 }
 
-
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct FilterTypeToText {
-}
+pub struct FilterTypeToText {}
 
 impl FilterImpl for FilterTypeToText {
     fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
         let result: Result<Vec<PayloadFormat>, FilterError> = match data {
-            data => {
-                Ok(vec![
-                    PayloadFormat::Text(
-                        PayloadFormatText::try_from(data).map_err(|e| FilterError::PayloadFormatError(e))?
-                    )
-                ])
-            }
+            data => Ok(vec![PayloadFormat::Text(
+                PayloadFormatText::try_from(data)
+                    .map_err(|e| FilterError::PayloadFormatError(e))?,
+            )]),
         };
 
         result
@@ -111,19 +112,15 @@ impl FilterImpl for FilterTypeToText {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct FilterTypeToJson {
-}
+pub struct FilterTypeToJson {}
 
 impl FilterImpl for FilterTypeToJson {
     fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
         let result: Result<Vec<PayloadFormat>, FilterError> = match data {
-            data => {
-                Ok(vec![
-                    PayloadFormat::Json(
-                        PayloadFormatJson::try_from(data).map_err(|e| FilterError::PayloadFormatError(e))?
-                    )
-                ])
-            }
+            data => Ok(vec![PayloadFormat::Json(
+                PayloadFormatJson::try_from(data)
+                    .map_err(|e| FilterError::PayloadFormatError(e))?,
+            )]),
         };
 
         result
