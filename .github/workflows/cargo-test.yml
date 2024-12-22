@@ -12,10 +12,31 @@ jobs:
       - name: Setup rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          components: rustfmt, clippy
+          toolchain: 1.81.0
       - name: Test
         run: cargo test
-      - name: Rustfmt Check
-        uses: actions-rust-lang/rustfmt@v1
+
+  clippy:
+    name: cargo test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy
+          toolchain: 1.81.0
       - name: Clippy
         run: cargo clippy
+
+  formatting:
+    name: cargo fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: rustfmt
+          toolchain: 1.81.0
+      - name: Rustfmt Check
+        uses: actions-rust-lang/rustfmt@v1
