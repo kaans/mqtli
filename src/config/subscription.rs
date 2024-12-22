@@ -72,12 +72,7 @@ impl From<&args::Subscription> for Subscription {
             Some(outputs) => outputs.iter().map(Output::from).collect(),
         };
 
-        let filters: Vec<FilterType> = match value.filters() {
-            None => {
-                vec![FilterType::default()]
-            }
-            Some(filters) => filters.to_vec(),
-        };
+        let filters: Vec<FilterType> = value.filters().as_ref().map_or_else(|| vec![], |v| v.clone());
 
         Subscription {
             enabled: *value.enabled(),
