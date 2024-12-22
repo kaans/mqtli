@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 
-use crate::config::mqtli_config::OutputTargetFile;
+use crate::config::subscription::OutputTargetFile;
 use crate::output::OutputError;
 
 pub struct FileOutput {}

@@ -11,6 +11,7 @@ use validator::{Validate, ValidationError, ValidationErrors};
 mod args;
 pub mod mqtli_config;
 pub mod topic;
+pub mod subscription;
 
 #[derive(Error, Debug)]
 pub enum ConfigError {

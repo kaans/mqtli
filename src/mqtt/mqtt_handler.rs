@@ -5,7 +5,7 @@ use tokio::sync::broadcast::Receiver;
 use tokio::task;
 use tokio::task::JoinHandle;
 
-use crate::config::mqtli_config::{Output, OutputTarget};
+use crate::config::subscription::{Output, OutputTarget};
 use crate::config::topic::Topic;
 use crate::mqtt::{MqttEvent, QoS};
 use crate::output::console::ConsoleOutput;
