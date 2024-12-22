@@ -2,9 +2,10 @@ use std::str::FromStr;
 use serde::Deserialize;
 use derive_getters::Getters;
 use jsonpath_rust::{JsonPath, JsonPathParserError};
-use crate::payload::PayloadFormat;
+use crate::payload::{PayloadFormat, PayloadFormatError};
 use thiserror::Error;
 use crate::payload::json::PayloadFormatJson;
+use crate::payload::text::PayloadFormatText;
 
 #[derive(Error, Debug)]
 pub enum FilterError {
@@ -12,27 +13,20 @@ pub enum FilterError {
     WrongPayloadFormat(String),
     #[error("The given JSON path cannot be parsed")]
     WrongJsonPath(#[from] JsonPathParserError),
+    #[error("Error in payload format")]
+    PayloadFormatError(#[from] PayloadFormatError),
 }
 
 pub trait FilterImpl {
     fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError>;
 }
 
-#[derive(Clone, Debug, Deserialize, Getters, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct FilterTypeExtractJson {
     jsonpath: String,
     #[serde(rename = "ignore_non_json")]
     #[serde(default)]
     ignore_none_json_payload: bool
-}
-
-impl Default for FilterTypeExtractJson {
-    fn default() -> Self {
-        Self {
-            jsonpath: "".to_string(),
-            ignore_none_json_payload: false,
-        }
-    }
 }
 
 impl FilterImpl for FilterTypeExtractJson {
@@ -67,11 +61,64 @@ impl FilterImpl for FilterTypeExtractJson {
     }
 }
 
+
+#[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
+pub struct FilterTypeToUpperCase {
+    #[serde(rename = "ignore_non_text")]
+    #[serde(default)]
+    ignore_none_text_payload: bool
+}
+
+impl FilterImpl for FilterTypeToUpperCase {
+    fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
+        let result: Result<Vec<PayloadFormat>, FilterError> = match data {
+            PayloadFormat::Text(data) => {
+                let res = PayloadFormatText::from(data.content().to_ascii_uppercase());
+                Ok(vec![PayloadFormat::Text(res)])
+            }
+            data => {
+                if self.ignore_none_text_payload {
+                    Ok(vec![data])
+                } else {
+                    Err(FilterError::WrongPayloadFormat("text".into()))
+                }
+            }
+        };
+
+        result
+    }
+}
+
+
+#[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
+pub struct FilterTypeToText {
+}
+
+impl FilterImpl for FilterTypeToText {
+    fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
+        let result: Result<Vec<PayloadFormat>, FilterError> = match data {
+            data => {
+                Ok(vec![
+                    PayloadFormat::Text(
+                        PayloadFormatText::try_from(data).map_err(|e| FilterError::PayloadFormatError(e))?
+                    )
+                ])
+            }
+        };
+
+        result
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[serde(tag = "type")]
 pub enum FilterType {
     #[serde(rename = "extract_json")]
-    ExtractJson(FilterTypeExtractJson)
+    ExtractJson(FilterTypeExtractJson),
+    #[serde(rename = "to_upper")]
+    ToUpperCase(FilterTypeToUpperCase),
+    #[serde(rename = "to_text")]
+    ToText(FilterTypeToText),
 }
 
 impl Default for FilterType {
@@ -83,7 +130,9 @@ impl Default for FilterType {
 impl FilterImpl for FilterType {
     fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
         match self {
-            FilterType::ExtractJson(filter) => filter.apply(data)
+            FilterType::ExtractJson(filter) => filter.apply(data),
+            FilterType::ToUpperCase(filter) => filter.apply(data),
+            FilterType::ToText(filter) => filter.apply(data),
         }
     }
 }

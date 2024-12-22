@@ -2,12 +2,13 @@ use crate::payload::{PayloadFormat, PayloadFormatError};
 use protobuf::text_format::print_to_string_pretty;
 use protobuf::MessageDyn;
 use std::fmt::{Display, Formatter};
+use derive_getters::Getters;
 
 /// Represents a lossy UTF-8 encoded String.
 /// Any vector of u8 can be used to construct this String.
 /// Non-UTF-8 characters will be ignored when rendering the
 /// underlying vector as UTF-8.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Getters)]
 pub struct PayloadFormatText {
     content: Vec<u8>,
 }
