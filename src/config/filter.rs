@@ -146,3 +146,67 @@ impl FilterImpl for FilterType {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn to_text() {
+        let filter = FilterTypeToText::default();
+        let payload = PayloadFormat::Json(PayloadFormatJson::try_from(Vec::from("{\"name\":\"MQTli\"}".as_bytes())).unwrap());
+
+        let result = filter.apply(payload);
+
+        assert_eq!(true, result.is_ok());
+        let result = result.unwrap();
+        assert_eq!(1, result.len());
+        let PayloadFormat::Text(result) = &result[0] else { panic!() };
+        assert_eq!("{\"name\":\"MQTli\"}", result.to_string());
+    }
+
+    #[test]
+    fn to_json() {
+        let filter = FilterTypeToJson::default();
+        let payload = PayloadFormat::Text(PayloadFormatText::from("{\"name\":\"MQTli\"}"));
+
+        let result = filter.apply(payload);
+
+        assert_eq!(true, result.is_ok());
+        let result = result.unwrap();
+        assert_eq!(1, result.len());
+        let PayloadFormat::Json(result) = &result[0] else { panic!() };
+        assert_eq!("MQTli", result.content().get("name").unwrap());
+    }
+
+    #[test]
+    fn to_upper() {
+        let filter = FilterTypeToUpperCase::default();
+        let payload = PayloadFormat::Text(PayloadFormatText::from("MqTli"));
+
+        let result = filter.apply(payload);
+
+        assert_eq!(true, result.is_ok());
+        let result = result.unwrap();
+        assert_eq!(1, result.len());
+        let PayloadFormat::Text(result) = &result[0] else { panic!() };
+        assert_eq!("MQTLI", result.to_string());
+    }
+
+    #[test]
+    fn extract_json() {
+        let filter = FilterTypeExtractJson {
+            jsonpath: String::from("$.name"),
+            ignore_none_json_payload: false,
+        };
+        let payload = PayloadFormat::Json(PayloadFormatJson::try_from(Vec::from("{\"name\":\"MQTli\"}".as_bytes())).unwrap());
+
+        let result = filter.apply(payload);
+
+        assert_eq!(true, result.is_ok());
+        let result = result.unwrap();
+        assert_eq!(1, result.len());
+        let PayloadFormat::Json(result) = &result[0] else { panic!() };
+        assert_eq!("MQTli", result.content());
+    }
+}
