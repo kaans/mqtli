@@ -175,6 +175,187 @@ For example: * The payload format of the topic is protobuf * The published messa
 Even though protobuf is not human-readable by itself (as it is encoded using bytes), this setup allows to read messages on the topic as human-readable json while storing received messages as original bytes in a file (for later use or whatsoever).
 The message to publish does not need to be stored as bytes but can be encoded to a hex string which will automatically be decoded to protobuf before being published.
 
+
+==== Filters
+
+Filters can optionally be applied to messages received on a subscribed topic. They allow additional processing of the
+message before sending it to the output.
+
+===== Filter: Extract JSON via JSONPath
+
+Extract elements or singular values from an JSON type via https://en.wikipedia.org/wiki/JSONPath[JSONPath].
+
+- *Name*: extract_json
+- *Processable input types*: JSON
+- *Output type*: JSON
+
+.Attributes of extract_json
+[cols="4*", options="header"]
+|==================================================================================================================================================================
+| Attribute
+| Description
+| Type
+| Default value
+
+| jsonpath
+| A valid JSONPath directive
+| string
+| ""
+
+| ignore_non_json
+| If true, input data which is not JSON will be ignored; if false, an error is thrown and further processing is stopped.
+| boolean
+| false
+|==================================================================================================================================================================
+
+===== Example
+
+[source,yaml]
+----
+# Input JSON value:
+# {
+#   "name": "MQTli",
+#   "description": "MQTT cli client"
+# }
+#
+# Result is still a JSON value, but just a string:
+# "MQTli"
+
+topics:
+  - topic: mqtli/json
+    subscription:
+      enabled: true
+      outputs:
+        - format:
+            type: json
+      filters:
+        - type: extract_json
+          jsonpath: $.name
+    payload:
+      type: json
+----
+
+
+===== Filter: To upper case
+
+Convert all ascii characters to upper case.
+
+- *Name*: to_upper
+- *Processable input types*: Text
+- *Output type*: Text
+
+.Attributes of to_upper
+[cols="4*", options="header"]
+|==================================================================================================================================================================
+| Attribute
+| Description
+| Type
+| Default value
+
+| ignore_non_text
+| If true, input data which is not Text will be ignored; if false, an error is thrown and further processing is stopped.
+| boolean
+| false
+|==================================================================================================================================================================
+
+===== Example
+
+[source,yaml]
+----
+# Input Text value: "MqTli"
+#
+# Result: "MQTLI"
+
+topics:
+  - topic: mqtli/text
+    subscription:
+      enabled: true
+      outputs:
+        - format:
+            type: text
+      filters:
+        - type: to_upper
+    payload:
+      type: text
+----
+
+
+===== Filter: To text
+
+Convert a message to text type. This filter can be used to transform the data in a chain of filters, see the example.
+
+- *Name*: to_text
+- *Processable input types*: Any
+- *Output type*: Text
+- *No attributes*
+
+===== Example
+
+[source,yaml]
+----
+# Input JSON value:
+# {
+#   "name": "MqTli",
+#   "description": "MQTT cli client"
+# }
+#
+# Result text value:
+# "MQTLI"
+
+topics:
+  - topic: mqtli/json
+    subscription:
+      enabled: true
+      outputs:
+        - format:
+            type: text
+      filters:
+        - type: extract_json
+          jsonpath: $.name
+        - type: to_text
+        - type: to_upper
+    payload:
+      type: json
+----
+
+
+===== Filter: To json
+
+Convert a message to json type. This filter can be used to transform the data in a chain of filters, see the example.
+
+- *Name*: to_json
+- *Processable input types*: Any
+- *Output type*: JSON
+- *No attributes*
+
+===== Example
+
+[source,yaml]
+----
+# Input YAML value:
+# name: MqTli
+# description: MQTT cli client
+#
+# Result text value:
+# "MQTT cli client"
+
+topics:
+  - topic: mqtli/yaml
+    subscription:
+      enabled: true
+      outputs:
+        - format:
+            type: text
+      filters:
+        - type: to_json
+        - type: extract_json
+          jsonpath: $.description
+    payload:
+      type: yaml
+----
+
+
+
 ==== Example config: Protobuf as topic format, no TLS
 
 This example assumes that all messages on topic `mqtli/test` are protobuf messages as defined in the file `messages.proto`
