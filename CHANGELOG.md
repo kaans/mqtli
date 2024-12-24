@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.6.0](https://github.com/kaans/mqtli/compare/v0.5.2...v0.6.0) (2024-12-24)
+
+
+### Features
+
+* add filter to json ([9a9af7a](https://github.com/kaans/mqtli/commit/9a9af7adf74b12540a53ea2c93888081c7ecb093))
+* add filters to subscription ([2e03c09](https://github.com/kaans/mqtli/commit/2e03c0961d07d7cc52aeebc5311a78479ef9a196))
+* add filters to text and to uppercase ([7e6d3fb](https://github.com/kaans/mqtli/commit/7e6d3fbb0ab282e68c119d49b10efbf6ad025e8b))
+* add json path filter ([52ba5b7](https://github.com/kaans/mqtli/commit/52ba5b7c163508f86840beea0f7b461632b2ce3e))
+* allow filters to have multiple outputs ([6329c01](https://github.com/kaans/mqtli/commit/6329c019b13eae84ce7d228525753975be216e81))
+
+
+### Bug Fixes
+
+* change release link ([6bdc5ac](https://github.com/kaans/mqtli/commit/6bdc5acdcdd9a25c540b94ac221ca7df9fea6775))
+* use default if filter type options are not present ([7adac5a](https://github.com/kaans/mqtli/commit/7adac5a245ca303bbaec8eba3cfa79e082630a76))
+
 ## [0.5.2](https://github.com/kaans/mqtli/compare/v0.5.1...v0.5.2) (2024-12-22)
 
 
