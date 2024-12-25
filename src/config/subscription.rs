@@ -117,6 +117,9 @@ impl From<&args::Output> for Output {
                     args::OutputTarget::File(options) => {
                         OutputTarget::File(OutputTargetFile::from(options))
                     }
+                    args::OutputTarget::Topic(options) => {
+                        OutputTarget::Topic(OutputTargetTopic::from(options))
+                    }
                 },
             },
         }
@@ -127,6 +130,7 @@ impl From<&args::Output> for Output {
 pub enum OutputTarget {
     Console(OutputTargetConsole),
     File(OutputTargetFile),
+    Topic(OutputTargetTopic),
 }
 
 impl Default for OutputTarget {
@@ -141,6 +145,23 @@ pub struct OutputTargetConsole {}
 impl From<&args::OutputTargetConsole> for OutputTargetConsole {
     fn from(_: &args::OutputTargetConsole) -> Self {
         Self {}
+    }
+}
+
+#[derive(Debug, Default, Getters, Validate)]
+pub struct OutputTargetTopic {
+    topic: String,
+    qos: QoS,
+    retain: bool,
+}
+
+impl From<&args::OutputTargetTopic> for OutputTargetTopic {
+    fn from(value: &args::OutputTargetTopic) -> Self {
+        Self {
+            topic: value.topic().clone(),
+            qos: *value.qos(),
+            retain: *value.retain(),
+        }
     }
 }
 

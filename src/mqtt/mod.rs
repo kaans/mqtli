@@ -130,20 +130,39 @@ impl From<&rumqttc::v5::mqttbytes::QoS> for QoS {
 pub trait MqttService: Send {
     async fn connect(
         &mut self,
-        channel: Option<broadcast::Sender<MqttEvent>>,
+        channel: Option<broadcast::Sender<MqttReceiveEvent>>,
     ) -> Result<JoinHandle<()>, MqttServiceError>;
 
     async fn disconnect(&self) -> Result<(), MqttServiceError>;
 
-    async fn publish(&self, topic: String, qos: QoS, retain: bool, payload: Vec<u8>);
+    async fn publish(&self, payload: MqttPublishEvent);
 
     async fn subscribe(&mut self, topic: String, qos: QoS);
 }
 
 #[derive(Clone)]
-pub enum MqttEvent {
+pub enum MqttReceiveEvent {
     V5(rumqttc::v5::Event),
     V311(rumqttc::Event),
+}
+
+#[derive(Clone, Debug)]
+pub struct MqttPublishEvent {
+    topic: String,
+    qos: QoS,
+    retain: bool,
+    payload: Vec<u8>,
+}
+
+impl MqttPublishEvent {
+    pub fn new(topic: String, qos: QoS, retain: bool, payload: Vec<u8>) -> Self {
+        Self {
+            topic,
+            qos,
+            retain,
+            payload,
+        }
+    }
 }
 
 fn configure_tls_rustls(
