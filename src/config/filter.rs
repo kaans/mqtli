@@ -154,14 +154,18 @@ mod tests {
     #[test]
     fn to_text() {
         let filter = FilterTypeToText::default();
-        let payload = PayloadFormat::Json(PayloadFormatJson::try_from(Vec::from("{\"name\":\"MQTli\"}".as_bytes())).unwrap());
+        let payload = PayloadFormat::Json(
+            PayloadFormatJson::try_from(Vec::from("{\"name\":\"MQTli\"}".as_bytes())).unwrap(),
+        );
 
         let result = filter.apply(payload);
 
         assert_eq!(true, result.is_ok());
         let result = result.unwrap();
         assert_eq!(1, result.len());
-        let PayloadFormat::Text(result) = &result[0] else { panic!() };
+        let PayloadFormat::Text(result) = &result[0] else {
+            panic!()
+        };
         assert_eq!("{\"name\":\"MQTli\"}", result.to_string());
     }
 
@@ -175,7 +179,9 @@ mod tests {
         assert_eq!(true, result.is_ok());
         let result = result.unwrap();
         assert_eq!(1, result.len());
-        let PayloadFormat::Json(result) = &result[0] else { panic!() };
+        let PayloadFormat::Json(result) = &result[0] else {
+            panic!()
+        };
         assert_eq!("MQTli", result.content().get("name").unwrap());
     }
 
@@ -189,7 +195,9 @@ mod tests {
         assert_eq!(true, result.is_ok());
         let result = result.unwrap();
         assert_eq!(1, result.len());
-        let PayloadFormat::Text(result) = &result[0] else { panic!() };
+        let PayloadFormat::Text(result) = &result[0] else {
+            panic!()
+        };
         assert_eq!("MQTLI", result.to_string());
     }
 
@@ -199,14 +207,18 @@ mod tests {
             jsonpath: String::from("$.name"),
             ignore_none_json_payload: false,
         };
-        let payload = PayloadFormat::Json(PayloadFormatJson::try_from(Vec::from("{\"name\":\"MQTli\"}".as_bytes())).unwrap());
+        let payload = PayloadFormat::Json(
+            PayloadFormatJson::try_from(Vec::from("{\"name\":\"MQTli\"}".as_bytes())).unwrap(),
+        );
 
         let result = filter.apply(payload);
 
         assert_eq!(true, result.is_ok());
         let result = result.unwrap();
         assert_eq!(1, result.len());
-        let PayloadFormat::Json(result) = &result[0] else { panic!() };
+        let PayloadFormat::Json(result) = &result[0] else {
+            panic!()
+        };
         assert_eq!("MQTli", result.content());
     }
 }

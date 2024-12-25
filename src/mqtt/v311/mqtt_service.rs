@@ -9,7 +9,10 @@ use tokio::sync::{broadcast, Mutex};
 use tokio::task::JoinHandle;
 
 use crate::config::mqtli_config::MqttBrokerConnectArgs;
-use crate::mqtt::{get_transport_parameters, MqttEvent, MqttService, MqttServiceError, QoS};
+use crate::mqtt::{
+    get_transport_parameters, MqttPublishEvent, MqttReceiveEvent, MqttService, MqttServiceError,
+    QoS,
+};
 
 pub struct MqttServiceV311 {
     client: Option<AsyncClient>,
@@ -30,7 +33,7 @@ impl MqttServiceV311 {
         mut event_loop: EventLoop,
         client: AsyncClient,
         topics: Arc<Mutex<Vec<(String, QoS)>>>,
-        channel: Option<broadcast::Sender<MqttEvent>>,
+        channel: Option<broadcast::Sender<MqttReceiveEvent>>,
     ) -> JoinHandle<()> {
         tokio::task::spawn(async move {
             loop {
@@ -55,7 +58,7 @@ impl MqttServiceV311 {
                         }
 
                         if let Some(channel) = &channel {
-                            let _ = channel.send(MqttEvent::V311(event));
+                            let _ = channel.send(MqttReceiveEvent::V311(event));
                         }
                     }
                     Err(e) => match e {
@@ -88,7 +91,7 @@ impl MqttServiceV311 {
 impl MqttService for MqttServiceV311 {
     async fn connect(
         &mut self,
-        channel: Option<broadcast::Sender<MqttEvent>>,
+        channel: Option<broadcast::Sender<MqttReceiveEvent>>,
     ) -> Result<JoinHandle<()>, MqttServiceError> {
         let (transport, hostname) = get_transport_parameters(self.config.clone())?;
 
@@ -155,9 +158,17 @@ impl MqttService for MqttServiceV311 {
         Ok(())
     }
 
-    async fn publish(&self, topic: String, qos: QoS, retain: bool, payload: Vec<u8>) {
+    async fn publish(&self, payload: MqttPublishEvent) {
         if let Some(client) = self.client.as_ref() {
-            if let Err(e) = client.publish(topic, qos.into(), retain, payload).await {
+            if let Err(e) = client
+                .publish(
+                    payload.topic,
+                    payload.qos.into(),
+                    payload.retain,
+                    payload.payload,
+                )
+                .await
+            {
                 error!("Error during publish: {}", e);
             }
         }

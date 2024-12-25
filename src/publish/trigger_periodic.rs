@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use crate::config::topic::Topic;
 use crate::config::PublishInputType;
-use crate::mqtt::{MqttService, QoS};
+use crate::mqtt::{MqttPublishEvent, MqttService, QoS};
 use crate::payload::PayloadFormat;
 use crate::publish::TriggerError;
 
@@ -311,7 +311,7 @@ impl TriggerPeriodic {
                     mqtt_service
                         .lock()
                         .await
-                        .publish(topic, qos, retain, payload)
+                        .publish(MqttPublishEvent::new(topic, qos, retain, payload))
                         .await;
                 }
             }

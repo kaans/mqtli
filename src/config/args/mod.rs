@@ -274,6 +274,16 @@ impl Default for OutputTargetFile {
     }
 }
 
+#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
+pub struct OutputTargetTopic {
+    topic: String,
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_qos")]
+    qos: QoS,
+    #[serde(default)]
+    retain: bool,
+}
+
 #[derive(Debug, Deserialize, PartialEq)]
 #[serde(tag = "type")]
 pub enum OutputTarget {
@@ -281,6 +291,8 @@ pub enum OutputTarget {
     Console(OutputTargetConsole),
     #[serde(rename = "file")]
     File(OutputTargetFile),
+    #[serde(rename = "topic")]
+    Topic(OutputTargetTopic),
 }
 
 #[derive(Debug, Default, Deserialize, Getters, PartialEq)]
@@ -336,9 +348,9 @@ fn deserialize_qos<'a, D>(deserializer: D) -> Result<QoS, D::Error>
 where
     D: Deserializer<'a>,
 {
-    let value: &str = Deserialize::deserialize(deserializer)?;
+    let value: Result<u8, _> = Deserialize::deserialize(deserializer);
 
-    if let Ok(int_value) = value.parse::<u8>() {
+    if let Ok(int_value) = value {
         return Ok(match int_value {
             0 => QoS::AtMostOnce,
             1 => QoS::AtLeastOnce,
@@ -348,7 +360,7 @@ where
     }
 
     Err(Error::invalid_value(
-        Unexpected::Other(value),
+        Unexpected::Other("unknown"),
         &"unsigned integer between 0 and 2",
     ))
 }

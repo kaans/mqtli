@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
 use log::error;
-use tokio::sync::broadcast::Receiver;
+use rumqttc::v5::mqttbytes::v5::PublishProperties;
+use tokio::sync::broadcast::{Receiver, Sender};
 use tokio::task;
 use tokio::task::JoinHandle;
 
 use crate::config::subscription::{Output, OutputTarget};
 use crate::config::topic::Topic;
-use crate::mqtt::{MqttEvent, QoS};
+use crate::mqtt::{MqttPublishEvent, MqttReceiveEvent, QoS};
 use crate::output::console::ConsoleOutput;
 use crate::output::file::FileOutput;
 use crate::output::OutputError;
@@ -26,12 +27,16 @@ impl MqttHandler {
         }
     }
 
-    pub fn start_task(&mut self, mut receiver: Receiver<MqttEvent>) {
+    pub fn start_task(
+        &mut self,
+        mut receiver: Receiver<MqttReceiveEvent>,
+        sender_publish: Sender<MqttPublishEvent>,
+    ) {
         let topics = self.topics.clone();
 
         self.task_handle = Some(task::spawn(async move {
             while let Ok(event) = receiver.recv().await {
-                MqttHandler::handle_event(event, &topics);
+                MqttHandler::handle_event(event, &topics, &sender_publish);
             }
         }));
     }
@@ -45,13 +50,17 @@ impl MqttHandler {
         }
     }
 
-    pub fn handle_event(event: MqttEvent, topics: &[Topic]) {
+    pub fn handle_event(
+        event: MqttReceiveEvent,
+        topics: &[Topic],
+        sender_publish: &Sender<MqttPublishEvent>,
+    ) {
         match event {
-            MqttEvent::V5(event) => {
-                v5::handle_event(event, topics);
+            MqttReceiveEvent::V5(event) => {
+                v5::handle_event(event, topics, sender_publish);
             }
-            MqttEvent::V311(event) => {
-                v311::handle_event(event, topics);
+            MqttReceiveEvent::V311(event) => {
+                v311::handle_event(event, topics, sender_publish);
             }
         }
     }
@@ -62,6 +71,8 @@ impl MqttHandler {
         incoming_topic_str: &str,
         qos: QoS,
         retain: bool,
+        _option: Option<PublishProperties>,
+        sender_publish: &Sender<MqttPublishEvent>,
     ) {
         topics
             .iter()
@@ -82,6 +93,7 @@ impl MqttHandler {
                                     content.clone(),
                                     qos,
                                     retain,
+                                    sender_publish,
                                 ) {
                                     error!("{}", e);
                                 }
@@ -104,6 +116,7 @@ impl MqttHandler {
         content: PayloadFormat,
         qos: QoS,
         retain: bool,
+        sender_publish: &Sender<MqttPublishEvent>,
     ) -> Result<(), OutputError> {
         let conv = PayloadFormat::try_from((content, output.format()))?;
 
@@ -112,6 +125,17 @@ impl MqttHandler {
                 ConsoleOutput::output(topic, conv.clone().try_into()?, conv, qos, retain)
             }
             OutputTarget::File(file) => FileOutput::output(conv.try_into()?, file),
+            OutputTarget::Topic(options) => {
+                sender_publish
+                    .send(MqttPublishEvent::new(
+                        options.topic().clone(),
+                        *options.qos(),
+                        *options.retain(),
+                        conv.try_into()?,
+                    ))
+                    .map_err(OutputError::SendError)?;
+                Ok(())
+            }
         };
 
         result
@@ -119,15 +143,18 @@ impl MqttHandler {
 }
 
 mod v5 {
-    use std::str::from_utf8;
-
-    use log::info;
-
     use crate::config::topic::Topic;
     use crate::mqtt::mqtt_handler::MqttHandler;
-    use crate::mqtt::QoS;
+    use crate::mqtt::{MqttPublishEvent, QoS};
+    use log::info;
+    use std::str::from_utf8;
+    use tokio::sync::broadcast::Sender;
 
-    pub fn handle_event(event: rumqttc::v5::Event, topics: &[Topic]) {
+    pub fn handle_event(
+        event: rumqttc::v5::Event,
+        topics: &[Topic],
+        sender_publish: &Sender<MqttPublishEvent>,
+    ) {
         match event {
             rumqttc::v5::Event::Incoming(event) => {
                 if let rumqttc::v5::Incoming::Publish(value) = event {
@@ -146,6 +173,8 @@ mod v5 {
                         incoming_topic,
                         qos,
                         value.retain,
+                        value.properties,
+                        sender_publish,
                     );
                 }
             }
@@ -155,15 +184,18 @@ mod v5 {
 }
 
 mod v311 {
-    use std::str::from_utf8;
-
-    use log::info;
-
     use crate::config::topic::Topic;
     use crate::mqtt::mqtt_handler::MqttHandler;
-    use crate::mqtt::QoS;
+    use crate::mqtt::{MqttPublishEvent, QoS};
+    use log::info;
+    use std::str::from_utf8;
+    use tokio::sync::broadcast::Sender;
 
-    pub fn handle_event(event: rumqttc::Event, topics: &[Topic]) {
+    pub fn handle_event(
+        event: rumqttc::Event,
+        topics: &[Topic],
+        sender_publish: &Sender<MqttPublishEvent>,
+    ) {
         match event {
             rumqttc::Event::Incoming(event) => {
                 if let rumqttc::Incoming::Publish(value) = event {
@@ -182,6 +214,8 @@ mod v311 {
                         incoming_topic,
                         qos,
                         value.retain,
+                        None,
+                        sender_publish,
                     );
                 }
             }

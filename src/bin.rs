@@ -24,7 +24,7 @@ use crate::config::topic::Topic;
 use crate::mqtt::mqtt_handler::MqttHandler;
 use crate::mqtt::v311::mqtt_service::MqttServiceV311;
 use crate::mqtt::v5::mqtt_service::MqttServiceV5;
-use crate::mqtt::{MqttEvent, MqttService};
+use crate::mqtt::{MqttPublishEvent, MqttReceiveEvent, MqttService};
 use crate::publish::trigger_periodic::TriggerPeriodic;
 use mqtlib::built_info::PKG_VERSION;
 
@@ -65,11 +65,12 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    let (sender, receiver) = broadcast::channel::<MqttEvent>(32);
+    let (sender, receiver) = broadcast::channel::<MqttReceiveEvent>(32);
+    let (sender_publish, mut receiver_publish) = broadcast::channel::<MqttPublishEvent>(32);
 
     let topics = Arc::new(config.topics);
     let mut handler = MqttHandler::new(topics.clone());
-    handler.start_task(receiver);
+    handler.start_task(receiver, sender_publish);
 
     let task_handle_service = mqtt_service
         .lock()
@@ -81,6 +82,12 @@ async fn main() -> anyhow::Result<()> {
     start_scheduler(topics.clone(), mqtt_service.clone()).await;
 
     start_exit_task(mqtt_service.clone()).await;
+
+    tokio::spawn(async move {
+        while let Ok(event) = receiver_publish.recv().await {
+            mqtt_service.lock().await.publish(event).await;
+        }
+    });
 
     task_handle_service
         .await
