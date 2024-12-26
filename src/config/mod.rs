@@ -13,6 +13,7 @@ mod filter;
 pub mod mqtli_config;
 pub mod subscription;
 pub mod topic;
+pub mod publish;
 
 #[derive(Error, Debug)]
 pub enum ConfigError {
