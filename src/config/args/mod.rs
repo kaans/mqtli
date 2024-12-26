@@ -12,7 +12,8 @@ use serde::{Deserialize, Deserializer};
 
 use crate::config::filter::FilterType;
 use crate::config::mqtli_config::{MqttProtocol, MqttVersion, TlsVersion};
-use crate::config::{args, ConfigError, PayloadType, PublishInputType};
+use crate::config::publish::Publish;
+use crate::config::{args, ConfigError, PayloadType};
 use crate::mqtt::QoS;
 
 #[derive(Debug, Deserialize, Parser)]
@@ -210,40 +211,6 @@ pub struct Topic {
     pub publish: Option<Publish>,
 }
 
-#[derive(Debug, Default, Deserialize, Getters)]
-pub struct Publish {
-    #[serde(default)]
-    enabled: bool,
-
-    #[serde(default)]
-    retain: bool,
-
-    #[serde(default)]
-    #[serde(deserialize_with = "deserialize_qos")]
-    qos: QoS,
-    trigger: Option<Vec<PublishTriggerType>>,
-
-    input: PublishInputType,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(tag = "type")]
-pub enum PublishTriggerType {
-    #[serde(rename = "periodic")]
-    Periodic(PublishTriggerTypePeriodic),
-}
-
-#[derive(Debug, Default, Deserialize, Getters)]
-pub struct PublishTriggerTypePeriodic {
-    #[serde(default)]
-    #[serde(deserialize_with = "deserialize_duration_milliseconds")]
-    interval: Option<Duration>,
-    count: Option<u32>,
-    #[serde(default)]
-    #[serde(deserialize_with = "deserialize_duration_milliseconds")]
-    initial_delay: Option<Duration>,
-}
-
 #[derive(Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct Output {
     format: Option<PayloadType>,
@@ -336,15 +303,7 @@ where
     Ok(Some(Duration::from_secs(value)))
 }
 
-fn deserialize_duration_milliseconds<'a, D>(deserializer: D) -> Result<Option<Duration>, D::Error>
-where
-    D: Deserializer<'a>,
-{
-    let value: u64 = Deserialize::deserialize(deserializer)?;
-    Ok(Some(Duration::from_millis(value)))
-}
-
-fn deserialize_qos<'a, D>(deserializer: D) -> Result<QoS, D::Error>
+pub fn deserialize_qos<'a, D>(deserializer: D) -> Result<QoS, D::Error>
 where
     D: Deserializer<'a>,
 {

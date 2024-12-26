@@ -1,14 +1,22 @@
-use crate::config::{args, PublishInputType};
+use crate::config::args::deserialize_qos;
+use crate::config::PublishInputType;
 use crate::mqtt::QoS;
 use derive_getters::Getters;
+use serde::{Deserialize, Deserializer};
 use std::time::Duration;
 use validator::Validate;
 
-#[derive(Debug, Getters, Validate)]
+#[derive(Clone, Debug, Deserialize, Getters, Validate)]
 pub struct Publish {
+    #[serde(default)]
     enabled: bool,
+
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_qos")]
     qos: QoS,
+    #[serde(default)]
     retain: bool,
+    #[serde(default)]
     trigger: Vec<PublishTriggerType>,
     #[validate(nested)]
     input: PublishInputType,
@@ -26,29 +34,14 @@ impl Default for Publish {
     }
 }
 
-impl From<&args::Publish> for Publish {
-    fn from(value: &args::Publish) -> Self {
-        let trigger: Vec<PublishTriggerType> = match value.trigger() {
-            None => {
-                vec![PublishTriggerType::default()]
-            }
-            Some(trigger) => trigger.iter().map(PublishTriggerType::from).collect(),
-        };
-
-        Publish {
-            enabled: *value.enabled(),
-            qos: *value.qos(),
-            retain: *value.retain(),
-            trigger,
-            input: (*value.input()).clone(),
-        }
-    }
-}
-
-#[derive(Debug, Getters, Validate)]
+#[derive(Clone, Debug, Deserialize, Getters, Validate)]
 pub struct PublishTriggerTypePeriodic {
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_duration_milliseconds")]
     interval: Duration,
     count: Option<u32>,
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_duration_milliseconds")]
     initial_delay: Duration,
 }
 
@@ -62,44 +55,23 @@ impl Default for PublishTriggerTypePeriodic {
     }
 }
 
-impl From<&args::PublishTriggerTypePeriodic> for PublishTriggerTypePeriodic {
-    fn from(value: &args::PublishTriggerTypePeriodic) -> Self {
-        let default = Self::default();
-
-        Self {
-            interval: match value.interval() {
-                None => default.interval,
-                Some(value) => *value,
-            },
-            count: match value.count() {
-                None => default.count,
-                Some(value) => Some(*value),
-            },
-            initial_delay: match value.initial_delay() {
-                None => default.initial_delay,
-                Some(value) => *value,
-            },
-        }
-    }
-}
-
-#[derive(Debug)]
+#[derive(Clone, Debug, Deserialize)]
+#[serde(tag = "type")]
 pub enum PublishTriggerType {
+    #[serde(rename = "periodic")]
     Periodic(PublishTriggerTypePeriodic),
-}
-
-impl From<&args::PublishTriggerType> for PublishTriggerType {
-    fn from(value: &args::PublishTriggerType) -> Self {
-        match value {
-            args::PublishTriggerType::Periodic(value) => {
-                PublishTriggerType::Periodic(PublishTriggerTypePeriodic::from(value))
-            }
-        }
-    }
 }
 
 impl Default for PublishTriggerType {
     fn default() -> Self {
         Self::Periodic(PublishTriggerTypePeriodic::default())
     }
+}
+
+fn deserialize_duration_milliseconds<'a, D>(deserializer: D) -> Result<Duration, D::Error>
+where
+    D: Deserializer<'a>,
+{
+    let value: u64 = Deserialize::deserialize(deserializer)?;
+    Ok(Duration::from_millis(value))
 }

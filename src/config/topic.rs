@@ -65,7 +65,7 @@ impl From<&args::Topic> for Topic {
                 None => PayloadType::default(),
                 Some(value) => value.clone(),
             },
-            publish: value.publish().as_ref().map(Publish::from),
+            publish: value.publish().clone(),
         }
     }
 }
