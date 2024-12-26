@@ -501,5 +501,4 @@ When converting a protobuf message to text, the protobuf internal text represent
 ** user properties
 ** content-type (to automatically detect the format of a topic)
 ** other attributes
-* Support other topics as output
 * Support other topics as triggers for publishing
