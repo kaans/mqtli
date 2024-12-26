@@ -42,6 +42,13 @@
 #            overwrite: false # true only saves the latest message, false appends to the end
 #            prepend: "" # prepends a string to the beginning of each message, default is empty
 #            append: "\n" # appends a string to each end of the message, default is new line
+#        - format:
+#            type: text
+#          target:
+#            type: topic # payload is sent to another topic
+#            topic: ""
+#            qos: 0
+#            retain: false
 #    payload:
 #      type: protobuf
 #      definition: "messages.proto"

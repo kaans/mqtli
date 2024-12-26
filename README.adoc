@@ -31,7 +31,7 @@ image:assets/mqtli_example.png[]
 === Features:
 
 * automatically publish messages using triggers (periodically, messages on topics)
-* subscribe to topics and output messages to console or to file
+* subscribe to topics and output messages to console, to a file or to another topic
 * support of different payload formats (json, yaml, protobuf, hex, base64, utf-8, raw)
 * Seamlessly convert message payloads between input, payload, and output, if they differ (e.g. from protobuf to json or vice versa)
 * Configuration via cli arguments and config file (yaml)
@@ -133,7 +133,6 @@ In case the structure or data format of the payload of a topic differs between t
 
 For each topic, the following three main aspects can be configured:
 
-[arabic]
 . *The format of the payload of the messages on the topic*
 +
 The format is defined once for all message on the topic, assuming that the format of the payload does not change between messages.
@@ -148,17 +147,23 @@ string or `+JSON+` value.
 If enabled, a subscription for the topic is registered on connect.
 Each subscription may have several independent outputs.
 Each output has a format type and a target.
+
 * _Format type_ (default: Text): This may be one of the types defined in
 <<_supported_payload_formats>>.
 It defines which format the received message will be displayed in.
 If the format type of the topic is different, an automatic conversion is attempted.
 If it fails, an error is displayed.
 See the referenced chapter to see which conversions are currently possible.
-** _Target_ (default: Console): The target defines where the message is being printed out.
++
+* _Target_ (default: Console): The target defines where the message is being printed out.
 Currently, the following targets are supported:
-*** _Console_: Prints the message to the stdin console.
-*** _File_: Prints the message to a file.
++
+** _console_: Prints the message to the stdin console.
+** _file_: Prints the message to a file.
+** _topic_: Send the payload to another topic
++
 Apart from the path to the output file, string for prepending or appending or the behavior for overwriting can be specified.
+
 . *The format of messages published on the topics*
 +
 When messages are published to a topic, for example via a periodic trigger, the message may be specified in another format than the payload of the topic.
@@ -170,7 +175,11 @@ For example, it might be easier to specify a binary payload as hex or base64 enc
 This way, the payload could be written directly into the `+config.yaml+` file instead of an external file (YAML files only accept UTF-8 content; a binary payload may contain invalid bytes).
 
 One of the most important advantages of this separate definition of format types is that it is then possible to automatically convert between formats.
-For example: * The payload format of the topic is protobuf * The published messages are written as hex string for storing it directly in the config.yaml * The received messages on subscribed topics are displayed as json and written to a file as raw (bytes)
+For example:
+
+* The payload format of the topic is protobuf
+* The published messages are written as hex string for storing it directly in the config.yaml
+* The received messages on subscribed topics are displayed as json and written to a file as raw (bytes)
 
 Even though protobuf is not human-readable by itself (as it is encoded using bytes), this setup allows to read messages on the topic as human-readable json while storing received messages as original bytes in a file (for later use or whatsoever).
 The message to publish does not need to be stored as bytes but can be encoded to a hex string which will automatically be decoded to protobuf before being published.

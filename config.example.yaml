@@ -81,3 +81,43 @@ topics:
         content: 082d12080a066b696e646f66180222024142 # this must be a valid protobuf message according to the payload format (encoded as hex)
       trigger:
         - type: periodic # default trigger: periodic with no count (indefinitely) and interval 1 second
+
+  - topic: mqtli/json
+    subscription:
+      enabled: true
+      qos: 1
+      outputs:
+        - format:
+            type: yaml
+        - format:
+            type: base64
+          target:
+            type: topic
+            topic: mqtli/json/output
+      # these filters extract the field "name" of all array entries with key "array",
+      # convert it to text and change the case to upper case.
+      # Note that in this example, two messages are generated and sent to the output topic,
+      # one message for each name.
+      filters:
+        - type: extract_json
+          jsonpath: $.array[*].name
+        - type: to_text
+        - type: to_upper
+    payload:
+      type: json
+    publish:
+      enabled: true
+      input:
+        type: json
+        content: |
+          {
+            "array": [
+              "name": "John",
+              "age": 32
+            ], [
+              "name": "Sandy",
+              "age": 31
+            ]
+          }
+      trigger:
+        - type: periodic # default trigger: periodic with no count (indefinitely) and interval 1 second
