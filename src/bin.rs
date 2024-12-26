@@ -18,7 +18,7 @@ use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
 use tokio::sync::{broadcast, Mutex};
 use tokio::{signal, task};
 
-use crate::config::mqtli_config::PublishTriggerTypeMQTLICONFIG::Periodic;
+use crate::config::mqtli_config::PublishTriggerType::Periodic;
 use crate::config::mqtli_config::{parse_config, MqttVersion};
 use crate::config::topic::Topic;
 use crate::mqtt::mqtt_handler::MqttHandler;

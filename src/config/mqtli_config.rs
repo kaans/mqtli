@@ -67,7 +67,7 @@ pub struct Publish {
     enabled: bool,
     qos: QoS,
     retain: bool,
-    trigger: Vec<PublishTriggerTypeMQTLICONFIG>,
+    trigger: Vec<PublishTriggerType>,
     #[validate(nested)]
     input: PublishInputType,
 }
@@ -86,13 +86,13 @@ impl Default for Publish {
 
 impl From<&args::Publish> for Publish {
     fn from(value: &args::Publish) -> Self {
-        let trigger: Vec<PublishTriggerTypeMQTLICONFIG> = match value.trigger() {
+        let trigger: Vec<PublishTriggerType> = match value.trigger() {
             None => {
-                vec![PublishTriggerTypeMQTLICONFIG::default()]
+                vec![PublishTriggerType::default()]
             }
             Some(trigger) => trigger
                 .iter()
-                .map(PublishTriggerTypeMQTLICONFIG::from)
+                .map(PublishTriggerType::from)
                 .collect(),
         };
 
@@ -145,21 +145,21 @@ impl From<&args::PublishTriggerTypePeriodic> for PublishTriggerTypePeriodic {
 }
 
 #[derive(Debug)]
-pub enum PublishTriggerTypeMQTLICONFIG {
+pub enum PublishTriggerType {
     Periodic(PublishTriggerTypePeriodic),
 }
 
-impl From<&args::PublishTriggerType> for PublishTriggerTypeMQTLICONFIG {
+impl From<&args::PublishTriggerType> for PublishTriggerType {
     fn from(value: &args::PublishTriggerType) -> Self {
         match value {
             args::PublishTriggerType::Periodic(value) => {
-                PublishTriggerTypeMQTLICONFIG::Periodic(PublishTriggerTypePeriodic::from(value))
+                PublishTriggerType::Periodic(PublishTriggerTypePeriodic::from(value))
             }
         }
     }
 }
 
-impl Default for PublishTriggerTypeMQTLICONFIG {
+impl Default for PublishTriggerType {
     fn default() -> Self {
         Self::Periodic(PublishTriggerTypePeriodic::default())
     }
