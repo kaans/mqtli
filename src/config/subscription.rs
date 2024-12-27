@@ -4,9 +4,9 @@ use crate::config::PayloadType;
 use crate::mqtt::QoS;
 use crate::payload::PayloadFormat;
 use derive_getters::Getters;
+use serde::Deserialize;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
-use serde::Deserialize;
 use validator::Validate;
 
 #[derive(Clone, Debug, Deserialize, Getters, PartialEq, Validate)]

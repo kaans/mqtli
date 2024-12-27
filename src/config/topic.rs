@@ -13,7 +13,7 @@ pub struct Topic {
     #[validate(nested)]
     subscription: Option<Subscription>,
     #[serde(default)]
-    #[serde(rename="payload")]
+    #[serde(rename = "payload")]
     payload_type: PayloadType,
     #[validate(nested)]
     publish: Option<Publish>,
@@ -50,7 +50,13 @@ impl Display for Topic {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "topic: {}", self.topic)?;
         writeln!(f, "payload type: {}", self.payload_type)?;
-        writeln!(f, "Subscription:\n{}", self.subscription.as_ref().map_or("None".to_string(), |s| s.to_string()))?;
+        writeln!(
+            f,
+            "Subscription:\n{}",
+            self.subscription
+                .as_ref()
+                .map_or("None".to_string(), |s| s.to_string())
+        )?;
 
         Ok(())
     }

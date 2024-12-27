@@ -20,6 +20,8 @@ use tokio::sync::{broadcast, Mutex};
 use tokio::{signal, task};
 
 use crate::config::mqtli_config::{parse_config, MqttVersion};
+use crate::config::publish::PublishTriggerType::Periodic;
+use crate::config::subscription::Subscription;
 use crate::config::topic::Topic;
 use crate::mqtt::mqtt_handler::MqttHandler;
 use crate::mqtt::v311::mqtt_service::MqttServiceV311;
@@ -27,8 +29,6 @@ use crate::mqtt::v5::mqtt_service::MqttServiceV5;
 use crate::mqtt::{MqttPublishEvent, MqttReceiveEvent, MqttService};
 use crate::publish::trigger_periodic::TriggerPeriodic;
 use mqtlib::built_info::PKG_VERSION;
-use crate::config::publish::PublishTriggerType::Periodic;
-use crate::config::subscription::Subscription;
 
 mod config;
 mod mqtt;
@@ -55,10 +55,13 @@ async fn main() -> anyhow::Result<()> {
         )))),
     };
 
-    let filtered_subscriptions: Vec<(&Subscription, &String)> = config.topics().iter()
+    let filtered_subscriptions: Vec<(&Subscription, &String)> = config
+        .topics()
+        .iter()
         .filter_map(|topic| topic.subscription().as_ref().map(|s| (s, topic.topic())))
-        .filter(|(s,_)| *s.enabled()).collect();
-    
+        .filter(|(s, _)| *s.enabled())
+        .collect();
+
     futures::stream::iter(filtered_subscriptions)
         .for_each(|(subscription, topic)| async {
             mqtt_service
@@ -66,7 +69,8 @@ async fn main() -> anyhow::Result<()> {
                 .await
                 .subscribe(topic.to_string(), *subscription.qos())
                 .await;
-        }).await;
+        })
+        .await;
 
     let (sender, receiver) = broadcast::channel::<MqttReceiveEvent>(32);
     let (sender_publish, mut receiver_publish) = broadcast::channel::<MqttPublishEvent>(32);
