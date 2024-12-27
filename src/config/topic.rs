@@ -55,7 +55,14 @@ impl Display for Topic {
             "Subscription:\n{}",
             self.subscription
                 .as_ref()
-                .map_or("None".to_string(), |s| s.to_string())
+                .map_or("None".to_string(), |value| value.to_string())
+        )?;
+        writeln!(
+            f,
+            "Publish:\n{}",
+            self.publish
+                .as_ref()
+                .map_or("None".to_string(), |value| value.to_string())
         )?;
 
         Ok(())

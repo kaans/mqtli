@@ -4,6 +4,7 @@ use crate::payload::{PayloadFormat, PayloadFormatError};
 use derive_getters::Getters;
 use jsonpath_rust::{JsonPath, JsonPathParserError};
 use serde::Deserialize;
+use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use thiserror::Error;
 
@@ -22,7 +23,7 @@ pub trait FilterImpl {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq)]
-pub struct FilterTypes(Vec<FilterType>);
+pub struct FilterTypes(pub(crate) Vec<FilterType>);
 
 impl FilterTypes {
     pub fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
@@ -37,6 +38,14 @@ impl FilterTypes {
 
             result
         })
+    }
+}
+
+impl Display for FilterTypes {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.0
+            .iter()
+            .try_for_each(|filter| writeln!(f, "{}", filter))
     }
 }
 
@@ -144,7 +153,7 @@ impl FilterImpl for FilterTypeToJson {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, strum_macros::Display)]
 #[serde(tag = "type")]
 pub enum FilterType {
     #[serde(rename = "extract_json")]
