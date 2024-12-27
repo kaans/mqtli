@@ -1,9 +1,8 @@
-use crate::config::filter::{FilterError, FilterImpl, FilterType};
+use crate::config::filter::{FilterError, FilterTypes};
 use crate::config::{args, PayloadType};
 use crate::mqtt::QoS;
 use crate::payload::PayloadFormat;
 use derive_getters::Getters;
-use log::debug;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use validator::Validate;
@@ -13,29 +12,12 @@ pub struct Subscription {
     enabled: bool,
     qos: QoS,
     outputs: Vec<Output>,
-    filters: Vec<FilterType>,
+    filters: FilterTypes,
 }
 
 impl Subscription {
     pub fn apply_filters(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
-        debug!("Applying filters {:?}", self.filters);
-
-        let result: Result<Vec<PayloadFormat>, FilterError> =
-            self.filters
-                .iter()
-                .try_fold(vec![data], |payloads, filter| {
-                    let result: Result<Vec<PayloadFormat>, FilterError> = payloads
-                        .iter()
-                        .map(|payload| FilterImpl::apply(filter, payload.clone()))
-                        .try_fold(vec![], |mut unrolled, result| {
-                            unrolled.extend(result?);
-                            Ok(unrolled)
-                        });
-
-                    result
-                });
-
-        result
+        self.filters.apply(data)
     }
 }
 
@@ -54,11 +36,11 @@ impl Display for Subscription {
 
 impl Default for Subscription {
     fn default() -> Self {
-        Subscription {
+        Self {
             enabled: true,
             qos: Default::default(),
             outputs: vec![],
-            filters: vec![],
+            filters: Default::default(),
         }
     }
 }
@@ -72,10 +54,10 @@ impl From<&args::Subscription> for Subscription {
             Some(outputs) => outputs.iter().map(Output::from).collect(),
         };
 
-        let filters: Vec<FilterType> = value
+        let filters: FilterTypes = value
             .filters()
             .as_ref()
-            .map_or_else(Vec::new, |v| v.clone());
+            .map_or_else(Vec::new, |v| v.clone()).into();
 
         Subscription {
             enabled: *value.enabled(),

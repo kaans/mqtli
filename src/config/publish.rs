@@ -5,6 +5,8 @@ use derive_getters::Getters;
 use serde::{Deserialize, Deserializer};
 use std::time::Duration;
 use validator::Validate;
+use crate::config::filter::{FilterError, FilterTypes};
+use crate::payload::PayloadFormat;
 
 #[derive(Clone, Debug, Deserialize, Getters, Validate)]
 pub struct Publish {
@@ -20,7 +22,16 @@ pub struct Publish {
     trigger: Vec<PublishTriggerType>,
     #[validate(nested)]
     input: PublishInputType,
+    #[serde(default)]
+    filters: FilterTypes,
 }
+
+impl Publish {
+    pub fn apply_filters(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
+        self.filters.apply(data)
+    }
+}
+
 
 impl Default for Publish {
     fn default() -> Self {
@@ -30,6 +41,7 @@ impl Default for Publish {
             retain: false,
             trigger: vec![],
             input: Default::default(),
+            filters: Default::default()
         }
     }
 }
