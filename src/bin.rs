@@ -9,8 +9,8 @@
 //! - support of multiple inputs and outputs per topic
 //! - configuration is stored in a file to support complex configuration scenarios and share them
 //!
+
 use futures::StreamExt;
-use std::ops::Deref;
 use std::sync::Arc;
 
 use anyhow::Context;
@@ -27,6 +27,8 @@ use crate::mqtt::mqtt_handler::MqttHandler;
 use crate::mqtt::v311::mqtt_service::MqttServiceV311;
 use crate::mqtt::v5::mqtt_service::MqttServiceV5;
 use crate::mqtt::{MqttPublishEvent, MqttReceiveEvent, MqttService};
+use crate::payload::PayloadFormat;
+use crate::payload::PayloadFormatError;
 use crate::publish::trigger_periodic::TriggerPeriodic;
 use mqtlib::built_info::PKG_VERSION;
 
@@ -107,28 +109,56 @@ async fn main() -> anyhow::Result<()> {
 async fn start_scheduler(topics: Arc<Vec<Topic>>, mqtt_service: Arc<Mutex<dyn MqttService>>) {
     let mut scheduler = TriggerPeriodic::new(mqtt_service).await;
 
-    for topic in topics.deref() {
+    for topic in topics.iter() {
         if let Some(publish) = topic
             .publish()
             .as_ref()
             .filter(|publish| *publish.enabled())
         {
+            let topic_str = topic.topic().to_owned();
             for trigger in publish.trigger() {
                 #[allow(irrefutable_let_patterns)]
                 if let Periodic(value) = trigger {
-                    if let Err(e) = scheduler
-                        .add_schedule(
-                            value.interval(),
-                            value.count(),
-                            value.initial_delay(),
-                            topic,
-                            publish.qos(),
-                            *publish.retain(),
-                            publish.input(),
-                        )
-                        .await
-                    {
-                        error!("Error while adding schedule: {}", e);
+                    match PayloadFormat::try_from(publish.input())
+                        .and_then(|data| {
+                            publish
+                                .apply_filters(data)
+                                .map_err(PayloadFormatError::from)
+                        })
+                        .and_then(|data| {
+                            data.into_iter()
+                                .map(|a| {
+                                    let b = PayloadFormat::try_from((a, topic.payload_type()));
+                                    b
+                                })
+                                .collect::<Result<Vec<PayloadFormat>, PayloadFormatError>>()
+                        })
+                        .and_then(|data| {
+                            data.into_iter()
+                                .map(|payload| payload.try_into())
+                                .collect::<Result<Vec<Vec<u8>>, PayloadFormatError>>()
+                        }) {
+                        Ok(val) => {
+                            for data in val {
+                                if let Err(e) = scheduler
+                                    .add_schedule(
+                                        value.interval(),
+                                        value.count(),
+                                        value.initial_delay(),
+                                        &topic_str,
+                                        publish.qos(),
+                                        *publish.retain(),
+                                        data,
+                                    )
+                                    .await
+                                {
+                                    error!("Error while adding schedule: {}", e);
+                                };
+                            }
+                        }
+                        Err(e) => {
+                            error!("Error while converting payload: {e}");
+                        }
                     };
                 }
             }
