@@ -1,12 +1,12 @@
 use crate::config::args::deserialize_qos;
+use crate::config::filter::{FilterError, FilterTypes};
 use crate::config::PublishInputType;
 use crate::mqtt::QoS;
+use crate::payload::PayloadFormat;
 use derive_getters::Getters;
 use serde::{Deserialize, Deserializer};
 use std::time::Duration;
 use validator::Validate;
-use crate::config::filter::{FilterError, FilterTypes};
-use crate::payload::PayloadFormat;
 
 #[derive(Clone, Debug, Deserialize, Getters, Validate)]
 pub struct Publish {
@@ -32,7 +32,6 @@ impl Publish {
     }
 }
 
-
 impl Default for Publish {
     fn default() -> Self {
         Publish {
@@ -41,7 +40,7 @@ impl Default for Publish {
             retain: false,
             trigger: vec![],
             input: Default::default(),
-            filters: Default::default()
+            filters: Default::default(),
         }
     }
 }

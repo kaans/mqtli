@@ -25,20 +25,18 @@ pub trait FilterImpl {
 pub struct FilterTypes(Vec<FilterType>);
 
 impl FilterTypes {
-
     pub fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
-        self.0.iter()
-            .try_fold(vec![data], |payloads, filter| {
-                let result: Result<Vec<PayloadFormat>, FilterError> = payloads
-                    .iter()
-                    .map(|payload| FilterImpl::apply(filter, payload.clone()))
-                    .try_fold(vec![], |mut unrolled, result| {
-                        unrolled.extend(result?);
-                        Ok(unrolled)
-                    });
+        self.0.iter().try_fold(vec![data], |payloads, filter| {
+            let result: Result<Vec<PayloadFormat>, FilterError> = payloads
+                .iter()
+                .map(|payload| FilterImpl::apply(filter, payload.clone()))
+                .try_fold(vec![], |mut unrolled, result| {
+                    unrolled.extend(result?);
+                    Ok(unrolled)
+                });
 
-                result
-            })
+            result
+        })
     }
 }
 
