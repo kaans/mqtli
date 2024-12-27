@@ -21,7 +21,7 @@ pub trait FilterImpl {
     fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError>;
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq)]
 pub struct FilterTypes(Vec<FilterType>);
 
 impl FilterTypes {

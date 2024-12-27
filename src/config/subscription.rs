@@ -1,15 +1,19 @@
+use crate::config::args::deserialize_qos;
 use crate::config::filter::{FilterError, FilterTypes};
-use crate::config::{args, PayloadType};
+use crate::config::PayloadType;
 use crate::mqtt::QoS;
 use crate::payload::PayloadFormat;
 use derive_getters::Getters;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
+use serde::Deserialize;
 use validator::Validate;
 
-#[derive(Debug, Getters, Validate)]
+#[derive(Clone, Debug, Deserialize, Getters, PartialEq, Validate)]
 pub struct Subscription {
     enabled: bool,
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_qos")]
     qos: QoS,
     outputs: Vec<Output>,
     filters: FilterTypes,
@@ -45,32 +49,10 @@ impl Default for Subscription {
     }
 }
 
-impl From<&args::Subscription> for Subscription {
-    fn from(value: &args::Subscription) -> Self {
-        let outputs: Vec<Output> = match value.outputs() {
-            None => {
-                vec![Output::default()]
-            }
-            Some(outputs) => outputs.iter().map(Output::from).collect(),
-        };
-
-        let filters: FilterTypes = value
-            .filters()
-            .as_ref()
-            .map_or_else(Vec::new, |v| v.clone()).into();
-
-        Subscription {
-            enabled: *value.enabled(),
-            qos: *value.qos(),
-            outputs,
-            filters,
-        }
-    }
-}
-
-#[derive(Debug, Default, Getters, Validate)]
+#[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq, Validate)]
 pub struct Output {
     format: PayloadType,
+    #[serde(default)]
     target: OutputTarget,
 }
 
@@ -83,35 +65,14 @@ impl Display for Output {
     }
 }
 
-impl From<&args::Output> for Output {
-    fn from(value: &args::Output) -> Self {
-        Output {
-            format: match value.format() {
-                None => PayloadType::default(),
-                Some(value) => value.clone(),
-            },
-            target: match value.target() {
-                None => OutputTarget::Console(OutputTargetConsole::default()),
-                Some(value) => match value {
-                    args::OutputTarget::Console(options) => {
-                        OutputTarget::Console(OutputTargetConsole::from(options))
-                    }
-                    args::OutputTarget::File(options) => {
-                        OutputTarget::File(OutputTargetFile::from(options))
-                    }
-                    args::OutputTarget::Topic(options) => {
-                        OutputTarget::Topic(OutputTargetTopic::from(options))
-                    }
-                },
-            },
-        }
-    }
-}
-
-#[derive(Debug, strum_macros::Display)]
+#[derive(Clone, Debug, Deserialize, strum_macros::Display, PartialEq)]
+#[serde(tag = "type")]
 pub enum OutputTarget {
+    #[serde(rename = "console")]
     Console(OutputTargetConsole),
+    #[serde(rename = "file")]
     File(OutputTargetFile),
+    #[serde(rename = "topic")]
     Topic(OutputTargetTopic),
 }
 
@@ -121,49 +82,26 @@ impl Default for OutputTarget {
     }
 }
 
-#[derive(Debug, Default, Getters, Validate)]
+#[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq, Validate)]
 pub struct OutputTargetConsole {}
 
-impl From<&args::OutputTargetConsole> for OutputTargetConsole {
-    fn from(_: &args::OutputTargetConsole) -> Self {
-        Self {}
-    }
-}
-
-#[derive(Debug, Default, Getters, Validate)]
+#[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq, Validate)]
 pub struct OutputTargetTopic {
     topic: String,
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_qos")]
     qos: QoS,
+    #[serde(default)]
     retain: bool,
 }
 
-impl From<&args::OutputTargetTopic> for OutputTargetTopic {
-    fn from(value: &args::OutputTargetTopic) -> Self {
-        Self {
-            topic: value.topic().clone(),
-            qos: *value.qos(),
-            retain: *value.retain(),
-        }
-    }
-}
-
-#[derive(Debug, Getters, Validate)]
+#[derive(Clone, Debug, Deserialize, Getters, PartialEq, Validate)]
 pub struct OutputTargetFile {
     path: PathBuf,
+    #[serde(default)]
     overwrite: bool,
     prepend: Option<String>,
     append: Option<String>,
-}
-
-impl From<&args::OutputTargetFile> for OutputTargetFile {
-    fn from(value: &args::OutputTargetFile) -> Self {
-        Self {
-            path: PathBuf::from(value.path()),
-            overwrite: *value.overwrite(),
-            prepend: value.prepend().clone(),
-            append: value.append().clone(),
-        }
-    }
 }
 
 impl Default for OutputTargetFile {

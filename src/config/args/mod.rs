@@ -10,10 +10,9 @@ use log::LevelFilter;
 use serde::de::{Error, Unexpected};
 use serde::{Deserialize, Deserializer};
 
-use crate::config::filter::FilterType;
 use crate::config::mqtli_config::{MqttProtocol, MqttVersion, TlsVersion};
-use crate::config::publish::Publish;
-use crate::config::{args, ConfigError, PayloadType};
+use crate::config::topic::Topic;
+use crate::config::{args, ConfigError};
 use crate::mqtt::QoS;
 
 #[derive(Debug, Deserialize, Parser)]
@@ -201,76 +200,6 @@ pub struct LastWillConfig {
         help = "If true, last will message will be retained, else not (default: false)"
     )]
     pub retain: Option<bool>,
-}
-
-#[derive(Debug, Default, Deserialize, Getters)]
-pub struct Topic {
-    pub topic: String,
-    pub subscription: Option<Subscription>,
-    pub payload: Option<PayloadType>,
-    pub publish: Option<Publish>,
-}
-
-#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct Output {
-    format: Option<PayloadType>,
-    target: Option<OutputTarget>,
-}
-
-#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct OutputTargetConsole {}
-
-#[derive(Debug, Deserialize, Getters, PartialEq)]
-pub struct OutputTargetFile {
-    path: PathBuf,
-
-    #[serde(default)]
-    overwrite: bool,
-    prepend: Option<String>,
-    append: Option<String>,
-}
-
-impl Default for OutputTargetFile {
-    fn default() -> Self {
-        OutputTargetFile {
-            path: Default::default(),
-            overwrite: false,
-            prepend: None,
-            append: Some("\n".to_string()),
-        }
-    }
-}
-
-#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct OutputTargetTopic {
-    topic: String,
-    #[serde(default)]
-    #[serde(deserialize_with = "deserialize_qos")]
-    qos: QoS,
-    #[serde(default)]
-    retain: bool,
-}
-
-#[derive(Debug, Deserialize, PartialEq)]
-#[serde(tag = "type")]
-pub enum OutputTarget {
-    #[serde(rename = "console")]
-    Console(OutputTargetConsole),
-    #[serde(rename = "file")]
-    File(OutputTargetFile),
-    #[serde(rename = "topic")]
-    Topic(OutputTargetTopic),
-}
-
-#[derive(Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct Subscription {
-    enabled: bool,
-
-    #[serde(default)]
-    #[serde(deserialize_with = "deserialize_qos")]
-    qos: QoS,
-    outputs: Option<Vec<Output>>,
-    filters: Option<Vec<FilterType>>,
 }
 
 pub fn read_config(buf: &PathBuf) -> Result<MqtliArgs, ConfigError> {
