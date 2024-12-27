@@ -86,7 +86,7 @@ impl Display for PayloadProtobuf {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, strum_macros::Display)]
 #[serde(tag = "type")]
 pub enum PublishInputType {
     #[serde(rename = "text")]

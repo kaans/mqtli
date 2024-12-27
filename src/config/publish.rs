@@ -5,6 +5,8 @@ use crate::mqtt::QoS;
 use crate::payload::{PayloadFormat, PayloadFormatError};
 use derive_getters::Getters;
 use serde::{Deserialize, Deserializer};
+use std::fmt;
+use std::fmt::{Display, Formatter};
 use std::time::Duration;
 use validator::Validate;
 
@@ -28,6 +30,32 @@ pub struct Publish {
 impl Publish {
     pub fn apply_filters(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
         self.filters.apply(data)
+    }
+}
+
+impl Display for Publish {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Enabled: {}", self.enabled)?;
+        writeln!(f, "QoS: {}", self.qos)?;
+        writeln!(f, "Retain: {}", self.retain)?;
+        writeln!(f, "Input: {}", self.input)?;
+
+        writeln!(f, "Triggers:")?;
+        self.trigger()
+            .iter()
+            .enumerate()
+            .map(|(i, trigger)| writeln!(f, "{i}. {}", trigger))
+            .collect::<Result<Vec<_>, fmt::Error>>()?;
+
+        writeln!(f, "Filters:")?;
+        self.filters
+            .0
+            .iter()
+            .enumerate()
+            .map(|(i, filter)| writeln!(f, "{i}. {}", filter))
+            .collect::<Result<Vec<_>, fmt::Error>>()?;
+
+        Ok(())
     }
 }
 
@@ -73,7 +101,7 @@ impl Default for PublishTriggerTypePeriodic {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, strum_macros::Display)]
 #[serde(tag = "type")]
 pub enum PublishTriggerType {
     #[serde(rename = "periodic")]
