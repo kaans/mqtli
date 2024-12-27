@@ -121,3 +121,43 @@ topics:
           }
       trigger:
         - type: periodic # default trigger: periodic with no count (indefinitely) and interval 1 second
+
+  - topic: mqtli/text
+    subscription:
+      enabled: true
+      qos: 1
+      outputs:
+        - format:
+            type: text
+      # these filters take the received payload, converts it to json,
+      # extracts the name and sets it to all uppercase
+      filters:
+        - type: to_json
+        - type: extract_json
+          jsonpath: $.name
+        - type: to_text
+        - type: to_upper
+    payload:
+      type: text
+    publish:
+      enabled: true
+      input:
+        type: text
+        content: |
+          {
+            "array": [
+              "name": "John",
+              "age": 32
+            ], [
+              "name": "Sandy",
+              "age": 31
+            ]
+          }
+      # these filters convert the text input to json and extract
+      # the first array element before sending it onto the topic
+      filters:
+        - type: to_json
+        - type: extract_json
+          jsonpath: $.array[0]
+      trigger:
+        - type: periodic # default trigger: periodic with no count (indefinitely) and interval 1 second

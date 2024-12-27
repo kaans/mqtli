@@ -187,8 +187,12 @@ The message to publish does not need to be stored as bytes but can be encoded to
 
 ==== Filters
 
-Filters can optionally be applied to messages received on a subscribed topic. They allow additional processing of the
+Filters can optionally be applied to messages received on a subscribed topic or before publishing data to a topic. They allow additional processing of the
 message before sending it to the output.
+
+The following examples show the filters used for the subscription.
+The filters can equally be applied to a publish entry similar to how
+they are specified for a subscription entry.
 
 ===== Filter: Extract JSON via JSONPath
 
