@@ -76,16 +76,18 @@ impl MqttHandler {
     ) {
         topics
             .iter()
-            .filter(|topic| topic.contains(incoming_topic_str) && *topic.subscription().enabled())
-            .for_each(|incoming_topic| {
-                for output in incoming_topic.subscription().outputs() {
+            .filter(|topic| topic.contains(incoming_topic_str))
+            .filter_map(|topic| topic.subscription().as_ref().map(|subscription| (subscription, topic.payload_type())))
+            .filter(|(subscription, _)| *subscription.enabled())
+            .for_each(|(subscription, payload_type)| {
+                for output in subscription.outputs() {
                     let result = PayloadFormat::try_from((
-                        incoming_topic.payload_type().clone(),
+                        payload_type.clone(),
                         incoming_value.clone(),
                     ));
 
                     match result {
-                        Ok(content) => match incoming_topic.subscription().apply_filters(content) {
+                        Ok(content) => match subscription.apply_filters(content) {
                             Ok(content) => content.iter().for_each(|content| {
                                 if let Err(e) = Self::forward_to_output(
                                     output,
