@@ -9,10 +9,7 @@ use tokio::task;
 use tokio_cron_scheduler::{Job, JobScheduler, JobSchedulerError};
 use uuid::Uuid;
 
-use crate::config::topic::Topic;
-use crate::config::PublishInputType;
 use crate::mqtt::{MqttPublishEvent, MqttService, QoS};
-use crate::payload::PayloadFormat;
 use crate::publish::TriggerError;
 
 struct JobContext {
@@ -85,25 +82,20 @@ impl TriggerPeriodic {
         interval: &Duration,
         count: &Option<u32>,
         initial_delay: &Duration,
-        output_topic: &Topic,
+        topic: &str,
         qos: &QoS,
         retain: bool,
-        input_type: &PublishInputType,
+        payload: Vec<u8>,
     ) -> Result<(), TriggerError> {
-        let payload: Vec<u8> = match PayloadFormat::new(input_type, output_topic.payload_type()) {
-            Ok(payload) => payload.try_into()?,
-            Err(e) => return Err(TriggerError::CouldNotConvertPayload(e)),
-        };
-
         let qos = *qos;
 
         let publish_channel = self.publish_channel.clone();
         let scheduler = self.scheduler.clone();
         let initial_delay = *initial_delay;
         let contexts = self.job_contexts.clone();
-        let topic = output_topic.topic().to_owned();
         let count = *count;
         let interval = *interval;
+        let topic = topic.to_owned();
 
         match count {
             Some(1) => {
@@ -112,7 +104,7 @@ impl TriggerPeriodic {
                     retain,
                     qos,
                     &payload,
-                    &topic,
+                    topic.as_ref(),
                     &publish_channel,
                 )?;
 
@@ -124,7 +116,7 @@ impl TriggerPeriodic {
                     retain,
                     qos,
                     &payload,
-                    &topic,
+                    topic.as_ref(),
                     &publish_channel,
                 )
                 .expect("Could not create job");
@@ -145,7 +137,7 @@ impl TriggerPeriodic {
                         retain,
                         qos,
                         &payload,
-                        &topic,
+                        topic.as_ref(),
                         &publish_channel,
                         count,
                     )
@@ -165,7 +157,7 @@ impl TriggerPeriodic {
                     retain,
                     qos,
                     &payload,
-                    &topic,
+                    topic.as_ref(),
                     &publish_channel,
                 )
                 .expect("Could not create job");
@@ -185,7 +177,7 @@ impl TriggerPeriodic {
                         retain,
                         qos,
                         payload,
-                        &topic,
+                        topic.as_ref(),
                         publish_channel,
                     )
                     .expect("Could not create job");

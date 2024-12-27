@@ -12,6 +12,7 @@ use protobuf_json_mapping::PrintError;
 use strum_macros::IntoStaticStr;
 use thiserror::Error;
 
+use crate::config::filter::FilterError;
 use crate::config::{PayloadType, PublishInputType, PublishInputTypeContentPath};
 use crate::payload::base64::PayloadFormatBase64;
 use crate::payload::hex::PayloadFormatHex;
@@ -77,6 +78,8 @@ pub enum PayloadFormatError {
     ProtobufParseError(#[from] ::protobuf::Error),
     #[error("Error while parsing protobuf from JSON: {0}")]
     ProtobufJsonMappingError(#[from] protobuf_json_mapping::ParseError),
+    #[error("Error while applying filters")]
+    FilterError(#[from] FilterError),
 }
 
 impl From<FromUtf8Error> for PayloadFormatError {
@@ -208,7 +211,25 @@ impl PayloadFormat {
         input_type: &PublishInputType,
         output_type: &PayloadType,
     ) -> Result<PayloadFormat, PayloadFormatError> {
-        let content = match input_type {
+        let content = PayloadFormat::try_from(input_type)?;
+
+        Self::try_from((content, output_type))
+    }
+}
+
+impl TryFrom<(PayloadFormat, PayloadType)> for PayloadFormat {
+    type Error = PayloadFormatError;
+
+    fn try_from((payload, target_type): (PayloadFormat, PayloadType)) -> Result<Self, Self::Error> {
+        Self::try_from((payload, &target_type))
+    }
+}
+
+impl TryFrom<&PublishInputType> for PayloadFormat {
+    type Error = PayloadFormatError;
+
+    fn try_from(value: &PublishInputType) -> Result<Self, Self::Error> {
+        Ok(match value {
             PublishInputType::Text(input) => {
                 let c = read_input_type_content_path(input)?;
                 PayloadFormat::Text(PayloadFormatText::from(c))
@@ -233,25 +254,7 @@ impl PayloadFormat {
                 let c = read_input_type_content_path(input)?;
                 PayloadFormat::Base64(PayloadFormatBase64::try_from(String::from_utf8(c)?)?)
             }
-        };
-
-        match output_type {
-            PayloadType::Text => Ok(PayloadFormat::Text(PayloadFormatText::try_from(content)?)),
-            PayloadType::Protobuf(options) => Ok(PayloadFormat::Protobuf(
-                PayloadFormatProtobuf::convert_from(
-                    content,
-                    options.definition(),
-                    options.message(),
-                )?,
-            )),
-            PayloadType::Json => Ok(PayloadFormat::Json(PayloadFormatJson::try_from(content)?)),
-            PayloadType::Yaml => Ok(PayloadFormat::Yaml(PayloadFormatYaml::try_from(content)?)),
-            PayloadType::Hex => Ok(PayloadFormat::Hex(PayloadFormatHex::try_from(content)?)),
-            PayloadType::Base64 => Ok(PayloadFormat::Base64(PayloadFormatBase64::try_from(
-                content,
-            )?)),
-            PayloadType::Raw => Ok(PayloadFormat::Raw(PayloadFormatRaw::try_from(content)?)),
-        }
+        })
     }
 }
 

@@ -14,7 +14,7 @@ pub enum FilterError {
     #[error("The given JSON path cannot be parsed")]
     WrongJsonPath(#[from] JsonPathParserError),
     #[error("Error in payload format")]
-    PayloadFormatError(#[from] PayloadFormatError),
+    PayloadFormatError(#[from] Box<PayloadFormatError>),
 }
 
 pub trait FilterImpl {
@@ -126,7 +126,8 @@ pub struct FilterTypeToText {}
 impl FilterImpl for FilterTypeToText {
     fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
         Ok(vec![PayloadFormat::Text(
-            PayloadFormatText::try_from(data).map_err(FilterError::PayloadFormatError)?,
+            PayloadFormatText::try_from(data)
+                .map_err(|e| FilterError::PayloadFormatError(Box::new(e)))?,
         )])
     }
 }
@@ -137,7 +138,8 @@ pub struct FilterTypeToJson {}
 impl FilterImpl for FilterTypeToJson {
     fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
         Ok(vec![PayloadFormat::Json(
-            PayloadFormatJson::try_from(data).map_err(FilterError::PayloadFormatError)?,
+            PayloadFormatJson::try_from(data)
+                .map_err(|e| FilterError::PayloadFormatError(Box::new(e)))?,
         )])
     }
 }

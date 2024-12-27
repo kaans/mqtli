@@ -2,7 +2,7 @@ use crate::config::args::deserialize_qos;
 use crate::config::filter::{FilterError, FilterTypes};
 use crate::config::PublishInputType;
 use crate::mqtt::QoS;
-use crate::payload::PayloadFormat;
+use crate::payload::{PayloadFormat, PayloadFormatError};
 use derive_getters::Getters;
 use serde::{Deserialize, Deserializer};
 use std::time::Duration;
@@ -12,7 +12,6 @@ use validator::Validate;
 pub struct Publish {
     #[serde(default)]
     enabled: bool,
-
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_qos")]
     qos: QoS,
@@ -29,6 +28,14 @@ pub struct Publish {
 impl Publish {
     pub fn apply_filters(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
         self.filters.apply(data)
+    }
+}
+
+impl TryFrom<Publish> for PayloadFormat {
+    type Error = PayloadFormatError;
+
+    fn try_from(value: Publish) -> Result<Self, Self::Error> {
+        PayloadFormat::try_from(&value.input)
     }
 }
 

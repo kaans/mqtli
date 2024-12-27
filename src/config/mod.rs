@@ -9,7 +9,7 @@ use thiserror::Error;
 use validator::{Validate, ValidationError, ValidationErrors};
 
 mod args;
-mod filter;
+pub mod filter;
 pub mod mqtli_config;
 pub mod publish;
 pub mod subscription;
