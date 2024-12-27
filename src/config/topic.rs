@@ -1,16 +1,19 @@
+use crate::config::publish::Publish;
 use crate::config::subscription::Subscription;
-use crate::config::{args, PayloadType};
+use crate::config::PayloadType;
 use derive_getters::Getters;
+use serde::Deserialize;
 use std::fmt::{Display, Formatter};
 use validator::Validate;
-use crate::config::publish::Publish;
 
-#[derive(Debug, Default, Getters, Validate)]
+#[derive(Clone, Debug, Default, Deserialize, Getters, Validate)]
 pub struct Topic {
     #[validate(length(min = 1, message = "Topic must be given"))]
     topic: String,
     #[validate(nested)]
     subscription: Subscription,
+    #[serde(default)]
+    #[serde(rename="payload")]
     payload_type: PayloadType,
     #[validate(nested)]
     publish: Option<Publish>,
@@ -50,23 +53,6 @@ impl Display for Topic {
         writeln!(f, "Subscription:\n{}", self.subscription)?;
 
         Ok(())
-    }
-}
-
-impl From<&args::Topic> for Topic {
-    fn from(value: &args::Topic) -> Self {
-        Topic {
-            topic: String::from(value.topic()),
-            subscription: match value.subscription() {
-                None => Subscription::default(),
-                Some(value) => Subscription::from(value),
-            },
-            payload_type: match value.payload() {
-                None => PayloadType::default(),
-                Some(value) => value.clone(),
-            },
-            publish: value.publish().clone(),
-        }
     }
 }
 

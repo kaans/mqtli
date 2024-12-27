@@ -37,7 +37,7 @@ impl Display for MqtliConfig {
 }
 
 impl MqtliConfig {
-    fn merge(&mut self, other: &args::MqtliArgs) {
+    fn merge(&mut self, mut other: args::MqtliArgs) {
         if let Some(broker) = &other.broker {
             self.broker.merge(broker);
         }
@@ -45,10 +45,7 @@ impl MqtliConfig {
         if let Some(log_level) = other.log_level {
             self.log_level = log_level
         };
-        other
-            .topics
-            .iter()
-            .for_each(|topic| self.topics.push(Topic::from(topic)));
+        self.topics.append(&mut other.topics);
     }
 }
 
@@ -236,7 +233,7 @@ pub fn parse_config() -> Result<MqtliConfig, ConfigError> {
 
     match read_config(&config_file) {
         Ok(config_file_args) => {
-            config.merge(&config_file_args);
+            config.merge(config_file_args);
         }
         Err(e) => {
             println!(
@@ -246,7 +243,7 @@ pub fn parse_config() -> Result<MqtliConfig, ConfigError> {
         }
     }
 
-    config.merge(&args);
+    config.merge(args);
 
     match config.validate() {
         Ok(_) => Ok(config),

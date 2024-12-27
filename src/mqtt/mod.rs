@@ -11,6 +11,7 @@ use log::{debug, info};
 use rumqttc::tokio_rustls::rustls::version::{TLS12, TLS13};
 use rumqttc::tokio_rustls::rustls::{Certificate, PrivateKey, SupportedProtocolVersion};
 use rumqttc::{TlsConfiguration, Transport};
+use serde::Deserialize;
 use thiserror::Error;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
@@ -43,7 +44,7 @@ pub enum MqttServiceError {
 }
 
 #[allow(clippy::enum_variant_names)]
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq)]
 pub enum QoS {
     #[default]
     AtMostOnce = 0,
