@@ -9,6 +9,7 @@
 //! - support of multiple inputs and outputs per topic
 //! - configuration is stored in a file to support complex configuration scenarios and share them
 //!
+use futures::StreamExt;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -27,6 +28,7 @@ use crate::mqtt::{MqttPublishEvent, MqttReceiveEvent, MqttService};
 use crate::publish::trigger_periodic::TriggerPeriodic;
 use mqtlib::built_info::PKG_VERSION;
 use crate::config::publish::PublishTriggerType::Periodic;
+use crate::config::subscription::Subscription;
 
 mod config;
 mod mqtt;
@@ -53,17 +55,18 @@ async fn main() -> anyhow::Result<()> {
         )))),
     };
 
-    for topic in config.topics() {
-        if *topic.subscription().enabled() {
+    let filtered_subscriptions: Vec<(&Subscription, &String)> = config.topics().iter()
+        .filter_map(|topic| topic.subscription().as_ref().map(|s| (s, topic.topic())))
+        .filter(|(s,_)| *s.enabled()).collect();
+    
+    futures::stream::iter(filtered_subscriptions)
+        .for_each(|(subscription, topic)| async {
             mqtt_service
                 .lock()
                 .await
-                .subscribe(topic.topic().to_string(), *topic.subscription().qos())
+                .subscribe(topic.to_string(), *subscription.qos())
                 .await;
-        } else {
-            info!("Not subscribing to topic, not enabled :{}", topic.topic());
-        }
-    }
+        }).await;
 
     let (sender, receiver) = broadcast::channel::<MqttReceiveEvent>(32);
     let (sender_publish, mut receiver_publish) = broadcast::channel::<MqttPublishEvent>(32);

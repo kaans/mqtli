@@ -922,6 +922,7 @@ dependencies = [
  "clap",
  "colored",
  "derive-getters",
+ "futures",
  "hex",
  "jsonpath-rust",
  "lazy_static",
