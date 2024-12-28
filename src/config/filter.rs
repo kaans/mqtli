@@ -1,3 +1,4 @@
+use crate::config::PayloadType;
 use crate::payload::json::PayloadFormatJson;
 use crate::payload::text::PayloadFormatText;
 use crate::payload::{PayloadFormat, PayloadFormatError};
@@ -20,6 +21,15 @@ pub enum FilterError {
 
 pub trait FilterImpl {
     fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError>;
+
+    fn convert_payload_format(
+        &self,
+        data: PayloadFormat,
+        payload_type: PayloadType,
+    ) -> Result<PayloadFormat, FilterError> {
+        PayloadFormat::try_from((data, payload_type))
+            .map_err(|e| FilterError::PayloadFormatError(Box::new(e)))
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq)]
@@ -58,72 +68,55 @@ impl From<Vec<FilterType>> for FilterTypes {
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct FilterTypeExtractJson {
     jsonpath: String,
-    #[serde(rename = "ignore_non_json")]
-    #[serde(default)]
-    ignore_none_json_payload: bool,
 }
 
 impl FilterImpl for FilterTypeExtractJson {
     fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
-        let result: Result<Vec<PayloadFormat>, FilterError> = match data {
-            PayloadFormat::Json(data) => {
-                let result: Result<Vec<PayloadFormat>, FilterError> =
-                    match JsonPath::from_str(self.jsonpath.as_str()) {
-                        Ok(path) => {
-                            let res: Vec<PayloadFormat> = path
-                                .find_slice(data.content())
-                                .iter()
-                                .map(|v| {
-                                    PayloadFormat::Json(PayloadFormatJson::from(
-                                        v.clone().to_data(),
-                                    ))
-                                })
-                                .collect();
+        let result: Result<Vec<PayloadFormat>, FilterError> =
+            match self.convert_payload_format(data, PayloadType::Json)? {
+                PayloadFormat::Json(data) => {
+                    let result: Result<Vec<PayloadFormat>, FilterError> =
+                        match JsonPath::from_str(self.jsonpath.as_str()) {
+                            Ok(path) => {
+                                let res: Vec<PayloadFormat> = path
+                                    .find_slice(data.content())
+                                    .iter()
+                                    .map(|v| {
+                                        PayloadFormat::Json(PayloadFormatJson::from(
+                                            v.clone().to_data(),
+                                        ))
+                                    })
+                                    .collect();
 
-                            Ok(res)
-                        }
-                        Err(e) => {
-                            return Err(FilterError::WrongJsonPath(e));
-                        }
-                    };
+                                Ok(res)
+                            }
+                            Err(e) => {
+                                return Err(FilterError::WrongJsonPath(e));
+                            }
+                        };
 
-                result
-            }
-            data => {
-                if self.ignore_none_json_payload {
-                    Ok(vec![data])
-                } else {
-                    Err(FilterError::WrongPayloadFormat("json".into()))
+                    result
                 }
-            }
-        };
+                _ => Err(FilterError::WrongPayloadFormat("json".into())),
+            };
 
         result
     }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
-pub struct FilterTypeToUpperCase {
-    #[serde(rename = "ignore_non_text")]
-    #[serde(default)]
-    ignore_none_text_payload: bool,
-}
+pub struct FilterTypeToUpperCase {}
 
 impl FilterImpl for FilterTypeToUpperCase {
     fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
-        let result: Result<Vec<PayloadFormat>, FilterError> = match data {
-            PayloadFormat::Text(data) => {
-                let res = PayloadFormatText::from(data.content().to_ascii_uppercase());
-                Ok(vec![PayloadFormat::Text(res)])
-            }
-            data => {
-                if self.ignore_none_text_payload {
-                    Ok(vec![data])
-                } else {
-                    Err(FilterError::WrongPayloadFormat("text".into()))
+        let result: Result<Vec<PayloadFormat>, FilterError> =
+            match self.convert_payload_format(data, PayloadType::Text)? {
+                PayloadFormat::Text(data) => {
+                    let res = PayloadFormatText::from(data.content().to_ascii_uppercase());
+                    Ok(vec![PayloadFormat::Text(res)])
                 }
-            }
-        };
+                _ => Err(FilterError::WrongPayloadFormat("text".into())),
+            };
 
         result
     }
@@ -134,10 +127,8 @@ pub struct FilterTypeToText {}
 
 impl FilterImpl for FilterTypeToText {
     fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
-        Ok(vec![PayloadFormat::Text(
-            PayloadFormatText::try_from(data)
-                .map_err(|e| FilterError::PayloadFormatError(Box::new(e)))?,
-        )])
+        self.convert_payload_format(data, PayloadType::Text)
+            .map(|e| vec![e])
     }
 }
 
@@ -146,10 +137,8 @@ pub struct FilterTypeToJson {}
 
 impl FilterImpl for FilterTypeToJson {
     fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
-        Ok(vec![PayloadFormat::Json(
-            PayloadFormatJson::try_from(data)
-                .map_err(|e| FilterError::PayloadFormatError(Box::new(e)))?,
-        )])
+        self.convert_payload_format(data, PayloadType::Json)
+            .map(|e| vec![e])
     }
 }
 
@@ -196,7 +185,7 @@ mod tests {
 
         let result = filter.apply(payload);
 
-        assert_eq!(true, result.is_ok());
+        assert!(result.is_ok());
         let result = result.unwrap();
         assert_eq!(1, result.len());
         let PayloadFormat::Text(result) = &result[0] else {
@@ -212,7 +201,7 @@ mod tests {
 
         let result = filter.apply(payload);
 
-        assert_eq!(true, result.is_ok());
+        assert!(result.is_ok());
         let result = result.unwrap();
         assert_eq!(1, result.len());
         let PayloadFormat::Json(result) = &result[0] else {
@@ -228,7 +217,7 @@ mod tests {
 
         let result = filter.apply(payload);
 
-        assert_eq!(true, result.is_ok());
+        assert!(result.is_ok());
         let result = result.unwrap();
         assert_eq!(1, result.len());
         let PayloadFormat::Text(result) = &result[0] else {
@@ -241,7 +230,6 @@ mod tests {
     fn extract_json() {
         let filter = FilterTypeExtractJson {
             jsonpath: String::from("$.name"),
-            ignore_none_json_payload: false,
         };
         let payload = PayloadFormat::Json(
             PayloadFormatJson::try_from(Vec::from("{\"name\":\"MQTli\"}".as_bytes())).unwrap(),
@@ -249,7 +237,7 @@ mod tests {
 
         let result = filter.apply(payload);
 
-        assert_eq!(true, result.is_ok());
+        assert!(result.is_ok());
         let result = result.unwrap();
         assert_eq!(1, result.len());
         let PayloadFormat::Json(result) = &result[0] else {

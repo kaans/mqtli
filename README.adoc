@@ -194,6 +194,13 @@ The following examples show the filters used for the subscription.
 The filters can equally be applied to a publish entry similar to how
 they are specified for a subscription entry.
 
+Filters try to convert the input data to the required payload type
+automatically. in case the input data cannot be converted, an error
+is thrown and further processing is stopped.
+
+It is possible to manually convert to different payload formats with
+the appropriate filters. Usually this is not necessary.
+
 ===== Filter: Extract JSON via JSONPath
 
 Extract elements or singular values from an JSON type via https://en.wikipedia.org/wiki/JSONPath[JSONPath].
@@ -214,11 +221,6 @@ Extract elements or singular values from an JSON type via https://en.wikipedia.o
 | A valid JSONPath directive
 | string
 | ""
-
-| ignore_non_json
-| If true, input data which is not JSON will be ignored; if false, an error is thrown and further processing is stopped.
-| boolean
-| false
 |==================================================================================================================================================================
 
 ===== Example
@@ -256,20 +258,6 @@ Convert all ascii characters to upper case.
 - *Name*: to_upper
 - *Processable input types*: Text
 - *Output type*: Text
-
-.Attributes of to_upper
-[cols="4*", options="header"]
-|==================================================================================================================================================================
-| Attribute
-| Description
-| Type
-| Default value
-
-| ignore_non_text
-| If true, input data which is not Text will be ignored; if false, an error is thrown and further processing is stopped.
-| boolean
-| false
-|==================================================================================================================================================================
 
 ===== Example
 
