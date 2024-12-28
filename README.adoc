@@ -417,17 +417,18 @@ topics:
 The following table lists all possible payloads and their conversion options.
 
 .Possible conversions between payload formats
-[cols="8*",options="header"]
-|==========================================================================
-| from -> to | Raw | Text | Hex | Base64 | JSON | YAML | Protobuf
-| Raw        | yes | yes  | yes | yes    | yes  | yes  | yes
-| Text       | yes | yes  | yes | yes    | yes  | yes  | no
-| Hex        | yes | yes  | yes | yes    | yes  | yes  | yes
-| Base64     | yes | yes  | yes | yes    | yes  | yes  | yes
-| JSON       | yes | yes  | yes | yes    | yes  | yes  | yes
-| YAML       | yes | yes  | yes | yes    | yes  | yes  | yes
-| Protobuf   | yes | yes  | yes | yes    | yes  | yes  | yes
-|==========================================================================
+[cols="9*",options="header"]
+|============================================================================
+| from -> to | Raw | Text | Hex | Base64 | JSON | YAML | Protobuf | Sparkplug
+| Raw        | yes | yes  | yes | yes    | yes  | yes  | yes      | yes
+| Text       | yes | yes  | yes | yes    | yes  | yes  | no       | no
+| Hex        | yes | yes  | yes | yes    | yes  | yes  | yes      | yes
+| Base64     | yes | yes  | yes | yes    | yes  | yes  | yes      | yes
+| JSON       | yes | yes  | yes | yes    | yes  | yes  | yes      | yes
+| YAML       | yes | yes  | yes | yes    | yes  | yes  | yes      | yes
+| Protobuf   | yes | yes  | yes | yes    | yes  | yes  | yes      | yes
+| Sparkplug  | yes | yes  | yes | yes    | yes  | yes  | yes      | yes
+|============================================================================
 
 Many formats can be converted to each other, given that the data contains the required information for this conversion.
 (For example, a conversion from text to protobuf is not possible because text is not a structured format).
@@ -482,6 +483,14 @@ When converting from binary (or encoded formats like hex and base64), the data i
 message that corresponds to the given protobuf schema.
 
 When converting a protobuf message to text, the protobuf internal text representation is used.
+
+=== Eclipse Sparkplug
+
+This payload format represents data encoded according to https://sparkplug.eclipse.org/[Eclipse Sparkplug Specification 3.0.0]. All Sparkplug messages are encoded as protobuf. The protobuf schema used can be found in the file link:assets/protobuf/sparkplug_b.proto[].
+
+All formats, except text (because it does not contain any structural information), can be converted to Sparkplug.
+When converting from binary (or encoded formats like hex and base64), the data is assumed to be a correct protobuf message that corresponds to the given Sparkplug schema.
+
 
 === Future plans
 
