@@ -8,6 +8,7 @@ use derive_getters::Getters;
 use protobuf::reflect::{FileDescriptor, MessageDescriptor};
 use protobuf::text_format::print_to_string_pretty;
 use protobuf::MessageDyn;
+use protobuf_json_mapping::parse_dyn_from_str;
 
 #[derive(Clone, Debug, Getters)]
 pub struct PayloadFormatProtobuf {
@@ -78,11 +79,10 @@ impl PayloadFormatProtobuf {
         definition_file: &PathBuf,
         message_name: &str,
     ) -> Result<Box<dyn MessageDyn>, PayloadFormatError> {
-        Self::convert_from_vec(
-            value.to_string().into_bytes(),
-            definition_file,
-            message_name,
-        )
+        let md = Self::get_message_descriptor(definition_file, message_name)?;
+        let payload = parse_dyn_from_str(&md, value.to_string().as_str())?;
+
+        Ok(payload)
     }
 
     fn get_message_descriptor(
@@ -159,6 +159,24 @@ mod tests {
 
     const INPUT_STRING_HEX: &str = "082012080a066b696e646f66";
     const INPUT_STRING_BASE64: &str = "CCASCAoGa2luZG9m";
+    const INPUT_STRING_YAML: &str = "\
+    ---
+    distance: 32
+    inside:
+      kind: kindof
+    position: POSITION_INSIDE
+    raw: w5XDs3wvw5XDv+KZo8O+w5U=
+    ";
+
+    const INPUT_STRING_JSON: &str = "\
+    {
+      \"distance\": 32,
+      \"inside\": {
+        \"kind\": \"kindof\"
+      },
+      \"position\": \"POSITION_INSIDE\",
+      \"raw\": \"w5XDs3wvw5XDv+KZo8O+w5U=\"
+    }";
 
     lazy_static! {
         static ref INPUT_PATH_MESSAGE: PathBuf = PathBuf::from("test/data/message.proto");
@@ -250,25 +268,28 @@ mod tests {
 
     #[test]
     fn from_yaml() {
-        let input = PayloadFormatYaml::try_from(Vec::<u8>::from("content: input")).unwrap();
+        let input = PayloadFormatYaml::try_from(Vec::<u8>::from(INPUT_STRING_YAML)).unwrap();
         let result = PayloadFormatProtobuf::convert_from(
             PayloadFormat::Yaml(input),
             &INPUT_PATH_MESSAGE,
             MESSAGE_NAME,
-        );
-        assert!(result.is_err());
+        )
+        .unwrap();
+        assert_eq!(32, extract_distance(&result));
+        assert_eq!("kindof".to_string(), extract_kind(&result));
     }
 
     #[test]
     fn from_json() {
-        let input =
-            PayloadFormatJson::try_from(Vec::<u8>::from("{\"content\":\"input\"}")).unwrap();
+        let input = PayloadFormatJson::try_from(Vec::<u8>::from(INPUT_STRING_JSON)).unwrap();
         let result = PayloadFormatProtobuf::convert_from(
             PayloadFormat::Json(input),
             &INPUT_PATH_MESSAGE,
             MESSAGE_NAME,
-        );
-        assert!(result.is_err());
+        )
+        .unwrap();
+        assert_eq!(32, extract_distance(&result));
+        assert_eq!("kindof".to_string(), extract_kind(&result));
     }
 
     fn extract_kind(result: &PayloadFormatProtobuf) -> String {
