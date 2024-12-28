@@ -95,6 +95,10 @@ impl TryFrom<PayloadFormat> for PayloadFormatYaml {
             PayloadFormat::Json(value) => Ok(Self::from(serde_json::from_value::<Value>(
                 value.content().clone(),
             )?)),
+            PayloadFormat::Sparkplug(value) => {
+                let json = PayloadFormatJson::try_from(PayloadFormat::Sparkplug(value))?;
+                Self::try_from(PayloadFormat::Json(json))
+            }
         }
     }
 }

@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 
 use crate::config::PayloadProtobuf;
@@ -5,6 +6,7 @@ use crate::payload::json::PayloadFormatJson;
 use crate::payload::{PayloadFormat, PayloadFormatError};
 use derive_getters::Getters;
 use protobuf::reflect::{FileDescriptor, MessageDescriptor};
+use protobuf::text_format::print_to_string_pretty;
 use protobuf::MessageDyn;
 
 #[derive(Clone, Debug, Getters)]
@@ -51,6 +53,9 @@ impl PayloadFormatProtobuf {
             PayloadFormat::Yaml(value) => {
                 let json = PayloadFormatJson::try_from(PayloadFormat::Yaml(value))?;
                 Self::convert_from_json(json, definition_file, message_name)?
+            }
+            PayloadFormat::Sparkplug(value) => {
+                Self::convert_from_vec(value.try_into()?, definition_file, message_name)?
             }
         };
 
@@ -103,6 +108,12 @@ impl PayloadFormatProtobuf {
             .ok_or(PayloadFormatError::ProtobufMessageNotFound(
                 message_name.to_string(),
             ))
+    }
+}
+
+impl Display for PayloadFormatProtobuf {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", print_to_string_pretty(&*self.content))
     }
 }
 

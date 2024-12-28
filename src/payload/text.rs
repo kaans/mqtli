@@ -1,7 +1,5 @@
 use crate::payload::{PayloadFormat, PayloadFormatError};
 use derive_getters::Getters;
-use protobuf::text_format::print_to_string_pretty;
-use protobuf::MessageDyn;
 use std::fmt::{Display, Formatter};
 
 /// Represents a lossy UTF-8 encoded String.
@@ -86,10 +84,9 @@ impl TryFrom<PayloadFormat> for PayloadFormatText {
             PayloadFormat::Raw(value) => Ok(Self {
                 content: value.into(),
             }),
-            PayloadFormat::Protobuf(value) => {
-                let msg: Box<dyn MessageDyn> = value.into();
-                Ok(Self::from(print_to_string_pretty(&*msg)))
-            }
+            PayloadFormat::Protobuf(value) => Ok(Self {
+                content: value.to_string().into_bytes(),
+            }),
             PayloadFormat::Hex(value) => Ok(Self {
                 content: value.decode_from_hex()?,
             }),
@@ -98,12 +95,16 @@ impl TryFrom<PayloadFormat> for PayloadFormatText {
             }),
             PayloadFormat::Json(value) => Ok(Self::from(value.to_string())),
             PayloadFormat::Yaml(value) => Ok(Self::from(value.to_string())),
+            PayloadFormat::Sparkplug(_) => Ok(Self {
+                content: value.to_string().into_bytes(),
+            }),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::payload::base64::PayloadFormatBase64;
     use crate::payload::hex::PayloadFormatHex;
     use crate::payload::json::PayloadFormatJson;
@@ -111,9 +112,9 @@ mod tests {
     use crate::payload::raw::PayloadFormatRaw;
     use crate::payload::yaml::PayloadFormatYaml;
     use lazy_static::lazy_static;
+    use protobuf::text_format::print_to_string_pretty;
+    use protobuf::MessageDyn;
     use std::path::PathBuf;
-
-    use super::*;
 
     const INPUT_STRING: &str = "INPUT";
     const INPUT_STRING_HEX: &str = "494e505554";

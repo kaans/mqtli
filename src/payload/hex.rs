@@ -102,6 +102,9 @@ impl TryFrom<PayloadFormat> for PayloadFormatHex {
             PayloadFormat::Yaml(value) => Self::try_from(PayloadFormatHex::encode_to_hex(
                 &Vec::<u8>::try_from(value)?,
             )),
+            PayloadFormat::Sparkplug(value) => Self::try_from(PayloadFormatHex::encode_to_hex(
+                &Vec::<u8>::try_from(value)?,
+            )),
         }
     }
 }
