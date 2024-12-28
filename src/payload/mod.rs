@@ -182,6 +182,9 @@ impl TryFrom<(PayloadFormat, &PayloadType)> for PayloadFormat {
             PayloadType::Protobuf(options) => {
                 PayloadFormat::Protobuf(PayloadFormatProtobuf::try_from((value, options))?)
             }
+            PayloadType::Sparkplug => {
+                PayloadFormat::Sparkplug(PayloadFormatSparkplug::try_from(value)?)
+            }
         })
     }
 }
@@ -205,6 +208,9 @@ impl TryFrom<(PayloadType, Vec<u8>)> for PayloadFormat {
             PayloadType::Hex => PayloadFormat::Hex(PayloadFormatHex::try_from(content)?),
             PayloadType::Base64 => PayloadFormat::Base64(PayloadFormatBase64::try_from(content)?),
             PayloadType::Raw => PayloadFormat::Raw(PayloadFormatRaw::from(content)),
+            PayloadType::Sparkplug => {
+                PayloadFormat::Sparkplug(PayloadFormatSparkplug::try_from(content)?)
+            }
         })
     }
 }

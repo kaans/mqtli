@@ -43,6 +43,8 @@ pub enum PayloadType {
     Base64,
     #[serde(rename = "raw")]
     Raw,
+    #[serde(rename = "sparkplug")]
+    Sparkplug,
 }
 
 impl Display for PayloadType {
@@ -69,6 +71,7 @@ impl Display for PayloadType {
             PayloadType::Raw => {
                 write!(f, "Raw")
             }
+            PayloadType::Sparkplug => write!(f, "Sparkplug"),
         }
     }
 }
