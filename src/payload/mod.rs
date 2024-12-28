@@ -19,6 +19,7 @@ use crate::payload::hex::PayloadFormatHex;
 use crate::payload::json::PayloadFormatJson;
 use crate::payload::protobuf::PayloadFormatProtobuf;
 use crate::payload::raw::PayloadFormatRaw;
+use crate::payload::sparkplug::PayloadFormatSparkplug;
 use crate::payload::text::PayloadFormatText;
 use crate::payload::yaml::PayloadFormatYaml;
 
@@ -27,6 +28,7 @@ pub mod hex;
 pub mod json;
 pub mod protobuf;
 pub mod raw;
+pub mod sparkplug;
 pub mod text;
 pub mod yaml;
 
@@ -121,6 +123,7 @@ pub enum PayloadFormat {
     Base64(PayloadFormatBase64),
     Json(PayloadFormatJson),
     Yaml(PayloadFormatYaml),
+    Sparkplug(PayloadFormatSparkplug),
 }
 
 impl Display for PayloadFormat {
@@ -141,6 +144,7 @@ impl TryInto<Vec<u8>> for PayloadFormat {
             PayloadFormat::Base64(value) => Ok(value.into()),
             PayloadFormat::Json(value) => Ok(value.into()),
             PayloadFormat::Yaml(value) => value.try_into(),
+            PayloadFormat::Sparkplug(value) => value.try_into(),
         }
     }
 }
@@ -154,13 +158,12 @@ impl TryInto<String> for PayloadFormat {
             PayloadFormat::Raw(value) => {
                 Ok(String::from_utf8_lossy(Vec::<u8>::from(value).as_slice()).to_string())
             }
-            PayloadFormat::Protobuf(_value) => Err(PayloadFormatError::DisplayNotPossible(
-                String::from("protobuf"),
-            )),
+            PayloadFormat::Protobuf(value) => Ok(value.to_string()),
             PayloadFormat::Hex(value) => Ok(value.into()),
             PayloadFormat::Base64(value) => Ok(value.into()),
             PayloadFormat::Json(value) => Ok(value.into()),
             PayloadFormat::Yaml(value) => value.try_into(),
+            PayloadFormat::Sparkplug(value) => Ok(value.to_string()),
         }
     }
 }

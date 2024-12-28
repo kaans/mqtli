@@ -102,6 +102,9 @@ impl TryFrom<PayloadFormat> for PayloadFormatBase64 {
             PayloadFormat::Yaml(value) => Self::try_from(PayloadFormatBase64::encode_to_base64(
                 &Vec::<u8>::try_from(value)?,
             )),
+            PayloadFormat::Sparkplug(value) => Self::try_from(
+                PayloadFormatBase64::encode_to_base64(&Vec::<u8>::try_from(value)?),
+            ),
         }
     }
 }

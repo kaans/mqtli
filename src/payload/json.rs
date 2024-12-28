@@ -24,7 +24,7 @@ impl PayloadFormatJson {
     }
 }
 
-/// Displays the hex encoded content.
+/// Displays the json encoded content.
 impl Display for PayloadFormatJson {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.content)
@@ -158,6 +158,9 @@ impl TryFrom<PayloadFormat> for PayloadFormatJson {
             PayloadFormat::Yaml(value) => Ok(Self::from(serde_yaml::from_value::<Value>(
                 value.content().clone(),
             )?)),
+            PayloadFormat::Sparkplug(value) => {
+                Self::try_from(print_protobuf_to_json_string(value.content())?)
+            }
         }
     }
 }
