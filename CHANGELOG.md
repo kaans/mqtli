@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.7.0](https://github.com/kaans/mqtli/compare/v0.6.0...v0.7.0) (2024-12-28)
+
+
+### Features
+
+* add filters to output config ([7483f3a](https://github.com/kaans/mqtli/commit/7483f3a4b6fd93c2a03862508c8b8668bb5d486a))
+* add new payload type sparkplug ([ef428d7](https://github.com/kaans/mqtli/commit/ef428d72c1227c10a6c635649fddf41b86bda4b2))
+* add output to topic ([09c50e1](https://github.com/kaans/mqtli/commit/09c50e1335713dbb1bce823e18ff8a2b2ad2ca53))
+* automatically convert input payload for filters ([e902b85](https://github.com/kaans/mqtli/commit/e902b8507ad91d59e8ed78240cc48b9759b5aff9))
+* filter input of publish ([79babcc](https://github.com/kaans/mqtli/commit/79babcc2bec8cb521e6eaf614c145783cf212a9a))
+* generate code for sparkplug B from protobuf ([c4f47e8](https://github.com/kaans/mqtli/commit/c4f47e8be4b7377e91b0d966ba9f61964d3965d4))
+* parse protobuf and sparkplug from json and yaml ([6050179](https://github.com/kaans/mqtli/commit/60501793b4465bc0a6d12a8aa545c8f4ceace79a))
+
+
+### Bug Fixes
+
+* make subscription optional ([5e2ff01](https://github.com/kaans/mqtli/commit/5e2ff01a62293065cc36a95372d303f1d3a24ee3))
+
 ## [0.6.0](https://github.com/kaans/mqtli/compare/v0.5.2...v0.6.0) (2024-12-24)
 
 
