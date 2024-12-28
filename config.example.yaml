@@ -101,7 +101,6 @@ topics:
       filters:
         - type: extract_json
           jsonpath: $.array[*].name
-        - type: to_text
         - type: to_upper
     payload:
       type: json
@@ -132,10 +131,8 @@ topics:
       # these filters take the received payload, converts it to json,
       # extracts the name and sets it to all uppercase
       filters:
-        - type: to_json
         - type: extract_json
           jsonpath: $.name
-        - type: to_text
         - type: to_upper
     payload:
       type: text
@@ -156,7 +153,6 @@ topics:
       # these filters convert the text input to json and extract
       # the first array element before sending it onto the topic
       filters:
-        - type: to_json
         - type: extract_json
           jsonpath: $.array[0]
       trigger:
