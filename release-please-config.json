@@ -1,0 +1,17 @@
+{
+  "packages": {
+    "crates/mqtli": {
+      "release-type": "rust",
+      "component": "mqtli",
+      "release-as": "0.8.0"
+    }
+  },
+  "plugins": [
+    {
+      "type": "cargo-workspace"
+    },
+    {
+      "type": "sentence-case"
+    }
+  ]
+}
