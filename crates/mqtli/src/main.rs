@@ -189,7 +189,7 @@ fn init_logger(filter: &LevelFilter) {
         TerminalMode::Mixed,
         ColorChoice::Auto,
     )
-        .is_err()
+    .is_err()
     {
         panic!("Another logger was already configured, exiting")
     }
