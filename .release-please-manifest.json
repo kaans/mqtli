@@ -1,10 +1,2 @@
 {
-  "plugins": [
-    {
-      "type": "cargo-workspace"
-    },
-    {
-      "type": "sentence-case"
-    }
-  ]
 }

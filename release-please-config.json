@@ -2,5 +2,13 @@
   "packages": {
     "crates/mqtlib": {},
     "crates/mqtli": {}
-  }
+  },
+  "plugins": [
+    {
+      "type": "cargo-workspace"
+    },
+    {
+      "type": "sentence-case"
+    }
+  ]
 }
