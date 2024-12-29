@@ -8,36 +8,44 @@ env:
 
 jobs:
   release:
-    name: release ${{ matrix.target }}
+    name: release ${{ matrix.platform.target }}
     strategy:
       fail-fast: false
       matrix:
         platform:
-          #- os-name: Linux-x86_64
-          #  runs-on: ubuntu-20.04
-          #  target: x86_64-unknown-linux-musl
-          # release-name: mqtli
-#
+          - os-name: Linux-x86_64
+            runs-on: ubuntu-20.04
+            target: x86_64-unknown-linux-musl
+            command: build
+            bin: mqtli
+            archive: tar.gz
+
           #- os-name: Linux-aarch64
           #  runs-on: ubuntu-20.04
           #  target: aarch64-unknown-linux-musl
-          # release-name: mqtli
+          #  command: build
+          #  bin: mqtli
+          #  archive: tar.gz
 
           - os-name: Windows-x86_64
             runs-on: windows-latest
             target: x86_64-pc-windows-msvc
-            release-name: mqtli.exe
-#
+            command: build
+            bin: mqtli.exe
+            archive: zip
+
           #- os-name: macOS-x86_64
           #  runs-on: macOS-latest
           #  target: x86_64-apple-darwin
-          # release-name: mqtli
+          #  command: build
+          #  bin: mqtli
+          #  archive: tar.gz
 
     runs-on: ${{ matrix.platform.runs-on }}
 
     steps:
       - uses: actions/checkout@v4
-      - name: Build binary
+      - name: Build binary for ${{ matrix.platform.target }}
         uses: houseabsolute/actions-rust-cross@v0
         with:
           command: ${{ matrix.platform.command }}
@@ -45,12 +53,26 @@ jobs:
           args: "--locked --release"
           strip: true
 
-      - name: upload ${{ matrix.target }} artifact
+      - name: Zip release for ${{ matrix.platform.target }}
+        uses: montudor/action-zip@v1
+        if: ${{ matrix.platform.archive == 'zip' && matrix.platform.runs-on != 'windows-latest' }}
+        with:
+          args: zip -qq -j mqtli-${{ matrix.platform.target }}.zip /target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }} README.adoc LICENSE.md config.default.yaml
+
+      - name: Zip release for ${{ matrix.platform.target }}
+        if: ${{ matrix.platform.archive == 'zip' && matrix.platform.runs-on == 'windows-latest' }}
+        run: Compress-Archive -Path target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }},README.adoc,LICENSE.md,config.default.yaml -DestinationPath mqtli-${{ matrix.platform.target }}.zip
+
+      - name: Tar release for ${{ matrix.platform.target }}
+        if: ${{ matrix.platform.archive == 'tar.gz' }}
+        run: cp target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }} . && tar -czf mqtli-${{ matrix.platform.target }}.tar.gz ${{ matrix.platform.bin }} README.adoc LICENSE.md config.default.yaml && rm ${{ matrix.platform.bin }}
+
+      - name: upload ${{ matrix.platform.target }} artifact
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
-          upload_url: ${{ github.event.url }}
-          asset_path: ./target/${{ matrix.target }}/${{ matrix.release-name }}
-          asset_name: ${{ matrix.release-name }}
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: mqtli-${{ matrix.platform.target }}.${{ matrix.platform.archive }}
+          asset_name: mqtli-${{ matrix.platform.target }}.${{ matrix.platform.archive }}
           asset_content_type: application/gzip
