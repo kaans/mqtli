@@ -10,6 +10,8 @@
 //! - configuration is stored in a file to support complex configuration scenarios and share them
 //!
 
+mod built_info;
+
 use futures::StreamExt;
 use std::sync::Arc;
 
@@ -19,24 +21,17 @@ use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
 use tokio::sync::{broadcast, Mutex};
 use tokio::{signal, task};
 
-use crate::config::mqtli_config::{parse_config, MqttVersion};
-use crate::config::publish::PublishTriggerType::Periodic;
-use crate::config::subscription::Subscription;
-use crate::config::topic::Topic;
-use crate::mqtt::mqtt_handler::MqttHandler;
-use crate::mqtt::v311::mqtt_service::MqttServiceV311;
-use crate::mqtt::v5::mqtt_service::MqttServiceV5;
-use crate::mqtt::{MqttPublishEvent, MqttReceiveEvent, MqttService};
-use crate::payload::PayloadFormat;
-use crate::payload::PayloadFormatError;
-use crate::publish::trigger_periodic::TriggerPeriodic;
-use mqtlib::built_info::PKG_VERSION;
-
-mod config;
-mod mqtt;
-mod output;
-mod payload;
-mod publish;
+use mqtlib::config::mqtli_config::{parse_config, MqttVersion};
+use mqtlib::config::publish::PublishTriggerType::Periodic;
+use mqtlib::config::subscription::Subscription;
+use mqtlib::config::topic::Topic;
+use mqtlib::mqtt::mqtt_handler::MqttHandler;
+use mqtlib::mqtt::v311::mqtt_service::MqttServiceV311;
+use mqtlib::mqtt::v5::mqtt_service::MqttServiceV5;
+use mqtlib::mqtt::{MqttPublishEvent, MqttReceiveEvent, MqttService};
+use mqtlib::payload::PayloadFormat;
+use mqtlib::payload::PayloadFormatError;
+use mqtlib::publish::trigger_periodic::TriggerPeriodic;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -44,7 +39,7 @@ async fn main() -> anyhow::Result<()> {
 
     init_logger(config.log_level());
 
-    info!("MQTli version {} starting", PKG_VERSION);
+    info!("MQTli version {} starting", built_info::PKG_VERSION);
 
     debug!("{}", config);
 
@@ -194,7 +189,7 @@ fn init_logger(filter: &LevelFilter) {
         TerminalMode::Mixed,
         ColorChoice::Auto,
     )
-    .is_err()
+        .is_err()
     {
         panic!("Another logger was already configured, exiting")
     }
