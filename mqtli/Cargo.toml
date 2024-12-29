@@ -1,0 +1,24 @@
+[package]
+name = "mqtli"
+version = "0.7.0"
+edition = "2021"
+description = "MQTT multi-topic and payload converting cli client"
+license = "Apache-2.0"
+repository = "https://github.com/kaans/mqtli"
+readme = "../README.adoc"
+rust-version = "1.81.0"
+
+[[bin]]
+name = "mqtli"
+path = "src/main.rs"
+
+[dependencies]
+mqtlib = { path = "../mqtlib" }
+anyhow = "1.0.94"
+log = "0.4.22"
+simplelog = { version = "0.12.2", features = ["paris"] }
+tokio = { version = "1.42.0", features = ["macros", "rt", "rt-multi-thread", "sync", "signal"] }
+futures = "0.3.31"
+
+[build-dependencies]
+built = "0.7.5"

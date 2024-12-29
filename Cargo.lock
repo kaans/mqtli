@@ -916,13 +916,23 @@ name = "mqtli"
 version = "0.7.0"
 dependencies = [
  "anyhow",
+ "built",
+ "futures",
+ "log",
+ "mqtlib",
+ "simplelog",
+ "tokio",
+]
+
+[[package]]
+name = "mqtlib"
+version = "0.7.0"
+dependencies = [
  "async-trait",
  "base64 0.22.1",
- "built",
  "clap",
  "colored",
  "derive-getters",
- "futures",
  "hex",
  "jsonpath-rust",
  "lazy_static",
@@ -938,7 +948,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
- "simplelog",
  "strum_macros",
  "thiserror 2.0.9",
  "tokio",
