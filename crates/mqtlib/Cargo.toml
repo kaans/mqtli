@@ -11,7 +11,6 @@ name = "mqtlib"
 path = "src/lib.rs"
 
 [dependencies]
-clap = { version = "4.5.23", features = ["derive", "env"] }
 derive-getters = "0.5.0"
 log = "0.4.22"
 rumqttc = { git = "https://github.com/bytebeamio/rumqtt.git", rev = "431be1b", features = ["websocket"] }
@@ -35,6 +34,7 @@ uuid = { version = "1.11.0", features = ["v4"] }
 colored = "2.2.0"
 strum_macros = "0.26.4"
 jsonpath-rust = "0.7.3"
+derive_builder = "0.20.2"
 
 [build-dependencies]
 protobuf-codegen = "3.7.1"

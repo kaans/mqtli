@@ -5,7 +5,7 @@ use std::io::BufReader;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use crate::config::mqtli_config::{MqttBrokerConnectArgs, MqttProtocol, TlsVersion};
+use crate::config::mqtli_config::{MqttBrokerConnect, MqttProtocol, TlsVersion};
 use async_trait::async_trait;
 use log::{debug, info};
 use rumqttc::tokio_rustls::rustls::version::{TLS12, TLS13};
@@ -167,7 +167,7 @@ impl MqttPublishEvent {
 }
 
 fn configure_tls_rustls(
-    config: Arc<MqttBrokerConnectArgs>,
+    config: Arc<MqttBrokerConnect>,
 ) -> Result<TlsConfiguration, MqttServiceError> {
     fn load_private_key_from_file(path: &PathBuf) -> Result<PrivateKey, MqttServiceError> {
         let file = match File::open(path) {
@@ -289,7 +289,7 @@ fn configure_tls_rustls(
 }
 
 fn get_transport_parameters(
-    config: Arc<MqttBrokerConnectArgs>,
+    config: Arc<MqttBrokerConnect>,
 ) -> Result<(Transport, String), MqttServiceError> {
     let (transport, hostname) = match config.protocol() {
         MqttProtocol::Tcp => match *config.use_tls() {

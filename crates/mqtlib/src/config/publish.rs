@@ -1,4 +1,4 @@
-use crate::config::args::deserialize_qos;
+use crate::config::deserialize_qos;
 use crate::config::filter::{FilterError, FilterTypes};
 use crate::config::PublishInputType;
 use crate::mqtt::QoS;

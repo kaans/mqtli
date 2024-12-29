@@ -1,29 +1,18 @@
 use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
-use std::io;
 use std::path::PathBuf;
 
+use crate::mqtt::QoS;
 use derive_getters::Getters;
-use serde::Deserialize;
-use thiserror::Error;
+use serde::de::{Error, Unexpected};
+use serde::{Deserialize, Deserializer};
 use validator::{Validate, ValidationError, ValidationErrors};
 
-mod args;
 pub mod filter;
 pub mod mqtli_config;
 pub mod publish;
 pub mod subscription;
 pub mod topic;
-
-#[derive(Error, Debug)]
-pub enum ConfigError {
-    #[error("Could not read config file \"{1}\"")]
-    CouldNotReadConfigFile(#[source] io::Error, PathBuf),
-    #[error("Could not parse config file \"{1}\"")]
-    CouldNotParseConfigFile(#[source] serde_yaml::Error, PathBuf),
-    #[error("Invalid configuration")]
-    InvalidConfiguration(#[source] ValidationErrors),
-}
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq)]
 #[serde(tag = "type")]
@@ -165,4 +154,25 @@ impl Validate for PublishInputTypeContentPath {
 #[derive(Clone, Debug, Default, Deserialize, Getters, Validate)]
 pub struct PublishInputTypePath {
     path: PathBuf,
+}
+
+pub fn deserialize_qos<'a, D>(deserializer: D) -> Result<QoS, D::Error>
+where
+    D: Deserializer<'a>,
+{
+    let value: Result<u8, _> = Deserialize::deserialize(deserializer);
+
+    if let Ok(int_value) = value {
+        return Ok(match int_value {
+            0 => QoS::AtMostOnce,
+            1 => QoS::AtLeastOnce,
+            2 => QoS::ExactlyOnce,
+            _ => QoS::AtMostOnce,
+        });
+    }
+
+    Err(Error::invalid_value(
+        Unexpected::Other("unknown"),
+        &"unsigned integer between 0 and 2",
+    ))
 }
