@@ -23,6 +23,7 @@ jobs:
           # this is a built-in strategy in release-please, see "Action Inputs"
           # for more options
           release-type: rust
+          target-branch: ${{ github.ref_name }}
       - uses: actions/checkout@v4
       - name: tag major and minor versions
         if: ${{ steps.release.outputs.release_created }}
