@@ -1,7 +1,11 @@
 {
   "packages": {
-    "crates/mqtlib": {},
-    "crates/mqtli": {}
+    "crates/mqtlib": {
+      "release-type": "rust"
+    },
+    "crates/mqtli": {
+      "release-type": "rust"
+    }
   },
   "plugins": [
     {
