@@ -1,25 +1,21 @@
+use derive_builder::Builder;
+use derive_getters::Getters;
+use log::LevelFilter;
+use serde::Deserialize;
 use std::borrow::Cow;
 use std::fmt::{Debug, Display, Formatter};
 use std::path::PathBuf;
 use std::time::Duration;
-
-use clap::ValueEnum;
-use derive_getters::Getters;
-use log::LevelFilter;
-use serde::Deserialize;
 use validator::{Validate, ValidationError};
 
-use crate::config::args;
-use crate::config::args::{read_cli_args, read_config};
 use crate::config::topic::Topic;
-use crate::config::ConfigError;
 use crate::mqtt::QoS;
 
-#[derive(Debug, Getters, Validate)]
+#[derive(Debug, Getters, Validate, Builder)]
 pub struct MqtliConfig {
     #[validate(nested)]
-    broker: MqttBrokerConnectArgs,
-    log_level: LevelFilter,
+    pub broker: MqttBrokerConnect,
+    pub log_level: LevelFilter,
     #[validate(nested)]
     pub topics: Vec<Topic>,
 }
@@ -36,19 +32,6 @@ impl Display for MqtliConfig {
     }
 }
 
-impl MqtliConfig {
-    fn merge(&mut self, mut other: args::MqtliArgs) {
-        if let Some(broker) = &other.broker {
-            self.broker.merge(broker);
-        }
-
-        if let Some(log_level) = other.log_level {
-            self.log_level = log_level
-        };
-        self.topics.append(&mut other.topics);
-    }
-}
-
 impl Default for MqtliConfig {
     fn default() -> Self {
         Self {
@@ -59,138 +42,68 @@ impl Default for MqtliConfig {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, ValueEnum)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq)]
 pub enum TlsVersion {
     #[default]
     #[serde(rename = "all")]
-    #[clap(name = "all")]
     All,
     #[serde(rename = "v12")]
-    #[clap(name = "v12")]
     Version1_2,
     #[serde(rename = "v13")]
-    #[clap(name = "v13")]
     Version1_3,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, ValueEnum)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq)]
 pub enum MqttVersion {
     #[serde(rename = "v311")]
-    #[clap(name = "v311")]
     V311,
 
     #[default]
     #[serde(rename = "v5")]
-    #[clap(name = "v5")]
     V5,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, ValueEnum)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq)]
 pub enum MqttProtocol {
     #[default]
     #[serde(rename = "tcp")]
-    #[clap(name = "tcp")]
     Tcp,
 
     #[serde(rename = "websocket")]
-    #[clap(name = "websocket")]
     Websocket,
 }
 
-#[derive(Clone, Debug, Getters, Validate)]
+#[derive(Clone, Debug, Getters, Validate, Builder)]
 #[validate(schema(function = "validate_credentials", skip_on_field_errors = false))]
 #[validate(schema(function = "validate_tls_client"))]
-pub struct MqttBrokerConnectArgs {
+pub struct MqttBrokerConnect {
     #[validate(length(min = 1, message = "Hostname must be given"))]
-    host: String,
-    port: u16,
-    protocol: MqttProtocol,
+    pub host: String,
+    pub port: u16,
+    pub protocol: MqttProtocol,
 
     #[validate(length(min = 1, message = "Client id must be given"))]
-    client_id: String,
-    mqtt_version: MqttVersion,
+    pub client_id: String,
+    pub mqtt_version: MqttVersion,
     #[validate(custom(
         function = "validate_keep_alive",
         message = "Keep alive must be a number and at least 5 seconds"
     ))]
-    keep_alive: Duration,
-    username: Option<String>,
-    password: Option<String>,
+    pub keep_alive: Duration,
+    pub username: Option<String>,
+    pub password: Option<String>,
 
-    use_tls: bool,
-    tls_ca_file: Option<PathBuf>,
-    tls_client_certificate: Option<PathBuf>,
-    tls_client_key: Option<PathBuf>,
-    tls_version: TlsVersion,
+    pub use_tls: bool,
+    pub tls_ca_file: Option<PathBuf>,
+    pub tls_client_certificate: Option<PathBuf>,
+    pub tls_client_key: Option<PathBuf>,
+    pub tls_version: TlsVersion,
 
     #[validate(nested)]
-    last_will: Option<LastWillConfig>,
+    pub last_will: Option<LastWillConfig>,
 }
 
-impl MqttBrokerConnectArgs {
-    fn merge(&mut self, other: &args::MqttBrokerConnectArgs) {
-        if let Some(host) = &other.host {
-            self.host = host.to_string()
-        }
-        if let Some(port) = other.port {
-            self.port = port
-        }
-        if let Some(protocol) = &other.protocol {
-            self.protocol = protocol.clone()
-        }
-        if let Some(client_id) = &other.client_id {
-            self.client_id = client_id.to_string()
-        }
-        if let Some(mqtt_version) = &other.mqtt_version {
-            self.mqtt_version = mqtt_version.clone()
-        }
-        if let Some(keep_alive) = other.keep_alive {
-            self.keep_alive = keep_alive
-        }
-        if let Some(username) = &other.username {
-            self.username = Some(username.to_string())
-        }
-        if let Some(password) = &other.password {
-            self.password = Some(password.to_string())
-        }
-        if let Some(use_tls) = other.use_tls {
-            self.use_tls = use_tls
-        }
-        if let Some(tls_ca_file) = &other.tls_ca_file {
-            self.tls_ca_file = Some(PathBuf::from(tls_ca_file))
-        }
-        if let Some(tls_client_certificate) = &other.tls_client_certificate {
-            self.tls_client_certificate = Some(PathBuf::from(tls_client_certificate))
-        }
-        if let Some(tls_client_key) = &other.tls_client_key {
-            self.tls_client_key = Some(PathBuf::from(tls_client_key))
-        }
-        if let Some(tls_version) = &other.tls_version {
-            self.tls_version = tls_version.clone()
-        }
-
-        if let Some(last_will) = &other.last_will {
-            let mut lw = self.last_will.clone().unwrap_or_default();
-
-            if let Some(topic) = &last_will.topic {
-                lw.topic = topic.to_string()
-            };
-            if let Some(qos) = &last_will.qos {
-                lw.qos = *qos
-            };
-            if let Some(payload) = &last_will.payload {
-                lw.payload = payload.clone().into_bytes()
-            };
-            if let Some(retain) = &last_will.retain {
-                lw.retain = *retain
-            };
-
-            self.last_will = Some(lw);
-        }
-    }
-}
-
-impl Default for MqttBrokerConnectArgs {
+impl Default for MqttBrokerConnect {
     fn default() -> Self {
         Self {
             host: "localhost".to_string(),
@@ -211,44 +124,13 @@ impl Default for MqttBrokerConnectArgs {
     }
 }
 
-#[derive(Clone, Debug, Default, Getters, Validate)]
+#[derive(Clone, Debug, Default, Getters, Validate, Builder)]
 pub struct LastWillConfig {
     #[validate(length(min = 1, message = "Last will topic must be given"))]
-    topic: String,
-    payload: Vec<u8>,
-    qos: QoS,
-    retain: bool,
-}
-
-pub fn parse_config() -> Result<MqtliConfig, ConfigError> {
-    let args = read_cli_args();
-    let config_file = match &args.config_file {
-        None => PathBuf::from("config.yaml"),
-        Some(config_file) => config_file.to_path_buf(),
-    };
-
-    let mut config = MqtliConfig {
-        ..Default::default()
-    };
-
-    match read_config(&config_file) {
-        Ok(config_file_args) => {
-            config.merge(config_file_args);
-        }
-        Err(e) => {
-            println!(
-                "Error while reading reading config file {:?}, skipping it: {:?}",
-                config_file, e
-            );
-        }
-    }
-
-    config.merge(args);
-
-    match config.validate() {
-        Ok(_) => Ok(config),
-        Err(e) => Err(ConfigError::InvalidConfiguration(e)),
-    }
+    pub topic: String,
+    pub payload: Vec<u8>,
+    pub qos: QoS,
+    pub retain: bool,
 }
 
 fn validate_keep_alive(value: &Duration) -> Result<(), ValidationError> {
@@ -262,7 +144,7 @@ fn validate_keep_alive(value: &Duration) -> Result<(), ValidationError> {
     Err(err)
 }
 
-fn validate_credentials(value: &MqttBrokerConnectArgs) -> Result<(), ValidationError> {
+fn validate_credentials(value: &MqttBrokerConnect) -> Result<(), ValidationError> {
     let mut err = ValidationError::new("wrong_credentials");
 
     if value.username.is_none() && value.password.is_some() {
@@ -276,7 +158,7 @@ fn validate_credentials(value: &MqttBrokerConnectArgs) -> Result<(), ValidationE
     Ok(())
 }
 
-fn validate_tls_client(value: &MqttBrokerConnectArgs) -> Result<(), ValidationError> {
+fn validate_tls_client(value: &MqttBrokerConnect) -> Result<(), ValidationError> {
     let mut err = ValidationError::new("wrong_tls_client");
 
     if value.tls_client_key.is_none() && value.tls_client_certificate.is_some() {

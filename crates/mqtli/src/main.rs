@@ -10,6 +10,7 @@
 //! - configuration is stored in a file to support complex configuration scenarios and share them
 //!
 
+mod args;
 mod built_info;
 
 use futures::StreamExt;
@@ -21,7 +22,8 @@ use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
 use tokio::sync::{broadcast, Mutex};
 use tokio::{signal, task};
 
-use mqtlib::config::mqtli_config::{parse_config, MqttVersion};
+use crate::args::load_config;
+use mqtlib::config::mqtli_config::MqttVersion;
 use mqtlib::config::publish::PublishTriggerType::Periodic;
 use mqtlib::config::subscription::Subscription;
 use mqtlib::config::topic::Topic;
@@ -35,7 +37,7 @@ use mqtlib::publish::trigger_periodic::TriggerPeriodic;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let config = parse_config().with_context(|| "Error while parsing configuration")?;
+    let config = load_config().with_context(|| "Error while parsing configuration")?;
 
     init_logger(config.log_level());
 

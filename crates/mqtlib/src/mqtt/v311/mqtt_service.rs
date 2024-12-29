@@ -8,7 +8,7 @@ use rumqttc::{ConnectReturnCode, LastWill};
 use tokio::sync::{broadcast, Mutex};
 use tokio::task::JoinHandle;
 
-use crate::config::mqtli_config::MqttBrokerConnectArgs;
+use crate::config::mqtli_config::MqttBrokerConnect;
 use crate::mqtt::{
     get_transport_parameters, MqttPublishEvent, MqttReceiveEvent, MqttService, MqttServiceError,
     QoS,
@@ -16,12 +16,12 @@ use crate::mqtt::{
 
 pub struct MqttServiceV311 {
     client: Option<AsyncClient>,
-    config: Arc<MqttBrokerConnectArgs>,
+    config: Arc<MqttBrokerConnect>,
     topics: Arc<Mutex<Vec<(String, QoS)>>>,
 }
 
 impl MqttServiceV311 {
-    pub fn new(config: Arc<MqttBrokerConnectArgs>) -> MqttServiceV311 {
+    pub fn new(config: Arc<MqttBrokerConnect>) -> MqttServiceV311 {
         MqttServiceV311 {
             client: None,
             config,

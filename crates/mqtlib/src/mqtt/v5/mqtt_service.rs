@@ -10,20 +10,20 @@ use rumqttc::v5::{
 use tokio::sync::{broadcast, Mutex};
 use tokio::task::JoinHandle;
 
-use crate::config::mqtli_config::MqttBrokerConnectArgs;
+use crate::config::mqtli_config::MqttBrokerConnect;
 use crate::mqtt::{
     get_transport_parameters, MqttPublishEvent, MqttReceiveEvent, MqttService, MqttServiceError,
     QoS,
 };
 
 pub struct MqttServiceV5 {
-    config: Arc<MqttBrokerConnectArgs>,
+    config: Arc<MqttBrokerConnect>,
     client: Option<AsyncClient>,
     topics: Arc<Mutex<Vec<(String, QoS)>>>,
 }
 
 impl MqttServiceV5 {
-    pub fn new(config: Arc<MqttBrokerConnectArgs>) -> MqttServiceV5 {
+    pub fn new(config: Arc<MqttBrokerConnect>) -> MqttServiceV5 {
         MqttServiceV5 {
             client: None,
             config,
