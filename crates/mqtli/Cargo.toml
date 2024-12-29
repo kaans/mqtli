@@ -5,7 +5,7 @@ edition = "2021"
 description = "MQTT multi-topic and payload converting cli client"
 license = "Apache-2.0"
 repository = "https://github.com/kaans/mqtli"
-readme = "../README.adoc"
+readme = "../../README.adoc"
 rust-version = "1.81.0"
 
 [[bin]]
