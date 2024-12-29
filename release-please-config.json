@@ -1,7 +1,8 @@
 {
   "packages": {
     "crates/mqtli": {
-      "release-type": "rust"
+      "release-type": "rust",
+      "component": "mqtli"
     }
   },
   "plugins": [
