@@ -1,4 +1,8 @@
 {
+  "include-v-in-tag": true,
+  "include-component-in-tag": true,
+  "separate-pull-requests": true,
+  "tag-separator": "-",
   "packages": {
     "crates/mqtli": {
       "release-type": "rust",
