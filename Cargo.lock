@@ -956,7 +956,7 @@ dependencies = [
  "serde",
  "serde_yaml",
  "simplelog",
- "thiserror 1.0.69",
+ "thiserror 2.0.9",
  "tokio",
  "validator",
 ]
