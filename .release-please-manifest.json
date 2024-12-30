@@ -1,4 +1,4 @@
 {
   "crates/mqtli": "0.7.1",
-  "crates/mqtli-pub": "0.1.0"
+  "crates/mqtli-pub": "0.1.1"
 }
