@@ -6,12 +6,14 @@
   "packages": {
     "crates/mqtli": {
       "release-type": "rust",
-      "component": "mqtli"
+      "component": "mqtli",
+      "release-as": "0.7.1"
     },
     "crates/mqtli-pub": {
       "release-type": "rust",
       "component": "mqtli-pub",
-      "bootstrap-sha": "dd374c98a081464529454ef5c80a643b06d878ba"
+      "bootstrap-sha": "dd374c98a081464529454ef5c80a643b06d878ba",
+      "release-as": "0.1.1"
     }
   },
   "plugins": [
