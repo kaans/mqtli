@@ -962,6 +962,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "mqtli-pub"
+version = "0.1.0"
+dependencies = [
+ "built",
+]
+
+[[package]]
 name = "mqtlib"
 version = "0.7.0"
 dependencies = [
