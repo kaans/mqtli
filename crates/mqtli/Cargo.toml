@@ -1,6 +1,6 @@
 [package]
 name = "mqtli"
-version = "0.7.0"
+version = "0.4.0"
 edition = "2021"
 description = "MQTT multi-topic and payload converting cli client"
 license = "Apache-2.0"
