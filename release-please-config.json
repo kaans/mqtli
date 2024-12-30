@@ -7,6 +7,10 @@
     "crates/mqtli": {
       "release-type": "rust",
       "component": "mqtli"
+    },
+    "crates/mqtli-pub": {
+      "release-type": "rust",
+      "component": "mqtli-pub"
     }
   },
   "plugins": [

@@ -1,0 +1,18 @@
+[package]
+name = "mqtli-pub"
+version = "0.1.0"
+edition = "2021"
+description = "MQTT single-topic and payload converting cli client for publishing"
+license = "Apache-2.0"
+repository = "https://github.com/kaans/mqtli"
+readme = "../../README.adoc"
+rust-version = "1.81.0"
+
+[[bin]]
+name = "mqtli-pub"
+path = "src/main.rs"
+
+[dependencies]
+
+[build-dependencies]
+built = "0.7.5"
