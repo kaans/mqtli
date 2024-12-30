@@ -10,7 +10,8 @@
     },
     "crates/mqtlitest": {
       "release-type": "rust",
-      "component": "mqtlitest"
+      "component": "mqtlitest",
+      "bootstrap-sha": "18ad357895ef56b774a434a0ddbb5e23ccb04a6b"
     }
   },
   "plugins": [
