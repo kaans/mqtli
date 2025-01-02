@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.8.0](https://github.com/kaans/mqtli/compare/v0.7.0...v0.8.0) (2025-01-02)
+
+
+### Features
+
+* add filter prepend ([086951f](https://github.com/kaans/mqtli/commit/086951fc5c051570ec29fef9d297544922198ddb))
+* add filter to lower case ([5403967](https://github.com/kaans/mqtli/commit/54039672c0d22bb56cbebf861d17450192a267b6))
+* add publish mode ([60aa91d](https://github.com/kaans/mqtli/commit/60aa91d734b942f52a112019a9e080ec58455a0f))
+* exit immediately after sending all publish if no subscription is present ([007ab97](https://github.com/kaans/mqtli/commit/007ab97b1bd0df3f42b6e60cbe0add78257a66b3))
+
 ## [0.8.0](https://github.com/kaans/mqtli/compare/mqtli-v0.7.0...mqtli-v0.8.0) (2025-01-02)
 
 
