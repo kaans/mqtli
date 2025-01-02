@@ -516,7 +516,7 @@ When converting a protobuf message to text, the protobuf internal text represent
 
 === Eclipse Sparkplug
 
-This payload format represents data encoded according to https://sparkplug.eclipse.org/[Eclipse Sparkplug Specification 3.0.0]. All Sparkplug messages are encoded as protobuf. The protobuf schema used can be found in the file link:assets/protobuf/sparkplug_b.proto[].
+This payload format represents data encoded according to https://sparkplug.eclipse.org/[Eclipse Sparkplug Specification 3.0.0]. All Sparkplug messages are encoded as protobuf. The protobuf schema used can be found in the file link:crates/mqtlib/assets/protobuf/sparkplug_b.proto[].
 
 All formats, except text (because it does not contain any structural information), can be converted to Sparkplug.
 When converting from binary (or encoded formats like hex and base64), the data is assumed to be a correct protobuf message that corresponds to the given Sparkplug schema.
