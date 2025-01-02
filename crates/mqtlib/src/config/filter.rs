@@ -142,7 +142,7 @@ impl FilterImpl for FilterTypeToLowerCase {
 
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct FilterTypePrepend {
-    content: String
+    content: String,
 }
 
 impl FilterImpl for FilterTypePrepend {
