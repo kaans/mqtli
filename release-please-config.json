@@ -4,7 +4,7 @@
   "separate-pull-requests": false,
   "tag-separator": "-",
   "packages": {
-    "crates/mqtli": {
+    "crates": {
       "release-type": "rust",
       "component": "mqtli"
     }
