@@ -1,4 +1,4 @@
 {
-  "crates/mqtli": "0.8.0",
-  "crates/mqtlib": "0.8.0"
+  "crates/mqtli": "0.8.1",
+  "crates/mqtlib": "0.9.0"
 }
