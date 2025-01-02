@@ -281,6 +281,36 @@ topics:
 ----
 
 
+===== Filter: To lower case
+
+Convert all ascii characters to lower case.
+
+- *Name*: to_lower
+- *Processable input types*: Text
+- *Output type*: Text
+
+===== Example
+
+[source,yaml]
+----
+# Input Text value: "MqTli"
+#
+# Result: "MQTLI"
+
+topics:
+  - topic: mqtli/text
+    subscription:
+      enabled: true
+      outputs:
+        - format:
+            type: text
+      filters:
+        - type: to_lower
+    payload:
+      type: text
+----
+
+
 ===== Filter: To text
 
 Convert a message to text type. This filter can be used to transform the data in a chain of filters, see the example.

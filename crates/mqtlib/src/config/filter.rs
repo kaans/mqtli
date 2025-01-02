@@ -123,6 +123,24 @@ impl FilterImpl for FilterTypeToUpperCase {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
+pub struct FilterTypeToLowerCase {}
+
+impl FilterImpl for FilterTypeToLowerCase {
+    fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
+        let result: Result<Vec<PayloadFormat>, FilterError> =
+            match self.convert_payload_format(data, PayloadType::Text)? {
+                PayloadFormat::Text(data) => {
+                    let res = PayloadFormatText::from(data.content().to_ascii_lowercase());
+                    Ok(vec![PayloadFormat::Text(res)])
+                }
+                _ => Err(FilterError::WrongPayloadFormat("text".into())),
+            };
+
+        result
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct FilterTypeToText {}
 
 impl FilterImpl for FilterTypeToText {
@@ -149,6 +167,8 @@ pub enum FilterType {
     ExtractJson(FilterTypeExtractJson),
     #[serde(rename = "to_upper")]
     ToUpperCase(FilterTypeToUpperCase),
+    #[serde(rename = "to_lower")]
+    ToLowerCase(FilterTypeToLowerCase),
     #[serde(rename = "to_text")]
     ToText(FilterTypeToText),
     #[serde(rename = "to_json")]
@@ -166,6 +186,7 @@ impl FilterImpl for FilterType {
         match self {
             FilterType::ExtractJson(filter) => filter.apply(data),
             FilterType::ToUpperCase(filter) => filter.apply(data),
+            FilterType::ToLowerCase(filter) => filter.apply(data),
             FilterType::ToText(filter) => filter.apply(data),
             FilterType::ToJson(filter) => filter.apply(data),
         }
