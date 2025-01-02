@@ -35,6 +35,7 @@ colored = "2.2.0"
 strum_macros = "0.26.4"
 jsonpath-rust = "0.7.5"
 derive_builder = "0.20.2"
+derive-new = "0.7.0"
 
 [build-dependencies]
 protobuf-codegen = "3.7.1"

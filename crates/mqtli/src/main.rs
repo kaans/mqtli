@@ -15,14 +15,10 @@ mod built_info;
 
 use std::sync::Arc;
 
+use crate::args::load_config;
 use anyhow::Context;
 use futures::StreamExt;
 use log::{debug, error, info, LevelFilter};
-use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
-use tokio::sync::{broadcast, Mutex};
-use tokio::{signal, task};
-
-use crate::args::load_config;
 use mqtlib::config::mqtli_config::MqttVersion;
 use mqtlib::config::publish::PublishTriggerType::Periodic;
 use mqtlib::config::subscription::Subscription;
@@ -34,6 +30,11 @@ use mqtlib::mqtt::{MqttPublishEvent, MqttReceiveEvent, MqttService};
 use mqtlib::payload::PayloadFormat;
 use mqtlib::payload::PayloadFormatError;
 use mqtlib::publish::trigger_periodic::TriggerPeriodic;
+use mqtlib::publish::TriggerError;
+use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
+use tokio::sync::{broadcast, Mutex};
+use tokio::task::JoinHandle;
+use tokio::{signal, task};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -89,7 +90,7 @@ async fn main() -> anyhow::Result<()> {
         .await
         .with_context(|| "Error while connecting to mqtt broker")?;
 
-    start_scheduler(topics.clone(), mqtt_service.clone()).await;
+    let scheduler_handle = start_scheduler(topics.clone(), mqtt_service.clone()).await?;
 
     start_exit_task(mqtt_service.clone()).await;
 
@@ -99,15 +100,32 @@ async fn main() -> anyhow::Result<()> {
         }
     });
 
-    task_handle_service
-        .await
-        .expect("Error while waiting for tasks to shut down");
-    handler.await_task().await;
+    if topics
+        .iter()
+        .map(|t| t.subscription().is_some())
+        .fold(false, |acc, s| s || acc)
+    {
+        task_handle_service
+            .await
+            .expect("Error while waiting for tasks to shut down");
+        handler.await_task().await;
+    }
+
+    if topics
+        .iter()
+        .map(|t| t.publish().is_some())
+        .fold(false, |acc, s| s || acc)
+    {
+        scheduler_handle.await?;
+    }
 
     Ok(())
 }
 
-async fn start_scheduler(topics: Arc<Vec<Topic>>, mqtt_service: Arc<Mutex<dyn MqttService>>) {
+async fn start_scheduler(
+    topics: Arc<Vec<Topic>>,
+    mqtt_service: Arc<Mutex<dyn MqttService>>,
+) -> Result<JoinHandle<()>, TriggerError> {
     let mut scheduler = TriggerPeriodic::new(mqtt_service).await;
 
     for topic in topics.iter() {
@@ -166,7 +184,7 @@ async fn start_scheduler(topics: Arc<Vec<Topic>>, mqtt_service: Arc<Mutex<dyn Mq
         }
     }
 
-    let _ = scheduler.start().await;
+    scheduler.start().await
 }
 
 async fn start_exit_task(client: Arc<Mutex<dyn MqttService>>) {

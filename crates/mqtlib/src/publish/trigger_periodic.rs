@@ -6,6 +6,7 @@ use log::debug;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::{mpsc, Mutex};
 use tokio::task;
+use tokio::task::JoinHandle;
 use tokio_cron_scheduler::{Job, JobScheduler, JobSchedulerError};
 use uuid::Uuid;
 
@@ -293,11 +294,13 @@ impl TriggerPeriodic {
         })
     }
 
-    pub async fn start(self) -> Result<(), TriggerError> {
+    pub async fn start(self) -> Result<JoinHandle<()>, TriggerError> {
         let mut receiver = self.receiver;
         let mqtt_service = self.mqtt_service.clone();
+        let scheduler = self.scheduler.clone();
 
-        task::spawn(async move {
+        let task_handle = task::spawn(async move {
+            debug!("Starting scheduler");
             loop {
                 if let Some((topic, qos, retain, payload)) = receiver.recv().await {
                     mqtt_service
@@ -305,10 +308,23 @@ impl TriggerPeriodic {
                         .await
                         .publish(MqttPublishEvent::new(topic, qos, retain, payload))
                         .await;
+
+                    match scheduler.lock().await.time_till_next_job().await {
+                        Ok(value) => {
+                            if value.is_none() {
+                                debug!("No more pending tasks, exiting scheduler");
+                                break;
+                            }
+                        }
+                        Err(_) => break,
+                    }
                 }
             }
+            debug!("Scheduler terminated")
         });
 
-        Ok(self.scheduler.lock().await.start().await?)
+        self.scheduler.lock().await.start().await?;
+
+        Ok(task_handle)
     }
 }

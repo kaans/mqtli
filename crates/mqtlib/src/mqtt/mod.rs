@@ -294,11 +294,11 @@ fn get_transport_parameters(
     let (transport, hostname) = match config.protocol() {
         MqttProtocol::Tcp => match *config.use_tls() {
             false => {
-                info!("Using TCP");
+                debug!("Using TCP");
                 (Transport::Tcp, config.host().to_string())
             }
             true => {
-                info!("Using TCP with TLS");
+                debug!("Using TCP with TLS");
                 (
                     Transport::Tls(configure_tls_rustls(config.clone())?),
                     config.host().to_string(),
@@ -307,13 +307,13 @@ fn get_transport_parameters(
         },
         MqttProtocol::Websocket => match *config.use_tls() {
             false => {
-                info!("Using websockets");
+                debug!("Using websockets");
 
                 let hostname = format!("ws://{}:{}/mqtt", config.host(), config.port());
                 (Transport::Ws, hostname)
             }
             true => {
-                info!("Using websockets with TLS");
+                debug!("Using websockets with TLS");
 
                 let hostname = format!("wss://{}:{}/mqtt", config.host(), config.port());
                 (

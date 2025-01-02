@@ -1,18 +1,18 @@
 pub mod content;
 mod parsers;
 
-use std::fmt::Debug;
-use std::fs::read_to_string;
-use std::io;
-use std::path::PathBuf;
-use clap::Parser;
 use crate::args::content::{Command, MqtliArgs};
+use clap::Parser;
 use mqtlib::config::mqtli_config::MqtliConfigBuilderError;
 use mqtlib::config::mqtli_config::{
     LastWillConfigBuilderError, MqtliConfig, MqttBrokerConnectBuilderError,
 };
 use mqtlib::config::publish::PublishBuilderError;
 use mqtlib::config::topic::TopicBuilderError;
+use std::fmt::Debug;
+use std::fs::read_to_string;
+use std::io;
+use std::path::PathBuf;
 use thiserror::Error;
 use validator::{Validate, ValidationErrors};
 

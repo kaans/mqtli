@@ -165,7 +165,7 @@ impl MqttService for MqttServiceV5 {
         if let Some(client) = self.client.as_ref() {
             if let Err(e) = client
                 .publish(
-                    payload.topic,
+                    &payload.topic,
                     payload.qos.into(),
                     payload.retain,
                     payload.payload,
@@ -173,6 +173,8 @@ impl MqttService for MqttServiceV5 {
                 .await
             {
                 error!("Error during publish: {}", e);
+            } else {
+                info!("Message published on topic {}", payload.topic);
             }
         }
     }

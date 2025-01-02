@@ -5,6 +5,7 @@ use crate::mqtt::QoS;
 use crate::payload::{PayloadFormat, PayloadFormatError};
 use derive_builder::Builder;
 use derive_getters::Getters;
+use derive_new::new;
 use serde::{Deserialize, Deserializer};
 use std::fmt;
 use std::fmt::{Display, Formatter};
@@ -81,7 +82,7 @@ impl Default for Publish {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Getters, Validate)]
+#[derive(Builder, Clone, Debug, Deserialize, Getters, Validate, new)]
 pub struct PublishTriggerTypePeriodic {
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_duration_milliseconds")]

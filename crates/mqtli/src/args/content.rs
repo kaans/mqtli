@@ -12,7 +12,7 @@ use mqtlib::config::mqtli_config::{
     LastWillConfig, LastWillConfigBuilder, Mode, MqtliConfig, MqtliConfigBuilder,
     MqttBrokerConnect, MqttBrokerConnectBuilder,
 };
-use mqtlib::config::publish::PublishBuilder;
+use mqtlib::config::publish::{PublishBuilder, PublishTriggerType, PublishTriggerTypePeriodic};
 use mqtlib::config::topic::{Topic, TopicBuilder};
 use mqtlib::config::{PayloadType, PublishInputType, PublishInputTypeContentPath};
 use mqtlib::mqtt::QoS;
@@ -39,6 +39,7 @@ pub struct MqtliArgs {
     #[arg(
         short = 'l',
         long = "log-level",
+        global = true,
         env = "LOG_LEVEL",
         help_heading = "Logging",
         help = "Log level (default: info) (possible values: trace, debug, info, warn, error, off)"
@@ -48,6 +49,7 @@ pub struct MqtliArgs {
     #[arg(
         short = 'c',
         long = "config-file",
+        global = true,
         env = "CONFIG_FILE_PATH",
         help = "Path to the config file (default: config.yaml)"
     )]
@@ -66,7 +68,7 @@ impl MqtliArgs {
     pub fn merge(self, other: MqtliConfig) -> Result<MqtliConfig, ArgsError> {
         let mut builder = MqtliConfigBuilder::default();
 
-        self.handle_command(&mut builder)?;
+        let command_topics = self.extract_topics()?;
 
         builder.broker(match self.broker {
             None => other.broker,
@@ -78,8 +80,6 @@ impl MqtliArgs {
             Some(log_level) => log_level,
         });
 
-        builder.topics(other.topics.into_iter().chain(self.topics).collect());
-
         match self.command {
             None => builder.mode(Mode::MultiTopic),
             Some(command) => match command {
@@ -87,18 +87,35 @@ impl MqtliArgs {
             },
         };
 
+        builder.topics(
+            other
+                .topics
+                .into_iter()
+                .chain(self.topics)
+                .chain(command_topics)
+                .collect(),
+        );
+
         builder.build().map_err(ArgsError::from)
     }
 
-    fn handle_command(&self, config: &mut MqtliConfigBuilder) -> Result<(), ArgsError> {
+    fn extract_topics(&self) -> Result<Vec<Topic>, ArgsError> {
+        let mut result = Vec::new();
+
         if let Some(command) = self.command.as_ref() {
             match command {
                 Command::Publish(publish_command) => {
+                    let trigger = PublishTriggerType::Periodic(PublishTriggerTypePeriodic::new(
+                        Duration::from_secs(1),
+                        Some(1),
+                        Duration::from_secs(0),
+                    ));
+
                     let publish = PublishBuilder::default()
                         .qos(publish_command.qos)
                         .retain(publish_command.retain)
                         .enabled(true)
-                        .trigger(Vec::new())
+                        .trigger(vec![trigger])
                         .input(PublishInputType::Text(PublishInputTypeContentPath {
                             content: Some(publish_command.message.to_string()),
                             path: None,
@@ -112,12 +129,12 @@ impl MqtliArgs {
                         .payload_type(PayloadType::Text)
                         .build()?;
 
-                    config.topics(vec![topic]);
+                    result.push(topic);
                 }
             }
         }
 
-        Ok(())
+        Ok(result)
     }
 }
 
