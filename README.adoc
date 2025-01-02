@@ -311,6 +311,37 @@ topics:
 ----
 
 
+===== Filter: Prepend text
+
+Prepends a text with a another text.
+
+- *Name*: prepend
+- *Processable input types*: Text
+- *Output type*: Text
+
+===== Example
+
+[source,yaml]
+----
+# Input Text value: "MQTli"
+#
+# Result: "Hello MQTLI"
+
+topics:
+  - topic: mqtli/text
+    subscription:
+      enabled: true
+      outputs:
+        - format:
+            type: text
+      filters:
+        - type: prepend
+          content: "Hello "
+    payload:
+      type: text
+----
+
+
 ===== Filter: To text
 
 Convert a message to text type. This filter can be used to transform the data in a chain of filters, see the example.
