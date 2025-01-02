@@ -13,10 +13,10 @@
 mod args;
 mod built_info;
 
-use futures::StreamExt;
 use std::sync::Arc;
 
 use anyhow::Context;
+use futures::StreamExt;
 use log::{debug, error, info, LevelFilter};
 use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
 use tokio::sync::{broadcast, Mutex};
@@ -37,11 +37,15 @@ use mqtlib::publish::trigger_periodic::TriggerPeriodic;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let config = load_config().with_context(|| "Error while parsing configuration")?;
+    let config = load_config()?;
 
     init_logger(config.log_level());
 
-    info!("MQTli version {} starting", built_info::PKG_VERSION);
+    info!(
+        "MQTli {} version {} starting",
+        config.mode,
+        built_info::PKG_VERSION
+    );
 
     debug!("{}", config);
 

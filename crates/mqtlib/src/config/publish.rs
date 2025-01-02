@@ -3,6 +3,7 @@ use crate::config::filter::{FilterError, FilterTypes};
 use crate::config::PublishInputType;
 use crate::mqtt::QoS;
 use crate::payload::{PayloadFormat, PayloadFormatError};
+use derive_builder::Builder;
 use derive_getters::Getters;
 use serde::{Deserialize, Deserializer};
 use std::fmt;
@@ -10,7 +11,7 @@ use std::fmt::{Display, Formatter};
 use std::time::Duration;
 use validator::Validate;
 
-#[derive(Clone, Debug, Deserialize, Getters, Validate)]
+#[derive(Builder, Clone, Debug, Deserialize, Getters, Validate)]
 pub struct Publish {
     #[serde(default)]
     enabled: bool,

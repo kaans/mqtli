@@ -1,12 +1,13 @@
 use crate::config::publish::Publish;
 use crate::config::subscription::Subscription;
 use crate::config::PayloadType;
+use derive_builder::Builder;
 use derive_getters::Getters;
 use serde::Deserialize;
 use std::fmt::{Display, Formatter};
 use validator::Validate;
 
-#[derive(Clone, Debug, Default, Deserialize, Getters, Validate)]
+#[derive(Builder, Clone, Debug, Default, Deserialize, Getters, Validate)]
 pub struct Topic {
     #[validate(length(min = 1, message = "Topic must be given"))]
     topic: String,

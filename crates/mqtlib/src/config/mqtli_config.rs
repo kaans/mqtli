@@ -18,6 +18,7 @@ pub struct MqtliConfig {
     pub log_level: LevelFilter,
     #[validate(nested)]
     pub topics: Vec<Topic>,
+    pub mode: Mode,
 }
 
 impl Display for MqtliConfig {
@@ -38,6 +39,23 @@ impl Default for MqtliConfig {
             broker: Default::default(),
             log_level: LevelFilter::Info,
             topics: vec![],
+            mode: Default::default(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq)]
+pub enum Mode {
+    #[default]
+    MultiTopic,
+    Publish,
+}
+
+impl Display for Mode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Mode::MultiTopic => write!(f, "Multi-Topic"),
+            Mode::Publish => write!(f, "Publish"),
         }
     }
 }

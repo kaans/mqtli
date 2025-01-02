@@ -128,8 +128,8 @@ impl Validate for PublishInputType {
 
 #[derive(Clone, Debug, Default, Deserialize, Getters)]
 pub struct PublishInputTypeContentPath {
-    content: Option<String>,
-    path: Option<PathBuf>,
+    pub content: Option<String>,
+    pub path: Option<PathBuf>,
 }
 
 impl Validate for PublishInputTypeContentPath {

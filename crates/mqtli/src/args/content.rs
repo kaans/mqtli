@@ -4,14 +4,17 @@ use crate::args::parsers::deserialize_qos_option;
 use crate::args::parsers::parse_keep_alive;
 use crate::args::parsers::parse_qos;
 use crate::args::ArgsError;
-use clap::{Args, Parser, ValueEnum};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use derive_getters::Getters;
 use log::LevelFilter;
+use mqtlib::config::filter::FilterTypes;
 use mqtlib::config::mqtli_config::{
-    LastWillConfig, LastWillConfigBuilder, MqtliConfig, MqtliConfigBuilder, MqttBrokerConnect,
-    MqttBrokerConnectBuilder,
+    LastWillConfig, LastWillConfigBuilder, Mode, MqtliConfig, MqtliConfigBuilder,
+    MqttBrokerConnect, MqttBrokerConnectBuilder,
 };
-use mqtlib::config::topic::Topic;
+use mqtlib::config::publish::PublishBuilder;
+use mqtlib::config::topic::{Topic, TopicBuilder};
+use mqtlib::config::{PayloadType, PublishInputType, PublishInputTypeContentPath};
 use mqtlib::mqtt::QoS;
 use serde::Deserialize;
 use std::path::PathBuf;
@@ -54,11 +57,16 @@ pub struct MqtliArgs {
     #[clap(skip)]
     #[serde(default)]
     pub topics: Vec<Topic>,
+
+    #[clap(subcommand)]
+    pub command: Option<Command>,
 }
 
 impl MqtliArgs {
     pub fn merge(self, other: MqtliConfig) -> Result<MqtliConfig, ArgsError> {
         let mut builder = MqtliConfigBuilder::default();
+
+        self.handle_command(&mut builder)?;
 
         builder.broker(match self.broker {
             None => other.broker,
@@ -72,8 +80,87 @@ impl MqtliArgs {
 
         builder.topics(other.topics.into_iter().chain(self.topics).collect());
 
+        match self.command {
+            None => builder.mode(Mode::MultiTopic),
+            Some(command) => match command {
+                Command::Publish(_) => builder.mode(Mode::Publish),
+            },
+        };
+
         builder.build().map_err(ArgsError::from)
     }
+
+    fn handle_command(&self, config: &mut MqtliConfigBuilder) -> Result<(), ArgsError> {
+        if let Some(command) = self.command.as_ref() {
+            match command {
+                Command::Publish(publish_command) => {
+                    let publish = PublishBuilder::default()
+                        .qos(publish_command.qos)
+                        .retain(publish_command.retain)
+                        .enabled(true)
+                        .trigger(Vec::new())
+                        .input(PublishInputType::Text(PublishInputTypeContentPath {
+                            content: Some(publish_command.message.to_string()),
+                            path: None,
+                        }))
+                        .filters(FilterTypes::default())
+                        .build()?;
+                    let topic = TopicBuilder::default()
+                        .topic(publish_command.topic.clone())
+                        .publish(Some(publish))
+                        .subscription(None)
+                        .payload_type(PayloadType::Text)
+                        .build()?;
+
+                    config.topics(vec![topic]);
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Deserialize, Subcommand)]
+pub enum Command {
+    #[command(name = "pub")]
+    Publish(CommandPublish),
+}
+
+#[derive(Args, Debug, Default, Deserialize, Getters)]
+pub struct CommandPublish {
+    #[arg(
+        short = 't',
+        long = "topic",
+        env = "PUBLISH_TOPIC",
+        help_heading = "Publish topic",
+        help = "Topic to publish"
+    )]
+    topic: String,
+
+    #[arg(short = 'q', long = "qos", env = "PUBLISH_QOS", value_parser = parse_qos,
+    help_heading = "Publish QoS",
+    help = "Quality of Service (default: 0) (possible values: 0 = at most once; 1 = at least once; 2 = exactly once)"
+    )]
+    qos: QoS,
+
+    #[arg(
+        short = 'r',
+        long = "retain",
+        env = "PUBLISH_RETAIN",
+        help_heading = "Publish retain",
+        help = "If specified, the message is sent with the retain flag"
+    )]
+    retain: bool,
+
+    #[arg(
+        short = 'm',
+        long = "message",
+        env = "PUBLISH_MESSAGE",
+        help_heading = "Publish message",
+        help = "Message to publish"
+    )]
+    message: String,
 }
 
 #[derive(Args, Debug, Default, Deserialize, Getters)]
