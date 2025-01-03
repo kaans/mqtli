@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.9.0](https://github.com/kaans/mqtli/compare/v0.8.0...v0.9.0) (2025-01-03)
+
+
+### Features
+
+* add append filter ([2e6acd0](https://github.com/kaans/mqtli/commit/2e6acd02a2159c36ef2581c5d4e1b8c3fd418fe4))
+
+
+### Bug Fixes
+
+* don't escape json string with quotes ([98ccf3e](https://github.com/kaans/mqtli/commit/98ccf3e77862c7fa231b02fb81d48c4fd7e3e22e))
+* exit program via channel commands ([d783c02](https://github.com/kaans/mqtli/commit/d783c02ebfba81e117a90469469f5b6c202396cf))
+
 ## [0.8.0](https://github.com/kaans/mqtli/compare/v0.7.0...v0.8.0) (2025-01-02)
 
 
