@@ -163,6 +163,28 @@ impl FilterImpl for FilterTypePrepend {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
+pub struct FilterTypeAppend {
+    content: String,
+}
+
+impl FilterImpl for FilterTypeAppend {
+    fn apply(&self, data: PayloadFormat) -> Result<Vec<PayloadFormat>, FilterError> {
+        let result: Result<Vec<PayloadFormat>, FilterError> =
+            match self.convert_payload_format(data, PayloadType::Text)? {
+                PayloadFormat::Text(data) => {
+                    let mut result = data.content().clone();
+                    result.extend(self.content.as_bytes());
+                    let res = PayloadFormatText::from(result);
+                    Ok(vec![PayloadFormat::Text(res)])
+                }
+                _ => Err(FilterError::WrongPayloadFormat("text".into())),
+            };
+
+        result
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq)]
 pub struct FilterTypeToText {}
 
 impl FilterImpl for FilterTypeToText {
@@ -193,6 +215,8 @@ pub enum FilterType {
     ToLowerCase(FilterTypeToLowerCase),
     #[serde(rename = "prepend")]
     Prepend(FilterTypePrepend),
+    #[serde(rename = "append")]
+    Append(FilterTypeAppend),
     #[serde(rename = "to_text")]
     ToText(FilterTypeToText),
     #[serde(rename = "to_json")]
@@ -212,6 +236,7 @@ impl FilterImpl for FilterType {
             FilterType::ToUpperCase(filter) => filter.apply(data),
             FilterType::ToLowerCase(filter) => filter.apply(data),
             FilterType::Prepend(filter) => filter.apply(data),
+            FilterType::Append(filter) => filter.apply(data),
             FilterType::ToText(filter) => filter.apply(data),
             FilterType::ToJson(filter) => filter.apply(data),
         }
@@ -290,5 +315,41 @@ mod tests {
             panic!()
         };
         assert_eq!("MQTli", result.content());
+    }
+
+    #[test]
+    fn preprend_json_string() {
+        let payload = PayloadFormat::Json(PayloadFormatJson::try_from("\"Text\"".to_string()).unwrap());
+        let filter = FilterTypePrepend {
+            content: String::from("Before: ")
+        };
+
+        let result = filter.apply(payload);
+
+        assert!(result.is_ok());
+        let mut result = result.unwrap();
+        assert_eq!(1, result.len());
+        let PayloadFormat::Text(result) = result.remove(0) else {
+            panic!()
+        };
+        assert_eq!("Before: Text", String::from_utf8(result.content).unwrap());
+    }
+
+    #[test]
+    fn append_json_string() {
+        let payload = PayloadFormat::Json(PayloadFormatJson::try_from("\"Text\"".to_string()).unwrap());
+        let filter = FilterTypeAppend {
+            content: String::from(" - After")
+        };
+
+        let result = filter.apply(payload);
+
+        assert!(result.is_ok());
+        let mut result = result.unwrap();
+        assert_eq!(1, result.len());
+        let PayloadFormat::Text(result) = result.remove(0) else {
+            panic!()
+        };
+        assert_eq!("Text - After", String::from_utf8(result.content).unwrap());
     }
 }
