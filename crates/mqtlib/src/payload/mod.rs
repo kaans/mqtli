@@ -60,7 +60,7 @@ pub enum PayloadFormatError {
     CouldNotConvertToYaml(#[source] serde_yaml::Error),
     #[error("Could not convert payload from yaml")]
     CouldNotConvertFromYaml(String),
-    #[error("Could not convert payload to json")]
+    #[error("Could not convert payload to json: {0}")]
     CouldNotConvertToJson(#[source] serde_json::Error),
     #[error("Could not convert payload from json")]
     CouldNotConvertFromJson(String),

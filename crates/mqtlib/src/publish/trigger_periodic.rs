@@ -3,10 +3,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use log::debug;
+use tokio::sync::broadcast::Receiver as BroadcastReceiver;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::{mpsc, Mutex};
-use tokio::task;
 use tokio::task::JoinHandle;
+use tokio::{select, task};
 use tokio_cron_scheduler::{Job, JobScheduler, JobSchedulerError};
 use uuid::Uuid;
 
@@ -55,13 +56,17 @@ impl JobContextStorage {
 pub struct TriggerPeriodic {
     scheduler: Arc<Mutex<JobScheduler>>,
     mqtt_service: Arc<Mutex<dyn MqttService>>,
-    pub receiver: Receiver<(String, QoS, bool, Vec<u8>)>,
-    pub publish_channel: Sender<(String, QoS, bool, Vec<u8>)>,
+    receiver: Receiver<(String, QoS, bool, Vec<u8>)>,
+    publish_channel: Sender<(String, QoS, bool, Vec<u8>)>,
     job_contexts: Arc<Mutex<JobContextStorage>>,
+    receiver_exit: BroadcastReceiver<bool>,
 }
 
 impl TriggerPeriodic {
-    pub async fn new(mqtt_service: Arc<Mutex<dyn MqttService>>) -> Self {
+    pub async fn new(
+        mqtt_service: Arc<Mutex<dyn MqttService>>,
+        receiver_exit: BroadcastReceiver<bool>,
+    ) -> Self {
         let (publish_channel, receiver) = mpsc::channel::<(String, QoS, bool, Vec<u8>)>(32);
 
         Self {
@@ -71,9 +76,10 @@ impl TriggerPeriodic {
                     .expect("Could not start job scheduler"),
             )),
             mqtt_service,
-            publish_channel,
             receiver,
+            publish_channel,
             job_contexts: Arc::new(Mutex::new(JobContextStorage::new())),
+            receiver_exit,
         }
     }
 
@@ -296,27 +302,39 @@ impl TriggerPeriodic {
 
     pub async fn start(self) -> Result<JoinHandle<()>, TriggerError> {
         let mut receiver = self.receiver;
+        let mut receiver_exit = self.receiver_exit;
         let mqtt_service = self.mqtt_service.clone();
         let scheduler = self.scheduler.clone();
 
         let task_handle = task::spawn(async move {
             debug!("Starting scheduler");
             loop {
-                if let Some((topic, qos, retain, payload)) = receiver.recv().await {
-                    mqtt_service
-                        .lock()
-                        .await
-                        .publish(MqttPublishEvent::new(topic, qos, retain, payload))
-                        .await;
+                select! {
+                    data = receiver.recv() => {
+                        if let Some((topic, qos, retain, payload)) = data {
+                            mqtt_service
+                                .lock()
+                                .await
+                                .publish(MqttPublishEvent::new(topic, qos, retain, payload))
+                                .await;
 
-                    match scheduler.lock().await.time_till_next_job().await {
-                        Ok(value) => {
-                            if value.is_none() {
-                                debug!("No more pending tasks, exiting scheduler");
-                                break;
+                            match scheduler.lock().await.time_till_next_job().await {
+                                Ok(value) => {
+                                    if value.is_none() {
+                                        debug!("No more pending tasks, exiting scheduler");
+                                        break;
+                                    }
+                                }
+                                Err(_) => break,
                             }
                         }
-                        Err(_) => break,
+                    },
+                    _ = receiver_exit.recv() => {
+                        if let Err(e) = scheduler.lock().await.shutdown().await {
+                            println!("Error while shutting down {e:?}");
+                        }
+
+                        return;
                     }
                 }
             }

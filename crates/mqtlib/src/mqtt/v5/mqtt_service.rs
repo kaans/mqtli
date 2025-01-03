@@ -1,20 +1,19 @@
-use std::io::ErrorKind;
-use std::sync::Arc;
-
+use crate::config::mqtli_config::MqttBrokerConnect;
+use crate::mqtt::{
+    get_transport_parameters, MqttPublishEvent, MqttReceiveEvent, MqttService, MqttServiceError,
+    QoS,
+};
 use async_trait::async_trait;
 use log::{debug, error, info};
 use rumqttc::v5::mqttbytes::v5::{ConnectReturnCode, LastWill};
 use rumqttc::v5::{
     AsyncClient, ConnectionError, Event, EventLoop, Incoming, MqttOptions, StateError,
 };
+use std::io::ErrorKind;
+use std::sync::Arc;
+use tokio::sync::broadcast::Receiver;
 use tokio::sync::{broadcast, Mutex};
 use tokio::task::JoinHandle;
-
-use crate::config::mqtli_config::MqttBrokerConnect;
-use crate::mqtt::{
-    get_transport_parameters, MqttPublishEvent, MqttReceiveEvent, MqttService, MqttServiceError,
-    QoS,
-};
 
 pub struct MqttServiceV5 {
     config: Arc<MqttBrokerConnect>,
@@ -36,7 +35,21 @@ impl MqttServiceV5 {
         client: AsyncClient,
         topics: Arc<Mutex<Vec<(String, QoS)>>>,
         channel: Option<broadcast::Sender<MqttReceiveEvent>>,
+        mut receiver_exit: Receiver<bool>,
     ) -> JoinHandle<()> {
+        let client_exit = client.clone();
+
+        tokio::task::spawn(async move {
+            loop {
+                if receiver_exit.recv().await.is_ok() {
+                    if let Err(e) = client_exit.disconnect().await {
+                        error!("Error while disconnecting client on exit signal: {e:?}");
+                    }
+                    return;
+                }
+            }
+        });
+
         tokio::task::spawn(async move {
             loop {
                 match event_loop.poll().await {
@@ -94,6 +107,7 @@ impl MqttService for MqttServiceV5 {
     async fn connect(
         &mut self,
         channel: Option<broadcast::Sender<MqttReceiveEvent>>,
+        receiver_exit: Receiver<bool>,
     ) -> Result<JoinHandle<()>, MqttServiceError> {
         let (transport, hostname) = get_transport_parameters(self.config.clone())?;
 
@@ -146,7 +160,8 @@ impl MqttService for MqttServiceV5 {
         let topics = self.topics.clone();
 
         let task_handle: JoinHandle<()> =
-            Self::start_connection_task(event_loop, client.clone(), topics, channel).await;
+            Self::start_connection_task(event_loop, client.clone(), topics, channel, receiver_exit)
+                .await;
 
         self.client = Option::from(client);
 

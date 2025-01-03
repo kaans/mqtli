@@ -8,7 +8,7 @@ use std::fmt::{Display, Formatter};
 /// underlying vector as UTF-8.
 #[derive(Clone, Debug, Getters)]
 pub struct PayloadFormatText {
-    content: Vec<u8>,
+    pub content: Vec<u8>,
 }
 
 impl PayloadFormatText {

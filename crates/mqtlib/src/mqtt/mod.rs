@@ -14,6 +14,7 @@ use rumqttc::{TlsConfiguration, Transport};
 use serde::Deserialize;
 use thiserror::Error;
 use tokio::sync::broadcast;
+use tokio::sync::broadcast::Receiver;
 use tokio::task::JoinHandle;
 
 pub mod v5;
@@ -132,6 +133,7 @@ pub trait MqttService: Send {
     async fn connect(
         &mut self,
         channel: Option<broadcast::Sender<MqttReceiveEvent>>,
+        receiver_exit: Receiver<bool>,
     ) -> Result<JoinHandle<()>, MqttServiceError>;
 
     async fn disconnect(&self) -> Result<(), MqttServiceError>;

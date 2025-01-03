@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use log::{debug, error, info};
 use rumqttc::{AsyncClient, ConnectionError, Event, EventLoop, Incoming, MqttOptions, StateError};
 use rumqttc::{ConnectReturnCode, LastWill};
+use tokio::sync::broadcast::Receiver;
 use tokio::sync::{broadcast, Mutex};
 use tokio::task::JoinHandle;
 
@@ -34,7 +35,21 @@ impl MqttServiceV311 {
         client: AsyncClient,
         topics: Arc<Mutex<Vec<(String, QoS)>>>,
         channel: Option<broadcast::Sender<MqttReceiveEvent>>,
+        mut receiver_exit: Receiver<bool>,
     ) -> JoinHandle<()> {
+        let client_exit = client.clone();
+
+        tokio::task::spawn(async move {
+            loop {
+                if receiver_exit.recv().await.is_ok() {
+                    if let Err(e) = client_exit.disconnect().await {
+                        error!("Error while disconnecting client on exit signal: {e:?}");
+                    }
+                    return;
+                }
+            }
+        });
+
         tokio::task::spawn(async move {
             loop {
                 match event_loop.poll().await {
@@ -92,6 +107,7 @@ impl MqttService for MqttServiceV311 {
     async fn connect(
         &mut self,
         channel: Option<broadcast::Sender<MqttReceiveEvent>>,
+        receiver_exit: Receiver<bool>,
     ) -> Result<JoinHandle<()>, MqttServiceError> {
         let (transport, hostname) = get_transport_parameters(self.config.clone())?;
 
@@ -143,7 +159,8 @@ impl MqttService for MqttServiceV311 {
         let topics = self.topics.clone();
 
         let task_handle: JoinHandle<()> =
-            Self::start_connection_task(event_loop, client.clone(), topics, channel).await;
+            Self::start_connection_task(event_loop, client.clone(), topics, channel, receiver_exit)
+                .await;
 
         self.client = Option::from(client);
 

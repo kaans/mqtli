@@ -1,10 +1,10 @@
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 
+use crate::payload::{PayloadFormat, PayloadFormatError};
 use derive_getters::Getters;
 use protobuf_json_mapping::print_to_string as print_protobuf_to_json_string;
 use serde_json::{from_slice, Value};
-use crate::payload::{PayloadFormat, PayloadFormatError};
 
 /// This payload format contains a JSON payload. Its value is encoded as
 /// `serde_json::Value`.
@@ -27,8 +27,10 @@ impl PayloadFormatJson {
 impl Display for PayloadFormatJson {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.content {
-            Value::String(content) => {write!(f, "{}", content)}
-            content => write!(f, "{}", content)
+            Value::String(content) => {
+                write!(f, "{}", content)
+            }
+            content => write!(f, "{}", content),
         }
     }
 }

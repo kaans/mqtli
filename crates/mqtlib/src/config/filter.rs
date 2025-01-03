@@ -319,9 +319,10 @@ mod tests {
 
     #[test]
     fn preprend_json_string() {
-        let payload = PayloadFormat::Json(PayloadFormatJson::try_from("\"Text\"".to_string()).unwrap());
+        let payload =
+            PayloadFormat::Json(PayloadFormatJson::try_from("\"Text\"".to_string()).unwrap());
         let filter = FilterTypePrepend {
-            content: String::from("Before: ")
+            content: String::from("Before: "),
         };
 
         let result = filter.apply(payload);
@@ -337,9 +338,10 @@ mod tests {
 
     #[test]
     fn append_json_string() {
-        let payload = PayloadFormat::Json(PayloadFormatJson::try_from("\"Text\"".to_string()).unwrap());
+        let payload =
+            PayloadFormat::Json(PayloadFormatJson::try_from("\"Text\"".to_string()).unwrap());
         let filter = FilterTypeAppend {
-            content: String::from(" - After")
+            content: String::from(" - After"),
         };
 
         let result = filter.apply(payload);
