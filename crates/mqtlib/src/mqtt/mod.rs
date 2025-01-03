@@ -133,7 +133,7 @@ pub trait MqttService: Send {
     async fn connect(
         &mut self,
         channel: Option<broadcast::Sender<MqttReceiveEvent>>,
-        receiver_exit: Receiver<bool>,
+        receiver_exit: Receiver<()>,
     ) -> Result<JoinHandle<()>, MqttServiceError>;
 
     async fn disconnect(&self) -> Result<(), MqttServiceError>;

@@ -35,7 +35,7 @@ impl MqttServiceV311 {
         client: AsyncClient,
         topics: Arc<Mutex<Vec<(String, QoS)>>>,
         channel: Option<broadcast::Sender<MqttReceiveEvent>>,
-        mut receiver_exit: Receiver<bool>,
+        mut receiver_exit: Receiver<()>,
     ) -> JoinHandle<()> {
         let client_exit = client.clone();
 
@@ -107,7 +107,7 @@ impl MqttService for MqttServiceV311 {
     async fn connect(
         &mut self,
         channel: Option<broadcast::Sender<MqttReceiveEvent>>,
-        receiver_exit: Receiver<bool>,
+        receiver_exit: Receiver<()>,
     ) -> Result<JoinHandle<()>, MqttServiceError> {
         let (transport, hostname) = get_transport_parameters(self.config.clone())?;
 

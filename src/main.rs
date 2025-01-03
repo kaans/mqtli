@@ -51,7 +51,7 @@ async fn main() -> anyhow::Result<()> {
 
     debug!("{}", config);
 
-    let (sender_exit, receiver_exit) = broadcast::channel::<bool>(5);
+    let (sender_exit, receiver_exit) = broadcast::channel::<()>(5);
 
     let mqtt_service: Arc<Mutex<dyn MqttService>> = match config.broker().mqtt_version() {
         MqttVersion::V311 => Arc::new(Mutex::new(MqttServiceV311::new(Arc::new(
@@ -134,7 +134,7 @@ async fn main() -> anyhow::Result<()> {
 async fn start_scheduler(
     topics: Arc<Vec<Topic>>,
     mqtt_service: Arc<Mutex<dyn MqttService>>,
-    receiver_exit: Receiver<bool>,
+    receiver_exit: Receiver<()>,
 ) -> Result<JoinHandle<()>, TriggerError> {
     let mut scheduler = TriggerPeriodic::new(mqtt_service, receiver_exit).await;
 
@@ -197,7 +197,7 @@ async fn start_scheduler(
     scheduler.start().await
 }
 
-async fn start_exit_task(sender: Sender<bool>) {
+async fn start_exit_task(sender: Sender<()>) {
     task::spawn(async move {
         if let Err(_e) = signal::ctrl_c().await {
             error!("Could not add ctrl + c handler");
@@ -205,7 +205,7 @@ async fn start_exit_task(sender: Sender<bool>) {
 
         info!("Exit signal received, shutting down");
 
-        if let Err(e) = sender.send(true) {
+        if let Err(e) = sender.send(()) {
             warn!("No active listeners for exit signal present: {e:?}");
         };
     });

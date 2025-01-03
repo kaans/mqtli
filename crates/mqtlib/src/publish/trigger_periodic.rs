@@ -59,13 +59,13 @@ pub struct TriggerPeriodic {
     receiver: Receiver<(String, QoS, bool, Vec<u8>)>,
     publish_channel: Sender<(String, QoS, bool, Vec<u8>)>,
     job_contexts: Arc<Mutex<JobContextStorage>>,
-    receiver_exit: BroadcastReceiver<bool>,
+    receiver_exit: BroadcastReceiver<()>,
 }
 
 impl TriggerPeriodic {
     pub async fn new(
         mqtt_service: Arc<Mutex<dyn MqttService>>,
-        receiver_exit: BroadcastReceiver<bool>,
+        receiver_exit: BroadcastReceiver<()>,
     ) -> Self {
         let (publish_channel, receiver) = mpsc::channel::<(String, QoS, bool, Vec<u8>)>(32);
 
