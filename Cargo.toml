@@ -20,12 +20,12 @@ anyhow = "1.0.94"
 log = "0.4.22"
 simplelog = { version = "0.12.2", features = ["paris"] }
 tokio = { version = "1.42.0", features = ["macros", "rt", "rt-multi-thread", "sync", "signal"] }
-futures = "0.3.31"
 serde = { version = "1.0.217", features = ["derive"] }
 serde_yaml = "0.9.30"
 thiserror = "2.0.9"
 validator = { version = "0.19.0", features = ["derive"] }
 base64 = "0.22.1"
+rumqttc = { git = "https://github.com/bytebeamio/rumqtt.git", rev = "431be1b", features = ["websocket"] }
 
 [build-dependencies]
 built = "0.7.5"

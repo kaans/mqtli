@@ -17,7 +17,6 @@ use std::sync::Arc;
 
 use crate::args::load_config;
 use anyhow::Context;
-use futures::StreamExt;
 use log::{debug, error, info, warn, LevelFilter};
 use mqtlib::config::mqtli_config::MqttVersion;
 use mqtlib::config::publish::PublishTriggerType::Periodic;
@@ -29,13 +28,17 @@ use mqtlib::mqtt::v5::mqtt_service::MqttServiceV5;
 use mqtlib::mqtt::{MqttPublishEvent, MqttReceiveEvent, MqttService};
 use mqtlib::payload::PayloadFormat;
 use mqtlib::payload::PayloadFormatError;
-use mqtlib::publish::trigger_periodic::TriggerPeriodic;
+use mqtlib::publish::trigger_periodic::{Command, TriggerPeriodic};
 use mqtlib::publish::TriggerError;
+use rumqttc::v5::Incoming;
+use rumqttc::Incoming as IncomingV311;
 use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
 use tokio::sync::broadcast::{Receiver, Sender};
 use tokio::sync::{broadcast, Mutex};
 use tokio::task::JoinHandle;
 use tokio::{signal, task};
+
+type ExitCommand = ();
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -51,7 +54,7 @@ async fn main() -> anyhow::Result<()> {
 
     debug!("{}", config);
 
-    let (sender_exit, receiver_exit) = broadcast::channel::<()>(5);
+    let (sender_exit, _) = broadcast::channel::<ExitCommand>(5);
 
     let mqtt_service: Arc<Mutex<dyn MqttService>> = match config.broker().mqtt_version() {
         MqttVersion::V311 => Arc::new(Mutex::new(MqttServiceV311::new(Arc::new(
@@ -62,82 +65,158 @@ async fn main() -> anyhow::Result<()> {
         )))),
     };
 
-    let filtered_subscriptions: Vec<(&Subscription, &String)> = config
+    let filtered_subscriptions: Vec<(Subscription, String)> = config
         .topics()
         .iter()
-        .filter_map(|topic| topic.subscription().as_ref().map(|s| (s, topic.topic())))
+        .filter_map(|topic| {
+            topic
+                .subscription()
+                .clone()
+                .map(|s| (s, topic.topic().clone()))
+        })
         .filter(|(s, _)| *s.enabled())
         .collect();
 
-    futures::stream::iter(filtered_subscriptions)
-        .for_each(|(subscription, topic)| async {
-            mqtt_service
-                .lock()
-                .await
-                .subscribe(topic.to_string(), *subscription.qos())
-                .await;
-        })
-        .await;
-
-    let (sender, receiver) = broadcast::channel::<MqttReceiveEvent>(32);
-    let (sender_publish, mut receiver_publish) = broadcast::channel::<MqttPublishEvent>(32);
+    let (sender_receive, _) = broadcast::channel::<MqttReceiveEvent>(32);
+    let (sender_publish, _) = broadcast::channel::<MqttPublishEvent>(32);
 
     let topics = Arc::new(config.topics);
 
-    let task_handle_service = mqtt_service
+    let mqtt_loop_handle = mqtt_service
         .lock()
         .await
-        .connect(Some(sender), receiver_exit)
+        .connect(sender_receive.clone(), sender_exit.subscribe())
         .await
         .with_context(|| "Error while connecting to mqtt broker")?;
 
-    let scheduler_handle = start_scheduler(
-        topics.clone(),
-        mqtt_service.clone(),
-        sender_exit.subscribe(),
-    )
-    .await?;
+    start_publish_task(sender_publish.subscribe(), mqtt_service.clone());
 
-    let mut handler = MqttHandler::new(topics.clone());
-    handler.start_task(receiver, sender_publish);
+    let scheduler = TriggerPeriodic::new(mqtt_service.clone()).await;
+
+    start_scheduler_monitor_task(
+        mqtt_service.clone(),
+        scheduler.get_receiver_command(),
+        filtered_subscriptions.clone(),
+    );
+
+    start_connection_task(
+        scheduler,
+        sender_receive.clone(),
+        sender_publish,
+        topics,
+        sender_exit.subscribe(),
+    );
+
+    start_subscription_task(mqtt_service, sender_receive, filtered_subscriptions);
 
     start_exit_task(sender_exit).await;
 
-    tokio::spawn(async move {
-        while let Ok(event) = receiver_publish.recv().await {
-            mqtt_service.lock().await.publish(event).await;
-        }
-    });
-
-    if topics
-        .iter()
-        .map(|t| t.subscription().is_some())
-        .fold(false, |acc, s| s || acc)
-    {
-        task_handle_service
-            .await
-            .expect("Error while waiting for tasks to shut down");
-        handler.await_task().await;
-    }
-
-    if topics
-        .iter()
-        .map(|t| t.publish().is_some())
-        .fold(false, |acc, s| s || acc)
-    {
-        scheduler_handle.await?;
-    }
+    mqtt_loop_handle
+        .await
+        .expect("Error while waiting for tasks to shut down");
 
     Ok(())
 }
 
+fn start_scheduler_monitor_task(
+    mqtt_service_publish: Arc<Mutex<dyn MqttService>>,
+    mut receiver_command: Receiver<Command>,
+    filtered_subscriptions_command: Vec<(Subscription, String)>,
+) {
+    tokio::spawn(async move {
+        match receiver_command.recv().await {
+            Ok(Command::NoMoreTasksPending) => {
+                if filtered_subscriptions_command.is_empty() {
+                    debug!("No more pending tasks, disconnecting");
+                    let _ = mqtt_service_publish.lock().await.disconnect().await;
+                }
+            }
+            val => {
+                debug!("Received a command from scheduler but not handling it: {val:?}");
+            }
+        }
+    });
+}
+
+fn start_connection_task(
+    scheduler: TriggerPeriodic,
+    sender: Sender<MqttReceiveEvent>,
+    sender_publish: Sender<MqttPublishEvent>,
+    topics: Arc<Vec<Topic>>,
+    receiver_exit: Receiver<()>,
+) {
+    let mut receiver_connect = sender.subscribe();
+
+    tokio::spawn(async move {
+        while let Ok(event) = receiver_connect.recv().await {
+            match event {
+                MqttReceiveEvent::V5(rumqttc::v5::Event::Incoming(Incoming::ConnAck(_)))
+                | MqttReceiveEvent::V311(rumqttc::Event::Incoming(IncomingV311::ConnAck(_))) => {
+                    info!("Connected to broker");
+                    let _ = start_scheduler(topics.clone(), scheduler, receiver_exit).await;
+
+                    let mut incoming_messages_handler = MqttHandler::new(topics.clone());
+                    incoming_messages_handler
+                        .start_task(sender.subscribe(), sender_publish.clone());
+
+                    return;
+                }
+                _ => {}
+            }
+        }
+    });
+}
+
+fn start_subscription_task(
+    mqtt_service: Arc<Mutex<dyn MqttService>>,
+    sender: Sender<MqttReceiveEvent>,
+    topics: Vec<(Subscription, String)>,
+) {
+    let mut receiver_connect = sender.subscribe();
+
+    tokio::spawn(async move {
+        while let Ok(event) = receiver_connect.recv().await {
+            match event {
+                MqttReceiveEvent::V5(rumqttc::v5::Event::Incoming(Incoming::ConnAck(_)))
+                | MqttReceiveEvent::V311(rumqttc::Event::Incoming(IncomingV311::ConnAck(_))) => {
+                    for (subscription, topic) in topics.iter() {
+                        info!(
+                            "Subscribing to topic {} with QoS {:?}",
+                            topic,
+                            subscription.qos()
+                        );
+                        if let Err(e) = mqtt_service
+                            .lock()
+                            .await
+                            .subscribe(topic.clone(), *subscription.qos())
+                            .await
+                        {
+                            error!("Could not subscribe to topic {}: {}", topic, e);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    });
+}
+
+fn start_publish_task(
+    mut receiver_publish: Receiver<MqttPublishEvent>,
+    mqtt_service_publish: Arc<Mutex<dyn MqttService>>,
+) {
+    tokio::spawn(async move {
+        while let Ok(event) = receiver_publish.recv().await {
+            mqtt_service_publish.lock().await.publish(event).await;
+        }
+    });
+}
+
 async fn start_scheduler(
     topics: Arc<Vec<Topic>>,
-    mqtt_service: Arc<Mutex<dyn MqttService>>,
+    mut scheduler: TriggerPeriodic,
     receiver_exit: Receiver<()>,
 ) -> Result<JoinHandle<()>, TriggerError> {
-    let mut scheduler = TriggerPeriodic::new(mqtt_service, receiver_exit).await;
-
     for topic in topics.iter() {
         if let Some(publish) = topic
             .publish()
@@ -194,7 +273,7 @@ async fn start_scheduler(
         }
     }
 
-    scheduler.start().await
+    scheduler.start(receiver_exit).await
 }
 
 async fn start_exit_task(sender: Sender<()>) {

@@ -3,10 +3,10 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use log::{debug, error, info};
-use rumqttc::{AsyncClient, ConnectionError, Event, EventLoop, Incoming, MqttOptions, StateError};
+use rumqttc::{AsyncClient, ConnectionError, EventLoop, MqttOptions, StateError};
 use rumqttc::{ConnectReturnCode, LastWill};
+use tokio::sync::broadcast;
 use tokio::sync::broadcast::Receiver;
-use tokio::sync::{broadcast, Mutex};
 use tokio::task::JoinHandle;
 
 use crate::config::mqtli_config::MqttBrokerConnect;
@@ -18,7 +18,6 @@ use crate::mqtt::{
 pub struct MqttServiceV311 {
     client: Option<AsyncClient>,
     config: Arc<MqttBrokerConnect>,
-    topics: Arc<Mutex<Vec<(String, QoS)>>>,
 }
 
 impl MqttServiceV311 {
@@ -26,15 +25,13 @@ impl MqttServiceV311 {
         MqttServiceV311 {
             client: None,
             config,
-            topics: Arc::new(Mutex::new(vec![])),
         }
     }
 
     async fn start_connection_task(
         mut event_loop: EventLoop,
         client: AsyncClient,
-        topics: Arc<Mutex<Vec<(String, QoS)>>>,
-        channel: Option<broadcast::Sender<MqttReceiveEvent>>,
+        channel: broadcast::Sender<MqttReceiveEvent>,
         mut receiver_exit: Receiver<()>,
     ) -> JoinHandle<()> {
         let client_exit = client.clone();
@@ -55,26 +52,7 @@ impl MqttServiceV311 {
                 match event_loop.poll().await {
                     Ok(event) => {
                         debug!("Received {:?}", &event);
-
-                        match &event {
-                            Event::Incoming(event) => {
-                                if let Incoming::ConnAck(_) = event {
-                                    info!("Connected to broker");
-
-                                    for (topic, qos) in topics.lock().await.iter() {
-                                        info!("Subscribing to topic {} with QoS {:?}", topic, qos);
-                                        if let Err(e) = client.subscribe(topic, qos.into()).await {
-                                            error!("Could not subscribe to topic {}: {}", topic, e);
-                                        }
-                                    }
-                                }
-                            }
-                            Event::Outgoing(_event) => {}
-                        }
-
-                        if let Some(channel) = &channel {
-                            let _ = channel.send(MqttReceiveEvent::V311(event));
-                        }
+                        let _ = channel.send(MqttReceiveEvent::V311(event));
                     }
                     Err(e) => match e {
                         ConnectionError::ConnectionRefused(ConnectReturnCode::NotAuthorized) => {
@@ -106,7 +84,7 @@ impl MqttServiceV311 {
 impl MqttService for MqttServiceV311 {
     async fn connect(
         &mut self,
-        channel: Option<broadcast::Sender<MqttReceiveEvent>>,
+        channel: broadcast::Sender<MqttReceiveEvent>,
         receiver_exit: Receiver<()>,
     ) -> Result<JoinHandle<()>, MqttServiceError> {
         let (transport, hostname) = get_transport_parameters(self.config.clone())?;
@@ -156,11 +134,8 @@ impl MqttService for MqttServiceV311 {
 
         let (client, event_loop) = AsyncClient::new(options, 10);
 
-        let topics = self.topics.clone();
-
         let task_handle: JoinHandle<()> =
-            Self::start_connection_task(event_loop, client.clone(), topics, channel, receiver_exit)
-                .await;
+            Self::start_connection_task(event_loop, client.clone(), channel, receiver_exit).await;
 
         self.client = Option::from(client);
 
@@ -193,7 +168,14 @@ impl MqttService for MqttServiceV311 {
         }
     }
 
-    async fn subscribe(&mut self, topic: String, qos: QoS) {
-        self.topics.lock().await.push((topic, qos));
+    async fn subscribe(&mut self, topic: String, qos: QoS) -> Result<(), MqttServiceError> {
+        if let Some(client) = &self.client {
+            return client
+                .subscribe(topic.clone(), qos.into())
+                .await
+                .map_err(MqttServiceError::from);
+        }
+
+        Err(MqttServiceError::NotConnected)
     }
 }

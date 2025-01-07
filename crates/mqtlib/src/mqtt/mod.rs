@@ -42,6 +42,8 @@ pub enum MqttServiceError {
     ClientErrorV5(#[from] rumqttc::v5::ClientError),
     #[error("Client error occurred")]
     ClientErrorV311(#[from] rumqttc::ClientError),
+    #[error("Not connected")]
+    NotConnected,
 }
 
 #[allow(clippy::enum_variant_names)]
@@ -132,7 +134,7 @@ impl From<&rumqttc::v5::mqttbytes::QoS> for QoS {
 pub trait MqttService: Send {
     async fn connect(
         &mut self,
-        channel: Option<broadcast::Sender<MqttReceiveEvent>>,
+        channel: broadcast::Sender<MqttReceiveEvent>,
         receiver_exit: Receiver<()>,
     ) -> Result<JoinHandle<()>, MqttServiceError>;
 
@@ -140,7 +142,7 @@ pub trait MqttService: Send {
 
     async fn publish(&self, payload: MqttPublishEvent);
 
-    async fn subscribe(&mut self, topic: String, qos: QoS);
+    async fn subscribe(&mut self, topic: String, qos: QoS) -> Result<(), MqttServiceError>;
 }
 
 #[derive(Clone)]

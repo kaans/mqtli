@@ -4,8 +4,7 @@ use std::time::Duration;
 
 use log::debug;
 use tokio::sync::broadcast::Receiver as BroadcastReceiver;
-use tokio::sync::mpsc::{Receiver, Sender};
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::{broadcast, Mutex};
 use tokio::task::JoinHandle;
 use tokio::{select, task};
 use tokio_cron_scheduler::{Job, JobScheduler, JobSchedulerError};
@@ -13,6 +12,11 @@ use uuid::Uuid;
 
 use crate::mqtt::{MqttPublishEvent, MqttService, QoS};
 use crate::publish::TriggerError;
+
+#[derive(Clone, Debug)]
+pub enum Command {
+    NoMoreTasksPending,
+}
 
 struct JobContext {
     count: Option<u32>,
@@ -56,18 +60,15 @@ impl JobContextStorage {
 pub struct TriggerPeriodic {
     scheduler: Arc<Mutex<JobScheduler>>,
     mqtt_service: Arc<Mutex<dyn MqttService>>,
-    receiver: Receiver<(String, QoS, bool, Vec<u8>)>,
-    publish_channel: Sender<(String, QoS, bool, Vec<u8>)>,
+    sender_data: broadcast::Sender<(String, QoS, bool, Vec<u8>)>,
     job_contexts: Arc<Mutex<JobContextStorage>>,
-    receiver_exit: BroadcastReceiver<()>,
+    sender_command: broadcast::Sender<Command>,
 }
 
 impl TriggerPeriodic {
-    pub async fn new(
-        mqtt_service: Arc<Mutex<dyn MqttService>>,
-        receiver_exit: BroadcastReceiver<()>,
-    ) -> Self {
-        let (publish_channel, receiver) = mpsc::channel::<(String, QoS, bool, Vec<u8>)>(32);
+    pub async fn new(mqtt_service: Arc<Mutex<dyn MqttService>>) -> Self {
+        let (sender_data, _) = broadcast::channel::<(String, QoS, bool, Vec<u8>)>(32);
+        let (sender_command, _) = broadcast::channel::<Command>(4);
 
         Self {
             scheduler: Arc::new(Mutex::new(
@@ -76,10 +77,9 @@ impl TriggerPeriodic {
                     .expect("Could not start job scheduler"),
             )),
             mqtt_service,
-            receiver,
-            publish_channel,
+            sender_data,
             job_contexts: Arc::new(Mutex::new(JobContextStorage::new())),
-            receiver_exit,
+            sender_command,
         }
     }
 
@@ -96,7 +96,6 @@ impl TriggerPeriodic {
     ) -> Result<(), TriggerError> {
         let qos = *qos;
 
-        let publish_channel = self.publish_channel.clone();
         let scheduler = self.scheduler.clone();
         let initial_delay = *initial_delay;
         let contexts = self.job_contexts.clone();
@@ -112,7 +111,7 @@ impl TriggerPeriodic {
                     qos,
                     &payload,
                     topic.as_ref(),
-                    &publish_channel,
+                    self.sender_data.clone(),
                 )?;
 
                 scheduler.lock().await.add(job).await?;
@@ -124,7 +123,7 @@ impl TriggerPeriodic {
                     qos,
                     &payload,
                     topic.as_ref(),
-                    &publish_channel,
+                    self.sender_data.clone(),
                 )
                 .expect("Could not create job");
 
@@ -134,6 +133,8 @@ impl TriggerPeriodic {
                     .add(job_initial)
                     .await
                     .expect("Could not add job");
+
+                let sender_data = self.sender_data.clone();
 
                 task::spawn(async move {
                     tokio::time::sleep(initial_delay).await;
@@ -145,7 +146,7 @@ impl TriggerPeriodic {
                         qos,
                         &payload,
                         topic.as_ref(),
-                        &publish_channel,
+                        sender_data,
                         count,
                     )
                     .expect("Could not create job");
@@ -165,7 +166,7 @@ impl TriggerPeriodic {
                     qos,
                     &payload,
                     topic.as_ref(),
-                    &publish_channel,
+                    self.sender_data.clone(),
                 )
                 .expect("Could not create job");
 
@@ -176,6 +177,8 @@ impl TriggerPeriodic {
                     .await
                     .expect("Could not add job");
 
+                let sender_data = self.sender_data.clone();
+
                 task::spawn(async move {
                     tokio::time::sleep(initial_delay).await;
 
@@ -185,7 +188,7 @@ impl TriggerPeriodic {
                         qos,
                         payload,
                         topic.as_ref(),
-                        publish_channel,
+                        sender_data,
                     )
                     .expect("Could not create job");
 
@@ -208,22 +211,21 @@ impl TriggerPeriodic {
         qos: QoS,
         payload: &[u8],
         topic: &str,
-        publish_channel: &Sender<(String, QoS, bool, Vec<u8>)>,
+        sender_data: broadcast::Sender<(String, QoS, bool, Vec<u8>)>,
     ) -> Result<Job, JobSchedulerError> {
         let payload = payload.to_owned();
         let topic = topic.to_owned();
-        let publish_channel = publish_channel.clone();
 
         Job::new_one_shot_async(
             *initial_delay,
             move |_uuid: Uuid, _scheduler: JobScheduler| {
                 let payload = payload.clone();
-                let pc = publish_channel.clone();
+                let pc = sender_data.clone();
                 let topic = topic.clone();
 
                 Box::pin(async move {
                     let tx = (topic, qos, retain, payload.clone());
-                    let _ = pc.clone().send(tx).await;
+                    let _ = pc.clone().send(tx);
                 })
             },
         )
@@ -237,16 +239,15 @@ impl TriggerPeriodic {
         qos: QoS,
         payload: &[u8],
         topic: &str,
-        publish_channel: &Sender<(String, QoS, bool, Vec<u8>)>,
+        sender_data: broadcast::Sender<(String, QoS, bool, Vec<u8>)>,
         count: u32,
     ) -> Result<Job, JobSchedulerError> {
         let payload = payload.to_owned();
         let topic = topic.to_owned();
-        let publish_channel = publish_channel.clone();
 
         Job::new_repeated_async(*interval, move |uuid: Uuid, scheduler: JobScheduler| {
             let payload = payload.clone();
-            let pc = publish_channel.clone();
+            let pc = sender_data.clone();
             let topic = topic.clone();
             let contexts = contexts.clone();
 
@@ -262,7 +263,7 @@ impl TriggerPeriodic {
                     .unwrap();
 
                 let tx = (topic, qos, retain, payload.clone());
-                let _ = pc.clone().send(tx).await;
+                let _ = pc.clone().send(tx);
 
                 counter -= 1;
                 contexts.lock().await.get_or_create_context(&uuid).count = Some(counter);
@@ -282,36 +283,43 @@ impl TriggerPeriodic {
         qos: QoS,
         payload: Vec<u8>,
         topic: &str,
-        publish_channel: Sender<(String, QoS, bool, Vec<u8>)>,
+        sender_data: broadcast::Sender<(String, QoS, bool, Vec<u8>)>,
     ) -> Result<Job, JobSchedulerError> {
         let payload = payload.clone();
         let topic = topic.to_owned();
-        let publish_channel = publish_channel.clone();
 
         Job::new_repeated_async(*interval, move |_uuid: Uuid, _scheduler: JobScheduler| {
             let payload = payload.clone();
-            let pc = publish_channel.clone();
+            let pc = sender_data.clone();
             let topic = topic.clone();
 
             Box::pin(async move {
                 let tx = (topic, qos, retain, payload.clone());
-                let _ = pc.clone().send(tx).await;
+                let _ = pc.clone().send(tx);
             })
         })
     }
 
-    pub async fn start(self) -> Result<JoinHandle<()>, TriggerError> {
-        let mut receiver = self.receiver;
-        let mut receiver_exit = self.receiver_exit;
+    pub fn get_receiver_command(&self) -> broadcast::Receiver<Command> {
+        self.sender_command.subscribe()
+    }
+
+    pub async fn start(
+        &self,
+        receiver_exit: BroadcastReceiver<()>,
+    ) -> Result<JoinHandle<()>, TriggerError> {
+        let mut receiver = self.sender_data.subscribe();
+        let mut receiver_exit = receiver_exit;
         let mqtt_service = self.mqtt_service.clone();
         let scheduler = self.scheduler.clone();
+        let sender_command = self.sender_command.clone();
 
         let task_handle = task::spawn(async move {
             debug!("Starting scheduler");
             loop {
                 select! {
                     data = receiver.recv() => {
-                        if let Some((topic, qos, retain, payload)) = data {
+                        if let Ok((topic, qos, retain, payload)) = data {
                             mqtt_service
                                 .lock()
                                 .await
@@ -322,6 +330,7 @@ impl TriggerPeriodic {
                                 Ok(value) => {
                                     if value.is_none() {
                                         debug!("No more pending tasks, exiting scheduler");
+                                        let _ = sender_command.send(Command::NoMoreTasksPending);
                                         break;
                                     }
                                 }
