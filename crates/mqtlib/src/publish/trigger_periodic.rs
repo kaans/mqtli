@@ -199,39 +199,50 @@ impl TriggerPeriodic {
         let scheduler = self.scheduler.clone();
         let sender_command = self.sender_command.clone();
 
+        async fn is_task_pending(scheduler: &Arc<Mutex<JobScheduler>>, sender_command: &broadcast::Sender<Command>) -> bool {
+            match scheduler.lock().await.time_till_next_job().await {
+                Ok(value) => {
+                    if value.is_none() {
+                        debug!("No more pending tasks, exiting scheduler");
+                        let _ = sender_command.send(Command::NoMoreTasksPending);
+                    }
+
+                    !value.is_none()
+                }
+                Err(_) => false,
+            }
+        }
+
         let task_handle = task::spawn(async move {
             debug!("Starting scheduler");
-            loop {
-                select! {
-                    data = receiver.recv() => {
-                        if let Ok((topic, qos, retain, payload)) = data {
-                            mqtt_service
-                                .lock()
-                                .await
-                                .publish(MqttPublishEvent::new(topic, qos, retain, payload))
-                                .await;
 
-                            match scheduler.lock().await.time_till_next_job().await {
-                                Ok(value) => {
-                                    if value.is_none() {
-                                        debug!("No more pending tasks, exiting scheduler");
-                                        let _ = sender_command.send(Command::NoMoreTasksPending);
-                                        break;
-                                    }
-                                }
-                                Err(_) => break,
+            if is_task_pending(&scheduler, &sender_command).await {
+                loop {
+                    select! {
+                        data = receiver.recv() => {
+                            if let Ok((topic, qos, retain, payload)) = data {
+                                mqtt_service
+                                    .lock()
+                                    .await
+                                    .publish(MqttPublishEvent::new(topic, qos, retain, payload))
+                                    .await;
+
+                                if !is_task_pending(&scheduler, &sender_command).await {
+                                    break
+                                };
                             }
-                        }
-                    },
-                    _ = receiver_exit.recv() => {
-                        if let Err(e) = scheduler.lock().await.shutdown().await {
-                            println!("Error while shutting down {e:?}");
-                        }
+                        },
+                        _ = receiver_exit.recv() => {
+                            if let Err(e) = scheduler.lock().await.shutdown().await {
+                                println!("Error while shutting down {e:?}");
+                            }
 
-                        return;
+                            return;
+                        }
                     }
                 }
             }
+
             debug!("Scheduler terminated")
         });
 

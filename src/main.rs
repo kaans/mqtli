@@ -99,7 +99,7 @@ async fn main() -> anyhow::Result<()> {
         filtered_subscriptions.clone(),
     );
 
-    start_connection_task(
+    start_scheduler_task(
         scheduler,
         sender_receive.clone(),
         sender_publish,
@@ -138,7 +138,7 @@ fn start_scheduler_monitor_task(
     });
 }
 
-fn start_connection_task(
+fn start_scheduler_task(
     scheduler: TriggerPeriodic,
     sender: Sender<MqttReceiveEvent>,
     sender_publish: Sender<MqttPublishEvent>,
