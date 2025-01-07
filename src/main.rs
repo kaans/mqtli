@@ -127,7 +127,7 @@ fn start_scheduler_monitor_task(
         match receiver_command.recv().await {
             Ok(Command::NoMoreTasksPending) => {
                 if filtered_subscriptions_command.is_empty() {
-                    debug!("No more pending tasks, disconnecting");
+                    debug!("No more pending tasks and no subscriptions, disconnecting from MQTT broker");
                     let _ = mqtt_service_publish.lock().await.disconnect().await;
                 }
             }

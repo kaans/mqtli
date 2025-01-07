@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use log::debug;
+use log::{debug, error};
 use tokio::sync::broadcast::Receiver as BroadcastReceiver;
 use tokio::sync::{broadcast, Mutex};
 use tokio::task::JoinHandle;
@@ -104,60 +104,47 @@ impl TriggerPeriodic {
         let topic = topic.to_owned();
 
         match count {
-            Some(1) => {
-                let job = Self::create_job_one_shot(
-                    &initial_delay,
-                    retain,
-                    qos,
-                    &payload,
-                    topic.as_ref(),
-                    self.sender_data.clone(),
-                )?;
-
-                scheduler.lock().await.add(job).await?;
-            }
             Some(count) => {
-                let job_initial = Self::create_job_one_shot(
-                    &initial_delay,
-                    retain,
-                    qos,
-                    &payload,
-                    topic.as_ref(),
-                    self.sender_data.clone(),
-                )
-                .expect("Could not create job");
-
-                scheduler
-                    .lock()
-                    .await
-                    .add(job_initial)
-                    .await
-                    .expect("Could not add job");
-
-                let sender_data = self.sender_data.clone();
-
-                task::spawn(async move {
-                    tokio::time::sleep(initial_delay).await;
-
-                    let job_repeated = Self::create_job_repeated_count(
-                        contexts,
-                        &interval,
+                if count > 0 {
+                    let job_initial = Self::create_job_one_shot(
+                        &initial_delay,
                         retain,
                         qos,
                         &payload,
                         topic.as_ref(),
-                        sender_data,
-                        count,
-                    )
-                    .expect("Could not create job");
+                        self.sender_data.clone(),
+                    )?;
 
-                    scheduler
-                        .lock()
-                        .await
-                        .add(job_repeated)
-                        .await
-                        .expect("Could not add job");
-                });
+                    scheduler.lock().await.add(job_initial).await?;
+
+                    if count > 1 {
+                        let sender_data = self.sender_data.clone();
+
+                        task::spawn(async move {
+                            tokio::time::sleep(initial_delay).await;
+
+                            let Ok(job_repeated) = Self::create_job_repeated_count(
+                                contexts,
+                                &interval,
+                                retain,
+                                qos,
+                                &payload,
+                                topic.as_ref(),
+                                sender_data,
+                                count - 1,
+                            ) else {
+                                error!("Error while scheduling repeated job");
+                                return;
+                            };
+
+                            if let Err(e) = scheduler.lock().await.add(job_repeated).await {
+                                error!("Error while adding repeated job to scheduler: {e:?}")
+                            };
+                        });
+                    }
+                } else {
+                    debug!("Not adding task to publish to topic {topic}, count is zero");
+                }
             }
             None => {
                 let job_initial = Self::create_job_one_shot(
@@ -167,42 +154,90 @@ impl TriggerPeriodic {
                     &payload,
                     topic.as_ref(),
                     self.sender_data.clone(),
-                )
-                .expect("Could not create job");
+                )?;
 
-                scheduler
-                    .lock()
-                    .await
-                    .add(job_initial)
-                    .await
-                    .expect("Could not add job");
+                scheduler.lock().await.add(job_initial).await?;
 
                 let sender_data = self.sender_data.clone();
 
                 task::spawn(async move {
                     tokio::time::sleep(initial_delay).await;
 
-                    let job_repeated = Self::create_job_repeated_forever(
+                    let Ok(job_repeated) = Self::create_job_repeated_forever(
                         &interval,
                         retain,
                         qos,
                         payload,
                         topic.as_ref(),
                         sender_data,
-                    )
-                    .expect("Could not create job");
+                    ) else {
+                        error!("Error while scheduling repeated job");
+                        return;
+                    };
 
-                    scheduler
-                        .lock()
-                        .await
-                        .add(job_repeated)
-                        .await
-                        .expect("Could not add job");
+                    if let Err(e) = scheduler.lock().await.add(job_repeated).await {
+                        error!("Error while adding repeated job to scheduler: {e:?}")
+                    };
                 });
             }
         };
 
         Ok(())
+    }
+
+    pub fn get_receiver_command(&self) -> broadcast::Receiver<Command> {
+        self.sender_command.subscribe()
+    }
+
+    pub async fn start(
+        &self,
+        receiver_exit: BroadcastReceiver<()>,
+    ) -> Result<JoinHandle<()>, TriggerError> {
+        let mut receiver = self.sender_data.subscribe();
+        let mut receiver_exit = receiver_exit;
+        let mqtt_service = self.mqtt_service.clone();
+        let scheduler = self.scheduler.clone();
+        let sender_command = self.sender_command.clone();
+
+        let task_handle = task::spawn(async move {
+            debug!("Starting scheduler");
+            loop {
+                select! {
+                    data = receiver.recv() => {
+                        if let Ok((topic, qos, retain, payload)) = data {
+                            mqtt_service
+                                .lock()
+                                .await
+                                .publish(MqttPublishEvent::new(topic, qos, retain, payload))
+                                .await;
+
+                            match scheduler.lock().await.time_till_next_job().await {
+                                Ok(value) => {
+                                    if value.is_none() {
+                                        debug!("No more pending tasks, exiting scheduler");
+                                        let _ = sender_command.send(Command::NoMoreTasksPending);
+                                        break;
+                                    }
+                                }
+                                Err(_) => break,
+                            }
+                        }
+                    },
+                    _ = receiver_exit.recv() => {
+                        if let Err(e) = scheduler.lock().await.shutdown().await {
+                            println!("Error while shutting down {e:?}");
+                        }
+
+                        return;
+                    }
+                }
+            }
+            debug!("Scheduler terminated")
+        });
+
+        self.scheduler.lock().await.start().await?;
+
+        Ok(task_handle)
     }
 
     fn create_job_one_shot(
@@ -298,60 +333,5 @@ impl TriggerPeriodic {
                 let _ = pc.clone().send(tx);
             })
         })
-    }
-
-    pub fn get_receiver_command(&self) -> broadcast::Receiver<Command> {
-        self.sender_command.subscribe()
-    }
-
-    pub async fn start(
-        &self,
-        receiver_exit: BroadcastReceiver<()>,
-    ) -> Result<JoinHandle<()>, TriggerError> {
-        let mut receiver = self.sender_data.subscribe();
-        let mut receiver_exit = receiver_exit;
-        let mqtt_service = self.mqtt_service.clone();
-        let scheduler = self.scheduler.clone();
-        let sender_command = self.sender_command.clone();
-
-        let task_handle = task::spawn(async move {
-            debug!("Starting scheduler");
-            loop {
-                select! {
-                    data = receiver.recv() => {
-                        if let Ok((topic, qos, retain, payload)) = data {
-                            mqtt_service
-                                .lock()
-                                .await
-                                .publish(MqttPublishEvent::new(topic, qos, retain, payload))
-                                .await;
-
-                            match scheduler.lock().await.time_till_next_job().await {
-                                Ok(value) => {
-                                    if value.is_none() {
-                                        debug!("No more pending tasks, exiting scheduler");
-                                        let _ = sender_command.send(Command::NoMoreTasksPending);
-                                        break;
-                                    }
-                                }
-                                Err(_) => break,
-                            }
-                        }
-                    },
-                    _ = receiver_exit.recv() => {
-                        if let Err(e) = scheduler.lock().await.shutdown().await {
-                            println!("Error while shutting down {e:?}");
-                        }
-
-                        return;
-                    }
-                }
-            }
-            debug!("Scheduler terminated")
-        });
-
-        self.scheduler.lock().await.start().await?;
-
-        Ok(task_handle)
     }
 }
