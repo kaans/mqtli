@@ -204,13 +204,13 @@ pub struct MqttBrokerConnectArgs {
         env = "BROKER_PROTOCOL",
         global = true,
         help_heading = "Broker",
-        help = "The protocol to use to communicate with the broker (default: tcp)"
+        help = "The protocol to use to communicate with the broker (tcp or websocket, default: tcp)"
     )]
     pub protocol: Option<MqttProtocol>,
 
     #[arg(
         short = 'i',
-        long = "client-id",
+        long = "id",
         env = "BROKER_CLIENT_ID",
         global = true,
         help_heading = "Broker",
@@ -219,20 +219,25 @@ pub struct MqttBrokerConnectArgs {
     pub client_id: Option<String>,
 
     #[arg(
-        short = 'v',
+        short = 'V',
         long = "mqtt-version",
         env = "BROKER_MQTT_VERSION",
         global = true,
         help_heading = "Broker",
-        help = "The MQTT version to use (default: v5)"
+        help = "The MQTT version to use (v5 or v311, default: v5)"
     )]
     pub mqtt_version: Option<MqttVersion>,
 
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_duration_seconds")]
-    #[arg(long = "keep-alive", env = "BROKER_KEEP_ALIVE", value_parser = parse_keep_alive,
+    #[arg(
+        short = 'k',
+        long = "keep-alive",
+        env = "BROKER_KEEP_ALIVE",
+        value_parser = parse_keep_alive,
         global = true,
-        help_heading = "Broker", help = "Keep alive time in seconds (default: 5 seconds)"
+        help_heading = "Broker",
+        help = "Keep alive time in seconds (default: 5 seconds)"
     )]
     pub keep_alive: Option<Duration>,
 
@@ -247,7 +252,7 @@ pub struct MqttBrokerConnectArgs {
     pub username: Option<String>,
 
     #[arg(
-        short = 'w',
+        short = 'P',
         long = "password",
         env = "BROKER_PASSWORD",
         global = true,
@@ -297,7 +302,7 @@ pub struct MqttBrokerConnectArgs {
         env = "BROKER_TLS_VERSION",
         global = true,
         help_heading = "TLS",
-        help = "TLS version to used (default: all)"
+        help = "TLS version to used (v12, v13 or all; default: all)"
     )]
     pub tls_version: Option<TlsVersion>,
 
@@ -393,8 +398,8 @@ impl MqttBrokerConnectArgs {
 pub struct LastWillConfigArgs {
     #[arg(
         id = "payload_lw",
-        long = "last-will-payload",
-        env = "BROKER_LAST_WILL_PAYLOAD",
+        long = "will-payload",
+        env = "BROKER_WILL_PAYLOAD",
         global = true,
         help_heading = "Last will",
         help = "The UTF-8 encoded payload of the will message (default: empty)"
@@ -403,8 +408,8 @@ pub struct LastWillConfigArgs {
 
     #[arg(
         id = "topic_lw",
-        long = "last-will-topic",
-        env = "BROKER_LAST_WILL_TOPIC",
+        long = "will-topic",
+        env = "BROKER_WILL_TOPIC",
         global = true,
         help_heading = "Last will",
         help = "The topic where the last will message will be published (default: empty)"
@@ -415,8 +420,8 @@ pub struct LastWillConfigArgs {
     #[serde(deserialize_with = "deserialize_qos_option")]
     #[arg(
         id = "qos_lw",
-        long = "last-will-qos",
-        env = "BROKER_LAST_WILL_QOS",
+        long = "will-qos",
+        env = "BROKER_WILL_QOS",
         global = true,
         value_parser = parse_qos,
         help_heading = "Last will",
@@ -426,8 +431,8 @@ pub struct LastWillConfigArgs {
 
     #[arg(
         id = "retain_lw",
-        long = "last-will-retain",
-        env = "BROKER_LAST_WILL_RETAIN",
+        long = "will-retain",
+        env = "BROKER_WILL_RETAIN",
         global = true,
         help_heading = "Last will",
         help = "If true, last will message will be retained, else not (default: false)"
