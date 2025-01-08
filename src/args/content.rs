@@ -6,7 +6,7 @@ use crate::args::parsers::parse_qos;
 use crate::args::ArgsError;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use derive_getters::Getters;
-use log::LevelFilter;
+use tracing::Level;
 use mqtlib::config::filter::FilterTypes;
 use mqtlib::config::mqtli_config::{
     LastWillConfig, LastWillConfigBuilder, Mode, MqtliConfig, MqtliConfigBuilder,
@@ -44,7 +44,7 @@ pub struct MqtliArgs {
         help_heading = "Logging",
         help = "Log level (default: info) (possible values: trace, debug, info, warn, error, off)"
     )]
-    pub log_level: Option<LevelFilter>,
+    pub log_level: Option<Level>,
 
     #[arg(
         short = 'c',

@@ -17,7 +17,7 @@ use std::sync::Arc;
 
 use crate::args::load_config;
 use anyhow::Context;
-use log::{debug, error, info, warn, LevelFilter};
+use log::{debug, error, info, warn};
 use mqtlib::config::mqtli_config::MqttVersion;
 use mqtlib::config::publish::PublishTriggerType::Periodic;
 use mqtlib::config::subscription::Subscription;
@@ -32,11 +32,13 @@ use mqtlib::publish::trigger_periodic::{Command, TriggerPeriodic};
 use mqtlib::publish::TriggerError;
 use rumqttc::v5::Incoming;
 use rumqttc::Incoming as IncomingV311;
-use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
 use tokio::sync::broadcast::{Receiver, Sender};
 use tokio::sync::{broadcast, Mutex};
 use tokio::task::JoinHandle;
 use tokio::{signal, task};
+use tracing::Level;
+use tracing_subscriber::fmt::SubscriberBuilder;
+use tracing_subscriber::util::{SubscriberInitExt, TryInitError};
 
 type ExitCommand = ();
 
@@ -44,7 +46,7 @@ type ExitCommand = ();
 async fn main() -> anyhow::Result<()> {
     let config = load_config()?;
 
-    init_logger(config.log_level());
+    init_logger(config.log_level)?;
 
     info!(
         "MQTli {} version {} starting",
@@ -290,15 +292,7 @@ async fn start_exit_task(sender: Sender<()>) {
     });
 }
 
-fn init_logger(filter: &LevelFilter) {
-    if TermLogger::init(
-        *filter,
-        Config::default(),
-        TerminalMode::Mixed,
-        ColorChoice::Auto,
-    )
-    .is_err()
-    {
-        panic!("Another logger was already configured, exiting")
-    }
+fn init_logger(level: Level) -> Result<(), TryInitError> {
+    let subscriber = SubscriberBuilder::default().with_max_level(level).finish();
+    subscriber.try_init()
 }

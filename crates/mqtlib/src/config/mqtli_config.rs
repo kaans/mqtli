@@ -1,11 +1,11 @@
 use derive_builder::Builder;
 use derive_getters::Getters;
-use log::LevelFilter;
 use serde::Deserialize;
 use std::borrow::Cow;
 use std::fmt::{Debug, Display, Formatter};
 use std::path::PathBuf;
 use std::time::Duration;
+use tracing::Level;
 use validator::{Validate, ValidationError};
 
 use crate::config::topic::Topic;
@@ -15,7 +15,7 @@ use crate::mqtt::QoS;
 pub struct MqtliConfig {
     #[validate(nested)]
     pub broker: MqttBrokerConnect,
-    pub log_level: LevelFilter,
+    pub log_level: Level,
     #[validate(nested)]
     pub topics: Vec<Topic>,
     pub mode: Mode,
@@ -37,7 +37,7 @@ impl Default for MqtliConfig {
     fn default() -> Self {
         Self {
             broker: Default::default(),
-            log_level: LevelFilter::Info,
+            log_level: Level::INFO,
             topics: vec![],
             mode: Default::default(),
         }

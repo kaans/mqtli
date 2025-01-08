@@ -1,10 +1,10 @@
-use log::LevelFilter;
 use mqtlib::config::deserialize_qos;
 use mqtlib::mqtt::QoS;
 use serde::de::{Error, Unexpected};
 use serde::{Deserialize, Deserializer};
 use std::str::FromStr;
 use std::time::Duration;
+use tracing::Level;
 
 pub fn deserialize_duration_seconds<'a, D>(deserializer: D) -> Result<Option<Duration>, D::Error>
 where
@@ -40,13 +40,13 @@ pub fn parse_qos(input: &str) -> Result<QoS, String> {
     Ok(qos)
 }
 
-pub fn deserialize_level_filter<'a, D>(deserializer: D) -> Result<Option<LevelFilter>, D::Error>
+pub fn deserialize_level_filter<'a, D>(deserializer: D) -> Result<Option<Level>, D::Error>
 where
     D: Deserializer<'a>,
 {
     let value: &str = Deserialize::deserialize(deserializer)?;
 
-    let level = match LevelFilter::from_str(value) {
+    let level = match Level::from_str(value) {
         Ok(level) => level,
         Err(_) => {
             return Err(Error::invalid_value(
