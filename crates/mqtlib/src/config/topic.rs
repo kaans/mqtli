@@ -17,7 +17,7 @@ pub struct Topic {
     #[serde(rename = "payload")]
     payload_type: PayloadType,
     #[validate(nested)]
-    publish: Option<Publish>,
+    pub publish: Option<Publish>,
 }
 
 impl Topic {

@@ -133,8 +133,9 @@ fn start_scheduler_monitor_task(
                     let _ = mqtt_service_publish.lock().await.disconnect().await;
                 }
             }
-            val => {
-                debug!("Received a command from scheduler but not handling it: {val:?}");
+            Err(e) => {
+                debug!("Received error from scheduler, disconnecting: {e:?}");
+                let _ = mqtt_service_publish.lock().await.disconnect().await;
             }
         }
     });

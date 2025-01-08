@@ -199,7 +199,10 @@ impl TriggerPeriodic {
         let scheduler = self.scheduler.clone();
         let sender_command = self.sender_command.clone();
 
-        async fn is_task_pending(scheduler: &Arc<Mutex<JobScheduler>>, sender_command: &broadcast::Sender<Command>) -> bool {
+        async fn is_task_pending(
+            scheduler: &Arc<Mutex<JobScheduler>>,
+            sender_command: &broadcast::Sender<Command>,
+        ) -> bool {
             match scheduler.lock().await.time_till_next_job().await {
                 Ok(value) => {
                     if value.is_none() {
@@ -207,7 +210,7 @@ impl TriggerPeriodic {
                         let _ = sender_command.send(Command::NoMoreTasksPending);
                     }
 
-                    !value.is_none()
+                    value.is_some()
                 }
                 Err(_) => false,
             }
@@ -215,6 +218,8 @@ impl TriggerPeriodic {
 
         let task_handle = task::spawn(async move {
             debug!("Starting scheduler");
+
+            tokio::time::sleep(Duration::from_millis(100)).await;
 
             if is_task_pending(&scheduler, &sender_command).await {
                 loop {
@@ -230,6 +235,8 @@ impl TriggerPeriodic {
                                 if !is_task_pending(&scheduler, &sender_command).await {
                                     break
                                 };
+                            } else {
+                                break;
                             }
                         },
                         _ = receiver_exit.recv() => {

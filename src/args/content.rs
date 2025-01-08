@@ -6,7 +6,6 @@ use crate::args::parsers::parse_qos;
 use crate::args::ArgsError;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use derive_getters::Getters;
-use tracing::Level;
 use mqtlib::config::filter::FilterTypes;
 use mqtlib::config::mqtli_config::{
     LastWillConfig, LastWillConfigBuilder, Mode, MqtliConfig, MqtliConfigBuilder,
@@ -19,6 +18,7 @@ use mqtlib::mqtt::QoS;
 use serde::Deserialize;
 use std::path::PathBuf;
 use std::time::Duration;
+use tracing::Level;
 
 #[derive(Debug, Deserialize, Parser)]
 #[command(author, version, about, long_about = None)]
