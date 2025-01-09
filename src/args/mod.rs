@@ -1,5 +1,6 @@
 pub mod content;
 mod parsers;
+mod command;
 
 use crate::args::content::{Command, MqtliArgs};
 use clap::Parser;

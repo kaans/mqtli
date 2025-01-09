@@ -19,6 +19,7 @@ use serde::Deserialize;
 use std::path::PathBuf;
 use std::time::Duration;
 use tracing::Level;
+use crate::args::command::publish::Command;
 
 #[derive(Debug, Deserialize, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -133,48 +134,6 @@ impl MqtliArgs {
 
         Ok(result)
     }
-}
-
-#[derive(Debug, Deserialize, Subcommand)]
-pub enum Command {
-    #[command(name = "pub")]
-    Publish(CommandPublish),
-}
-
-#[derive(Args, Debug, Default, Deserialize, Getters)]
-pub struct CommandPublish {
-    #[arg(
-        short = 't',
-        long = "topic",
-        env = "PUBLISH_TOPIC",
-        help_heading = "Publish",
-        help = "Topic to publish"
-    )]
-    topic: String,
-
-    #[arg(short = 'q', long = "qos", env = "PUBLISH_QOS", value_parser = parse_qos,
-    help_heading = "Publish",
-    help = "Quality of Service (default: 0) (possible values: 0 = at most once; 1 = at least once; 2 = exactly once)"
-    )]
-    qos: Option<QoS>,
-
-    #[arg(
-        short = 'r',
-        long = "retain",
-        env = "PUBLISH_RETAIN",
-        help_heading = "Publish",
-        help = "If specified, the message is sent with the retain flag"
-    )]
-    retain: bool,
-
-    #[arg(
-        short = 'm',
-        long = "message",
-        env = "PUBLISH_MESSAGE",
-        help_heading = "Publish",
-        help = "Message to publish"
-    )]
-    message: String,
 }
 
 #[derive(Args, Debug, Default, Deserialize, Getters)]
