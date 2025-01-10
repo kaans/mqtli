@@ -1,8 +1,9 @@
+mod command;
 pub mod content;
 mod parsers;
-mod command;
 
-use crate::args::content::{Command, MqtliArgs};
+use crate::args::command::publish::Command;
+use crate::args::content::MqtliArgs;
 use clap::Parser;
 use mqtlib::config::mqtli_config::MqtliConfigBuilderError;
 use mqtlib::config::mqtli_config::{
@@ -47,7 +48,10 @@ pub fn load_config() -> Result<MqtliConfig, ArgsError> {
     };
 
     match read_config_from_file(&config_file_path) {
-        Ok(config_from_file) => {
+        Ok(mut config_from_file) => {
+            if args.command.is_some() {
+                config_from_file.topics.clear();
+            }
             config = config_from_file.merge(config)?;
         }
         Err(e) => match e {

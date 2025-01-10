@@ -116,7 +116,7 @@ impl Default for PublishTriggerType {
     }
 }
 
-fn deserialize_duration_milliseconds<'a, D>(deserializer: D) -> Result<Duration, D::Error>
+pub fn deserialize_duration_milliseconds<'a, D>(deserializer: D) -> Result<Duration, D::Error>
 where
     D: Deserializer<'a>,
 {

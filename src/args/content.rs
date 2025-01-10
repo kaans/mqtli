@@ -1,10 +1,11 @@
+use crate::args::command::publish::Command;
 use crate::args::parsers::deserialize_duration_seconds;
 use crate::args::parsers::deserialize_level_filter;
 use crate::args::parsers::deserialize_qos_option;
-use crate::args::parsers::parse_keep_alive;
+use crate::args::parsers::parse_duration_seconds;
 use crate::args::parsers::parse_qos;
 use crate::args::ArgsError;
-use clap::{Args, Parser, Subcommand, ValueEnum};
+use clap::{Args, Parser, ValueEnum};
 use derive_getters::Getters;
 use mqtlib::config::filter::FilterTypes;
 use mqtlib::config::mqtli_config::{
@@ -19,7 +20,6 @@ use serde::Deserialize;
 use std::path::PathBuf;
 use std::time::Duration;
 use tracing::Level;
-use crate::args::command::publish::Command;
 
 #[derive(Debug, Deserialize, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -62,6 +62,7 @@ pub struct MqtliArgs {
     pub topics: Vec<Topic>,
 
     #[clap(subcommand)]
+    #[serde(skip_serializing)]
     pub command: Option<Command>,
 }
 
@@ -79,10 +80,14 @@ impl MqtliArgs {
         });
 
         match self.command {
-            None => builder.mode(Mode::MultiTopic),
-            Some(command) => match command {
-                Command::Publish(_) => builder.mode(Mode::Publish),
-            },
+            None => {
+                builder.mode(Mode::MultiTopic);
+            }
+            Some(command) => {
+                match command {
+                    Command::Publish(_) => builder.mode(Mode::Publish),
+                };
+            }
         };
 
         builder.topics(
@@ -104,8 +109,8 @@ impl MqtliArgs {
             match command {
                 Command::Publish(publish_command) => {
                     let trigger = PublishTriggerType::Periodic(PublishTriggerTypePeriodic::new(
-                        Duration::from_secs(1),
-                        Some(1),
+                        publish_command.interval.unwrap_or(Duration::from_secs(1)),
+                        publish_command.count.or(Some(1)),
                         Duration::from_secs(0),
                     ));
 
@@ -193,7 +198,7 @@ pub struct MqttBrokerConnectArgs {
         short = 'k',
         long = "keep-alive",
         env = "BROKER_KEEP_ALIVE",
-        value_parser = parse_keep_alive,
+        value_parser = parse_duration_seconds,
         global = true,
         help_heading = "Broker",
         help = "Keep alive time in seconds (default: 5 seconds)"

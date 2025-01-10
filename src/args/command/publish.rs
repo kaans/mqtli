@@ -1,15 +1,18 @@
+use crate::args::parsers::parse_duration_milliseconds;
+use crate::args::parsers::parse_qos;
 use clap::{Args, Subcommand};
 use derive_getters::Getters;
 use mqtlib::mqtt::QoS;
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
+use std::time::Duration;
 
-#[derive(Debug, Deserialize, Subcommand)]
+#[derive(Clone, Debug, Deserialize, Subcommand)]
 pub enum Command {
     #[command(name = "pub")]
     Publish(CommandPublish),
 }
 
-#[derive(Args, Debug, Default, Deserialize, Getters)]
+#[derive(Args, Clone, Debug, Default, Deserialize, Getters)]
 pub struct CommandPublish {
     #[arg(
         short = 't',
@@ -43,6 +46,35 @@ pub struct CommandPublish {
         help = "Message to publish"
     )]
     pub message: String,
+
+    #[arg(
+        long = "interval",
+        env = "PUBLISH_INTERVAL",
+        value_parser = parse_duration_milliseconds,
+        help_heading = "Publish",
+        help = "Interval in milliseconds between two messages"
+    )]
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_duration_milliseconds_from_option")]
+    pub interval: Option<Duration>,
+
+    #[arg(
+        long = "repeat",
+        env = "PUBLISH_REPEAT",
+        help_heading = "Publish",
+        help = "Repeat sending the message"
+    )]
+    pub count: Option<u32>,
+}
+
+fn deserialize_duration_milliseconds_from_option<'a, D>(
+    deserializer: D,
+) -> Result<Option<Duration>, D::Error>
+where
+    D: Deserializer<'a>,
+{
+    let value: Option<u64> = Deserialize::deserialize(deserializer)?;
+    Ok(value.map(Duration::from_millis))
 }
 
 #[cfg(test)]
