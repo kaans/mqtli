@@ -142,7 +142,9 @@ mod tests {
         match result.command.unwrap() {
             Command::Publish(value) => {
                 assert_eq!(value.topic, "TOPIC");
-                assert_eq!(value.message.message.unwrap(), "MESSAGE to send");
+                assert!(value.message.null_message);
+                assert!(value.message.message.is_none());
+                assert!(value.message.file.is_none());
             }
         }
     }
