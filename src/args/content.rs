@@ -118,7 +118,15 @@ impl MqtliArgs {
                         content: if publish_command.message.null_message {
                             None
                         } else if publish_command.message.message.is_some() {
-                            publish_command.message.message.clone()
+                            Some(
+                                publish_command
+                                    .message
+                                    .clone()
+                                    .message
+                                    .unwrap()
+                                    .to_vec()
+                                    .clone(),
+                            )
                         } else {
                             None
                         },

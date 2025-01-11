@@ -1,5 +1,6 @@
 use crate::args::parsers::parse_duration_milliseconds;
 use crate::args::parsers::parse_qos;
+use crate::args::parsers::parse_string_as_vec;
 use clap::{Args, Subcommand};
 use derive_getters::Getters;
 use mqtlib::config::{PayloadType, PublishInputType};
@@ -25,7 +26,8 @@ pub struct CommandPublish {
     )]
     pub topic: String,
 
-    #[arg(short = 'q', long = "qos", env = "PUBLISH_QOS", value_parser = parse_qos,
+    #[arg(short = 'q', long = "qos", env = "PUBLISH_QOS",
+    value_parser = parse_qos,
     help_heading = "Publish",
     help = "Quality of Service (default: 0) (possible values: 0 = at most once; 1 = at least once; 2 = exactly once)"
     )]
@@ -87,11 +89,13 @@ pub struct CommandPublishMessage {
         short = 'm',
         long = "message",
         env = "PUBLISH_MESSAGE",
+        value_parser = parse_string_as_vec,
         help_heading = "Publish",
         help = "Message to publish",
         group = "publish_message"
     )]
-    pub message: Option<String>,
+    #[allow(clippy::box_collection)]
+    pub message: Option<Box<Vec<u8>>>,
 
     #[arg(
         short = 'n',
@@ -112,6 +116,15 @@ pub struct CommandPublishMessage {
         group = "publish_message"
     )]
     pub file: Option<PathBuf>,
+
+    #[arg(
+        long = "stdin-single",
+        env = "PUBLISH_STDIN_ALL",
+        help_heading = "Publish",
+        help = "Read message from stdin and send content as a single message",
+        group = "publish_message"
+    )]
+    pub from_stdin_single: bool,
 }
 
 fn deserialize_duration_milliseconds_from_option<'a, D>(
@@ -168,7 +181,10 @@ mod tests {
         match result.command.unwrap() {
             Command::Publish(value) => {
                 assert_eq!(value.topic, "TOPIC");
-                assert_eq!(value.message.message.unwrap(), "MESSAGE to send");
+                assert_eq!(
+                    value.message.message.unwrap().to_vec(),
+                    "MESSAGE to send".as_bytes()
+                );
             }
         }
     }
@@ -195,7 +211,10 @@ mod tests {
         match result.command.unwrap() {
             Command::Publish(value) => {
                 assert_eq!(value.topic, "TOPIC");
-                assert_eq!(value.message.message.unwrap(), "MESSAGE to send");
+                assert_eq!(
+                    value.message.message.unwrap().to_vec(),
+                    "MESSAGE to send".as_bytes()
+                );
             }
         }
     }

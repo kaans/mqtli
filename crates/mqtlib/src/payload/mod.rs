@@ -274,7 +274,7 @@ fn read_input_type_content_path(
     input: &PublishInputTypeContentPath,
 ) -> Result<Vec<u8>, PayloadFormatError> {
     if let Some(content) = input.content() {
-        Ok(Vec::from(content.as_str()))
+        Ok(content.clone())
     } else if let Some(path) = input.path() {
         read_from_path(path)
     } else if input.path.is_none() && input.content.is_none() {

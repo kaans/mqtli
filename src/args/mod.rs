@@ -14,6 +14,7 @@ use mqtlib::config::topic::TopicBuilderError;
 use std::fmt::Debug;
 use std::fs::read_to_string;
 use std::io;
+use std::io::Read;
 use std::path::PathBuf;
 use thiserror::Error;
 use validator::{Validate, ValidationErrors};
@@ -36,10 +37,12 @@ pub enum ArgsError {
     CouldNotParseConfigFile(#[source] serde_yaml::Error, PathBuf),
     #[error("Invalid configuration")]
     InvalidConfiguration(#[source] ValidationErrors),
+    #[error("Error while reading data from stdin")]
+    StdInError(#[from] io::Error),
 }
 
 pub fn load_config() -> Result<MqtliConfig, ArgsError> {
-    let args = MqtliArgs::parse();
+    let mut args = MqtliArgs::parse();
     let mut config = MqtliConfig::default();
 
     let config_file_path = match &args.config_file {
@@ -65,12 +68,32 @@ pub fn load_config() -> Result<MqtliConfig, ArgsError> {
         },
     };
 
+    move_stdin_to_message(&mut args)?;
+
     config = args.merge(config)?;
 
     config
         .validate()
         .map(|_| config)
         .map_err(ArgsError::InvalidConfiguration)
+}
+
+fn move_stdin_to_message(args: &mut MqtliArgs) -> Result<(), io::Error> {
+    if let Some(ref mut command) = args.command {
+        match command {
+            Command::Publish(ref mut publish_command) => {
+                if publish_command.message.from_stdin_single {
+                    let stdin = io::stdin();
+                    let mut buf_from_stdin = Vec::new();
+                    stdin.lock().read_to_end(&mut buf_from_stdin)?;
+
+                    publish_command.message.message = Some(Box::new(buf_from_stdin));
+                }
+            }
+        }
+    }
+
+    Ok(())
 }
 
 fn read_config_from_file(buf: &PathBuf) -> Result<MqtliArgs, ArgsError> {

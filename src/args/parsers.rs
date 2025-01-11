@@ -48,6 +48,11 @@ pub fn parse_qos(input: &str) -> Result<QoS, String> {
     Ok(qos)
 }
 
+#[allow(clippy::box_collection)]
+pub fn parse_string_as_vec(input: &str) -> Result<Box<Vec<u8>>, String> {
+    Ok(Box::new(Vec::from(input)))
+}
+
 pub fn deserialize_level_filter<'a, D>(deserializer: D) -> Result<Option<Level>, D::Error>
 where
     D: Deserializer<'a>,

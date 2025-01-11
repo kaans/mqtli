@@ -1,11 +1,10 @@
-use std::borrow::Cow;
-use std::fmt::{Display, Formatter};
-use std::path::PathBuf;
-
 use crate::mqtt::QoS;
 use derive_getters::Getters;
 use serde::de::{Error, Unexpected};
 use serde::{Deserialize, Deserializer};
+use std::borrow::Cow;
+use std::fmt::{Display, Formatter};
+use std::path::PathBuf;
 use strum_macros::EnumString;
 use validator::{Validate, ValidationError, ValidationErrors};
 
@@ -109,7 +108,7 @@ pub enum PublishInputType {
     #[strum(serialize = "base64")]
     Base64(PublishInputTypeContentPath),
     #[serde(rename = "null")]
-    #[strum(disabled)]
+    #[strum(serialize = "null")]
     Null,
 }
 
@@ -147,8 +146,17 @@ impl Validate for PublishInputType {
 
 #[derive(Clone, Debug, Default, Deserialize, Getters)]
 pub struct PublishInputTypeContentPath {
-    pub content: Option<String>,
+    #[serde(deserialize_with = "parse_string_as_vec")]
+    pub content: Option<Vec<u8>>,
     pub path: Option<PathBuf>,
+}
+
+fn parse_string_as_vec<'de, D>(deserializer: D) -> Result<Option<Vec<u8>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value: String = Deserialize::deserialize(deserializer)?;
+    Ok(Some(value.into_bytes()))
 }
 
 impl Validate for PublishInputTypeContentPath {
