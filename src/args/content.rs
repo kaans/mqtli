@@ -114,7 +114,7 @@ impl MqtliArgs {
                         Duration::from_millis(1000),
                     ));
 
-                    let input = PublishInputTypeContentPath {
+                    let message_type = PublishInputTypeContentPath {
                         content: if publish_command.message.null_message {
                             None
                         } else if publish_command.message.message.is_some() {
@@ -129,19 +129,39 @@ impl MqtliArgs {
                         },
                     };
 
+                    let message_input_type = match &publish_command.message_type {
+                        None => PublishInputType::Text(message_type),
+                        Some(payload_type) => match payload_type {
+                            PublishInputType::Text(_) => PublishInputType::Text(message_type),
+                            PublishInputType::Raw(_) => PublishInputType::Raw(message_type.into()),
+                            PublishInputType::Hex(_) => PublishInputType::Hex(message_type),
+                            PublishInputType::Json(_) => PublishInputType::Json(message_type),
+                            PublishInputType::Yaml(_) => PublishInputType::Yaml(message_type),
+                            PublishInputType::Base64(_) => PublishInputType::Base64(message_type),
+                            PublishInputType::Null => {
+                                PublishInputType::Text(PublishInputTypeContentPath::default())
+                            }
+                        },
+                    };
+
+                    let topic_type = publish_command
+                        .topic_type
+                        .clone()
+                        .unwrap_or(PayloadType::Text);
+
                     let publish = PublishBuilder::default()
                         .qos(publish_command.qos.unwrap_or(QoS::AtLeastOnce))
                         .retain(publish_command.retain)
                         .enabled(true)
                         .trigger(vec![trigger])
-                        .input(PublishInputType::Text(input))
+                        .input(message_input_type)
                         .filters(FilterTypes::default())
                         .build()?;
                     let topic = TopicBuilder::default()
                         .topic(publish_command.topic.clone())
                         .publish(Some(publish))
                         .subscription(None)
-                        .payload_type(PayloadType::Text)
+                        .payload_type(topic_type)
                         .build()?;
 
                     result.push(topic);

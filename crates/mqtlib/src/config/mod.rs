@@ -6,6 +6,7 @@ use crate::mqtt::QoS;
 use derive_getters::Getters;
 use serde::de::{Error, Unexpected};
 use serde::{Deserialize, Deserializer};
+use strum_macros::EnumString;
 use validator::{Validate, ValidationError, ValidationErrors};
 
 pub mod filter;
@@ -14,25 +15,33 @@ pub mod publish;
 pub mod subscription;
 pub mod topic;
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, EnumString)]
 #[serde(tag = "type")]
 pub enum PayloadType {
     #[serde(rename = "text")]
+    #[strum(serialize = "text")]
     #[default]
     Text,
     #[serde(rename = "protobuf")]
+    #[strum(serialize = "protobuf")]
     Protobuf(PayloadProtobuf),
     #[serde(rename = "json")]
+    #[strum(serialize = "json")]
     Json,
     #[serde(rename = "yaml")]
+    #[strum(serialize = "yaml")]
     Yaml,
     #[serde(rename = "hex")]
+    #[strum(serialize = "hex")]
     Hex,
     #[serde(rename = "base64")]
+    #[strum(serialize = "base64")]
     Base64,
     #[serde(rename = "raw")]
+    #[strum(serialize = "raw")]
     Raw,
     #[serde(rename = "sparkplug")]
+    #[strum(serialize = "sparkplug")]
     Sparkplug,
 }
 
@@ -78,22 +87,29 @@ impl Display for PayloadProtobuf {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, strum_macros::Display)]
+#[derive(Clone, Debug, Deserialize, strum_macros::Display, EnumString)]
 #[serde(tag = "type")]
 pub enum PublishInputType {
     #[serde(rename = "text")]
+    #[strum(serialize = "text")]
     Text(PublishInputTypeContentPath),
     #[serde(rename = "raw")]
+    #[strum(serialize = "raw")]
     Raw(PublishInputTypePath),
     #[serde(rename = "hex")]
+    #[strum(serialize = "hex")]
     Hex(PublishInputTypeContentPath),
     #[serde(rename = "json")]
+    #[strum(serialize = "json")]
     Json(PublishInputTypeContentPath),
     #[serde(rename = "yaml")]
+    #[strum(serialize = "yaml")]
     Yaml(PublishInputTypeContentPath),
     #[serde(rename = "base64")]
+    #[strum(serialize = "base64")]
     Base64(PublishInputTypeContentPath),
     #[serde(rename = "null")]
+    #[strum(disabled)]
     Null,
 }
 
@@ -155,6 +171,14 @@ impl Validate for PublishInputTypeContentPath {
 #[derive(Clone, Debug, Default, Deserialize, Getters, Validate)]
 pub struct PublishInputTypePath {
     path: PathBuf,
+}
+
+impl From<PublishInputTypeContentPath> for PublishInputTypePath {
+    fn from(value: PublishInputTypeContentPath) -> Self {
+        Self {
+            path: value.path.unwrap(),
+        }
+    }
 }
 
 pub fn deserialize_qos<'a, D>(deserializer: D) -> Result<QoS, D::Error>

@@ -2,6 +2,7 @@ use crate::args::parsers::parse_duration_milliseconds;
 use crate::args::parsers::parse_qos;
 use clap::{Args, Subcommand};
 use derive_getters::Getters;
+use mqtlib::config::{PayloadType, PublishInputType};
 use mqtlib::mqtt::QoS;
 use serde::{Deserialize, Deserializer};
 use std::path::PathBuf;
@@ -38,6 +39,23 @@ pub struct CommandPublish {
         help = "If specified, the message is sent with the retain flag"
     )]
     pub retain: bool,
+
+    #[arg(
+        long = "message-type",
+        env = "PUBLISH_MESSAGE_TYPE",
+        help_heading = "Publish",
+        help = "Payload type of the message"
+    )]
+    pub message_type: Option<PublishInputType>,
+
+    #[arg(
+        short = 'y',
+        long = "topic-type",
+        env = "PUBLISH_TOPIC_TYPE",
+        help_heading = "Publish",
+        help = "Payload type of the topic"
+    )]
+    pub topic_type: Option<PayloadType>,
 
     #[command(flatten)]
     pub message: CommandPublishMessage,
