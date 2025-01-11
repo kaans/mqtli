@@ -114,23 +114,27 @@ impl MqtliArgs {
                         Duration::from_millis(1000),
                     ));
 
-                    let input = PublishInputType::Text(PublishInputTypeContentPath {
+                    let input = PublishInputTypeContentPath {
                         content: if publish_command.message.null_message {
                             None
                         } else if publish_command.message.message.is_some() {
                             publish_command.message.message.clone()
                         } else {
-                            return Err(ArgsError::MissingMessage());
+                            None
                         },
-                        path: None,
-                    });
+                        path: if publish_command.message.file.is_some() {
+                            publish_command.message.file.clone()
+                        } else {
+                            None
+                        },
+                    };
 
                     let publish = PublishBuilder::default()
                         .qos(publish_command.qos.unwrap_or(QoS::AtLeastOnce))
                         .retain(publish_command.retain)
                         .enabled(true)
                         .trigger(vec![trigger])
-                        .input(input)
+                        .input(PublishInputType::Text(input))
                         .filters(FilterTypes::default())
                         .build()?;
                     let topic = TopicBuilder::default()

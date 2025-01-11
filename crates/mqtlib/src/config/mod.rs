@@ -124,9 +124,7 @@ impl Validate for PublishInputType {
             PublishInputType::Base64(value) => {
                 ValidationErrors::merge(Ok(()), "Base64", value.validate())
             }
-            PublishInputType::Null => {
-                ValidationErrors::merge(Ok(()), "Null", Ok(()))
-            }
+            PublishInputType::Null => ValidationErrors::merge(Ok(()), "Null", Ok(())),
         }
     }
 }
@@ -141,8 +139,7 @@ impl Validate for PublishInputTypeContentPath {
     fn validate(&self) -> Result<(), ValidationErrors> {
         let mut err = ValidationError::new("invalid_publish_input");
 
-        if self.path.is_some() && self.content.is_some()
-        {
+        if self.path.is_some() && self.content.is_some() {
             err.message = Some(Cow::from(
                 "Exactly one of path or content must be given for publish input, or none for a null message",
             ));

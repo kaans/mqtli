@@ -4,6 +4,7 @@ use clap::{Args, Subcommand};
 use derive_getters::Getters;
 use mqtlib::mqtt::QoS;
 use serde::{Deserialize, Deserializer};
+use std::path::PathBuf;
 use std::time::Duration;
 
 #[derive(Clone, Debug, Deserialize, Subcommand)]
@@ -83,6 +84,16 @@ pub struct CommandPublishMessage {
         group = "publish_message"
     )]
     pub null_message: bool,
+
+    #[arg(
+        short = 'f',
+        long = "file",
+        env = "PUBLISH_FILE",
+        help_heading = "Publish",
+        help = "Loads a message from a file",
+        group = "publish_message"
+    )]
+    pub file: Option<PathBuf>,
 }
 
 fn deserialize_duration_milliseconds_from_option<'a, D>(
@@ -103,13 +114,7 @@ mod tests {
 
     #[test]
     fn null() {
-        let args = [
-            "mqtli",
-            "pub",
-            "--topic",
-            "TOPIC",
-            "--null-message",
-        ];
+        let args = ["mqtli", "pub", "--topic", "TOPIC", "--null-message"];
         let result = MqtliArgs::try_parse_from(args);
 
         assert!(result.is_ok());
@@ -123,7 +128,6 @@ mod tests {
             }
         }
     }
-
 
     #[test]
     fn minimal() {
