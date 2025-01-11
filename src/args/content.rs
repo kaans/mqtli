@@ -70,7 +70,7 @@ impl MqtliArgs {
     pub fn merge(self, other: MqtliConfig) -> Result<MqtliConfig, ArgsError> {
         let mut builder = MqtliConfigBuilder::default();
 
-        let command_topics = self.extract_topics()?;
+        let command_topics = self.extract_topics_from_commands()?;
 
         builder.broker(self.broker.merge(other.broker)?);
 
@@ -102,7 +102,7 @@ impl MqtliArgs {
         builder.build().map_err(ArgsError::from)
     }
 
-    fn extract_topics(&self) -> Result<Vec<Topic>, ArgsError> {
+    fn extract_topics_from_commands(&self) -> Result<Vec<Topic>, ArgsError> {
         let mut result = Vec::new();
 
         if let Some(command) = self.command.as_ref() {
@@ -111,18 +111,26 @@ impl MqtliArgs {
                     let trigger = PublishTriggerType::Periodic(PublishTriggerTypePeriodic::new(
                         publish_command.interval.unwrap_or(Duration::from_secs(1)),
                         publish_command.count.or(Some(1)),
-                        Duration::from_secs(0),
+                        Duration::from_millis(1000),
                     ));
+
+                    let input = PublishInputType::Text(PublishInputTypeContentPath {
+                        content: if publish_command.message.null_message {
+                            None
+                        } else if publish_command.message.message.is_some() {
+                            publish_command.message.message.clone()
+                        } else {
+                            return Err(ArgsError::MissingMessage());
+                        },
+                        path: None,
+                    });
 
                     let publish = PublishBuilder::default()
                         .qos(publish_command.qos.unwrap_or(QoS::AtLeastOnce))
                         .retain(publish_command.retain)
                         .enabled(true)
                         .trigger(vec![trigger])
-                        .input(PublishInputType::Text(PublishInputTypeContentPath {
-                            content: Some(publish_command.message.to_string()),
-                            path: None,
-                        }))
+                        .input(input)
                         .filters(FilterTypes::default())
                         .build()?;
                     let topic = TopicBuilder::default()

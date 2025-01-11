@@ -36,6 +36,8 @@ pub enum ArgsError {
     CouldNotParseConfigFile(#[source] serde_yaml::Error, PathBuf),
     #[error("Invalid configuration")]
     InvalidConfiguration(#[source] ValidationErrors),
+    #[error("Message must be specified")]
+    MissingMessage(),
 }
 
 pub fn load_config() -> Result<MqtliConfig, ArgsError> {

@@ -38,14 +38,8 @@ pub struct CommandPublish {
     )]
     pub retain: bool,
 
-    #[arg(
-        short = 'm',
-        long = "message",
-        env = "PUBLISH_MESSAGE",
-        help_heading = "Publish",
-        help = "Message to publish"
-    )]
-    pub message: String,
+    #[command(flatten)]
+    pub message: CommandPublishMessage,
 
     #[arg(
         long = "interval",
@@ -67,6 +61,30 @@ pub struct CommandPublish {
     pub count: Option<u32>,
 }
 
+#[derive(Args, Clone, Debug, Default, Deserialize, Getters)]
+#[group(required = true, multiple = false)]
+pub struct CommandPublishMessage {
+    #[arg(
+        short = 'm',
+        long = "message",
+        env = "PUBLISH_MESSAGE",
+        help_heading = "Publish",
+        help = "Message to publish",
+        group = "publish_message"
+    )]
+    pub message: Option<String>,
+
+    #[arg(
+        short = 'n',
+        long = "null-message",
+        env = "PUBLISH_NULL_MESSAGE",
+        help_heading = "Publish",
+        help = "Sends a null (empty) message",
+        group = "publish_message"
+    )]
+    pub null_message: bool,
+}
+
 fn deserialize_duration_milliseconds_from_option<'a, D>(
     deserializer: D,
 ) -> Result<Option<Duration>, D::Error>
@@ -82,6 +100,30 @@ mod tests {
     use crate::args::command::publish::Command;
     use crate::args::content::MqtliArgs;
     use clap::Parser;
+
+    #[test]
+    fn null() {
+        let args = [
+            "mqtli",
+            "pub",
+            "--topic",
+            "TOPIC",
+            "--null-message",
+        ];
+        let result = MqtliArgs::try_parse_from(args);
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert!(result.command.is_some());
+
+        match result.command.unwrap() {
+            Command::Publish(value) => {
+                assert_eq!(value.topic, "TOPIC");
+                assert_eq!(value.message.message.unwrap(), "MESSAGE to send");
+            }
+        }
+    }
+
 
     #[test]
     fn minimal() {
@@ -102,7 +144,7 @@ mod tests {
         match result.command.unwrap() {
             Command::Publish(value) => {
                 assert_eq!(value.topic, "TOPIC");
-                assert_eq!(value.message, "MESSAGE to send");
+                assert_eq!(value.message.message.unwrap(), "MESSAGE to send");
             }
         }
     }
@@ -129,7 +171,7 @@ mod tests {
         match result.command.unwrap() {
             Command::Publish(value) => {
                 assert_eq!(value.topic, "TOPIC");
-                assert_eq!(value.message, "MESSAGE to send");
+                assert_eq!(value.message.message.unwrap(), "MESSAGE to send");
             }
         }
     }

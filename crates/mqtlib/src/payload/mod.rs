@@ -263,6 +263,9 @@ impl TryFrom<&PublishInputType> for PayloadFormat {
                 let c = read_input_type_content_path(input)?;
                 PayloadFormat::Base64(PayloadFormatBase64::try_from(String::from_utf8(c)?)?)
             }
+            PublishInputType::Null => {
+                PayloadFormat::Text(PayloadFormatText::from(Vec::<u8>::new()))
+            }
         })
     }
 }
@@ -274,6 +277,8 @@ fn read_input_type_content_path(
         Ok(Vec::from(content.as_str()))
     } else if let Some(path) = input.path() {
         read_from_path(path)
+    } else if input.path.is_none() && input.content.is_none() {
+        Ok(Vec::new())
     } else {
         return Err(PayloadFormatError::EitherContentOrPathMustBeGiven);
     }

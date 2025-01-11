@@ -98,7 +98,7 @@ impl Default for PublishTriggerTypePeriodic {
         Self {
             interval: Duration::from_secs(1),
             count: None,
-            initial_delay: Duration::from_secs(0),
+            initial_delay: Duration::from_millis(1000),
         }
     }
 }
