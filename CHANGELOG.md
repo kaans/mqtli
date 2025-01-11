@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.10.0](https://github.com/kaans/mqtli/compare/v0.9.0...v0.10.0) (2025-01-11)
+
+
+### Features
+
+* add null message ([ce105a5](https://github.com/kaans/mqtli/commit/ce105a592d1b7aec2bee174c80f9521b88a87de3))
+* add option to read message from stdin ([38e99f4](https://github.com/kaans/mqtli/commit/38e99f46f9d79a5f74c422cc7dcfb7ebb51bf0e5))
+* add repeat for publish ([ac3dc6d](https://github.com/kaans/mqtli/commit/ac3dc6dbacaafc1459a91b59e02705a8b7a1d655))
+* add topic and message type args ([dcacf49](https://github.com/kaans/mqtli/commit/dcacf49b6995a0d45e43ba3a539f6286fef12956))
+* add topic and message type args ([47a4a7b](https://github.com/kaans/mqtli/commit/47a4a7b1c3c1c41b84f1e947c858dc3fc77e1f59))
+* load pub message from file ([456581e](https://github.com/kaans/mqtli/commit/456581e3c427a06b72cb8521212ed72e7281be56))
+
+
+### Bug Fixes
+
+* allow empty list of filters in config ([bb62d4e](https://github.com/kaans/mqtli/commit/bb62d4e8555cd94bbc3774028136c96cfb2d7fd4))
+* count was not correct when sending triggered messages ([0daf5b6](https://github.com/kaans/mqtli/commit/0daf5b67b23e0be1e3a5b9441962db5c94590b29))
+* exit program if publish tasks are empty ([7fc2fc6](https://github.com/kaans/mqtli/commit/7fc2fc6b873fff899c26a3679245b3f773f015b6))
+* exit scheduler if no tasks are planned at all ([ad960de](https://github.com/kaans/mqtli/commit/ad960de354a2b4afa0b0788f271c4fdcdd2bbd44))
+* exit scheduler if not more tasks are pending ([6181092](https://github.com/kaans/mqtli/commit/61810925f873e7168f6faa782d23afb09904a7d6))
+* make shared args global ([96afeed](https://github.com/kaans/mqtli/commit/96afeed63c5236b436cbad6fb9caa1702662a1cb))
+
 ## [0.9.0](https://github.com/kaans/mqtli/compare/v0.8.0...v0.9.0) (2025-01-03)
 
 
