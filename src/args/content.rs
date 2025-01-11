@@ -1,10 +1,11 @@
+use crate::args::command::publish::Command;
 use crate::args::parsers::deserialize_duration_seconds;
 use crate::args::parsers::deserialize_level_filter;
 use crate::args::parsers::deserialize_qos_option;
-use crate::args::parsers::parse_keep_alive;
+use crate::args::parsers::parse_duration_seconds;
 use crate::args::parsers::parse_qos;
 use crate::args::ArgsError;
-use clap::{Args, Parser, Subcommand, ValueEnum};
+use clap::{Args, Parser, ValueEnum};
 use derive_getters::Getters;
 use mqtlib::config::filter::FilterTypes;
 use mqtlib::config::mqtli_config::{
@@ -61,6 +62,7 @@ pub struct MqtliArgs {
     pub topics: Vec<Topic>,
 
     #[clap(subcommand)]
+    #[serde(skip_serializing)]
     pub command: Option<Command>,
 }
 
@@ -68,7 +70,7 @@ impl MqtliArgs {
     pub fn merge(self, other: MqtliConfig) -> Result<MqtliConfig, ArgsError> {
         let mut builder = MqtliConfigBuilder::default();
 
-        let command_topics = self.extract_topics()?;
+        let command_topics = self.extract_topics_from_commands()?;
 
         builder.broker(self.broker.merge(other.broker)?);
 
@@ -78,10 +80,14 @@ impl MqtliArgs {
         });
 
         match self.command {
-            None => builder.mode(Mode::MultiTopic),
-            Some(command) => match command {
-                Command::Publish(_) => builder.mode(Mode::Publish),
-            },
+            None => {
+                builder.mode(Mode::MultiTopic);
+            }
+            Some(command) => {
+                match command {
+                    Command::Publish(_) => builder.mode(Mode::Publish),
+                };
+            }
         };
 
         builder.topics(
@@ -96,34 +102,74 @@ impl MqtliArgs {
         builder.build().map_err(ArgsError::from)
     }
 
-    fn extract_topics(&self) -> Result<Vec<Topic>, ArgsError> {
+    fn extract_topics_from_commands(&self) -> Result<Vec<Topic>, ArgsError> {
         let mut result = Vec::new();
 
         if let Some(command) = self.command.as_ref() {
             match command {
                 Command::Publish(publish_command) => {
                     let trigger = PublishTriggerType::Periodic(PublishTriggerTypePeriodic::new(
-                        Duration::from_secs(1),
-                        Some(1),
-                        Duration::from_secs(0),
+                        publish_command.interval.unwrap_or(Duration::from_secs(1)),
+                        publish_command.count.or(Some(1)),
+                        Duration::from_millis(1000),
                     ));
+
+                    let message_type = PublishInputTypeContentPath {
+                        content: if publish_command.message.null_message {
+                            None
+                        } else if publish_command.message.message.is_some() {
+                            Some(
+                                publish_command
+                                    .message
+                                    .clone()
+                                    .message
+                                    .unwrap()
+                                    .to_vec()
+                                    .clone(),
+                            )
+                        } else {
+                            None
+                        },
+                        path: if publish_command.message.file.is_some() {
+                            publish_command.message.file.clone()
+                        } else {
+                            None
+                        },
+                    };
+
+                    let message_input_type = match &publish_command.message_type {
+                        None => PublishInputType::Text(message_type),
+                        Some(payload_type) => match payload_type {
+                            PublishInputType::Text(_) => PublishInputType::Text(message_type),
+                            PublishInputType::Raw(_) => PublishInputType::Raw(message_type.into()),
+                            PublishInputType::Hex(_) => PublishInputType::Hex(message_type),
+                            PublishInputType::Json(_) => PublishInputType::Json(message_type),
+                            PublishInputType::Yaml(_) => PublishInputType::Yaml(message_type),
+                            PublishInputType::Base64(_) => PublishInputType::Base64(message_type),
+                            PublishInputType::Null => {
+                                PublishInputType::Text(PublishInputTypeContentPath::default())
+                            }
+                        },
+                    };
+
+                    let topic_type = publish_command
+                        .topic_type
+                        .clone()
+                        .unwrap_or(PayloadType::Text);
 
                     let publish = PublishBuilder::default()
                         .qos(publish_command.qos.unwrap_or(QoS::AtLeastOnce))
                         .retain(publish_command.retain)
                         .enabled(true)
                         .trigger(vec![trigger])
-                        .input(PublishInputType::Text(PublishInputTypeContentPath {
-                            content: Some(publish_command.message.to_string()),
-                            path: None,
-                        }))
+                        .input(message_input_type)
                         .filters(FilterTypes::default())
                         .build()?;
                     let topic = TopicBuilder::default()
                         .topic(publish_command.topic.clone())
                         .publish(Some(publish))
                         .subscription(None)
-                        .payload_type(PayloadType::Text)
+                        .payload_type(topic_type)
                         .build()?;
 
                     result.push(topic);
@@ -133,48 +179,6 @@ impl MqtliArgs {
 
         Ok(result)
     }
-}
-
-#[derive(Debug, Deserialize, Subcommand)]
-pub enum Command {
-    #[command(name = "pub")]
-    Publish(CommandPublish),
-}
-
-#[derive(Args, Debug, Default, Deserialize, Getters)]
-pub struct CommandPublish {
-    #[arg(
-        short = 't',
-        long = "topic",
-        env = "PUBLISH_TOPIC",
-        help_heading = "Publish",
-        help = "Topic to publish"
-    )]
-    topic: String,
-
-    #[arg(short = 'q', long = "qos", env = "PUBLISH_QOS", value_parser = parse_qos,
-    help_heading = "Publish",
-    help = "Quality of Service (default: 0) (possible values: 0 = at most once; 1 = at least once; 2 = exactly once)"
-    )]
-    qos: Option<QoS>,
-
-    #[arg(
-        short = 'r',
-        long = "retain",
-        env = "PUBLISH_RETAIN",
-        help_heading = "Publish",
-        help = "If specified, the message is sent with the retain flag"
-    )]
-    retain: bool,
-
-    #[arg(
-        short = 'm',
-        long = "message",
-        env = "PUBLISH_MESSAGE",
-        help_heading = "Publish",
-        help = "Message to publish"
-    )]
-    message: String,
 }
 
 #[derive(Args, Debug, Default, Deserialize, Getters)]
@@ -234,7 +238,7 @@ pub struct MqttBrokerConnectArgs {
         short = 'k',
         long = "keep-alive",
         env = "BROKER_KEEP_ALIVE",
-        value_parser = parse_keep_alive,
+        value_parser = parse_duration_seconds,
         global = true,
         help_heading = "Broker",
         help = "Keep alive time in seconds (default: 5 seconds)"

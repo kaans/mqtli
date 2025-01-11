@@ -21,12 +21,20 @@ where
     Ok(Some(deserialize_qos(deserializer)?))
 }
 
-pub fn parse_keep_alive(input: &str) -> Result<Duration, String> {
+pub fn parse_duration_seconds(input: &str) -> Result<Duration, String> {
     let duration_in_seconds: u64 = input
         .parse()
         .map_err(|_| format!("{input} is not a valid duration in seconds"))?;
 
     Ok(Duration::from_secs(duration_in_seconds))
+}
+
+pub fn parse_duration_milliseconds(input: &str) -> Result<Duration, String> {
+    let duration_in_milliseconds: u64 = input
+        .parse()
+        .map_err(|_| format!("{input} is not a valid duration in milliseconds"))?;
+
+    Ok(Duration::from_millis(duration_in_milliseconds))
 }
 
 pub fn parse_qos(input: &str) -> Result<QoS, String> {
@@ -38,6 +46,11 @@ pub fn parse_qos(input: &str) -> Result<QoS, String> {
     };
 
     Ok(qos)
+}
+
+#[allow(clippy::box_collection)]
+pub fn parse_string_as_vec(input: &str) -> Result<Box<Vec<u8>>, String> {
+    Ok(Box::new(Vec::from(input)))
 }
 
 pub fn deserialize_level_filter<'a, D>(deserializer: D) -> Result<Option<Level>, D::Error>

@@ -241,7 +241,7 @@ impl TriggerPeriodic {
                         },
                         _ = receiver_exit.recv() => {
                             if let Err(e) = scheduler.lock().await.shutdown().await {
-                                println!("Error while shutting down {e:?}");
+                                debug!("Error while shutting down, ignoring it {e:?}");
                             }
 
                             return;
