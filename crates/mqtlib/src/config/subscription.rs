@@ -16,6 +16,7 @@ pub struct Subscription {
     #[serde(deserialize_with = "deserialize_qos")]
     qos: QoS,
     outputs: Vec<Output>,
+    #[serde(default)]
     filters: FilterTypes,
 }
 
