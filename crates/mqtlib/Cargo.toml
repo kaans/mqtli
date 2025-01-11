@@ -12,26 +12,26 @@ path = "src/lib.rs"
 
 [dependencies]
 derive-getters = "0.5.0"
-log = "0.4.22"
+log = "0.4.24"
 rumqttc = { git = "https://github.com/bytebeamio/rumqtt.git", rev = "431be1b", features = ["websocket"] }
 serde = { version = "1.0.217", features = ["derive"] }
 serde_yaml = "0.9.30"
-thiserror = "2.0.9"
-tokio = { version = "1.42.0", features = ["macros", "rt", "rt-multi-thread", "sync", "signal"] }
+thiserror = "2.0.11"
+tokio = { version = "1.43.0", features = ["macros", "rt", "rt-multi-thread", "sync", "signal"] }
 validator = { version = "0.19.0", features = ["derive"] }
-serde_json = "1.0.134"
+serde_json = "1.0.135"
 base64 = "0.22.1"
 hex = "0.4.3"
 rustls-pemfile = "1.0.4"
 regex = "1.11.1"
 lazy_static = { version = "1.5.0", features = [] }
-async-trait = { version = "0.1.84", features = [] }
+async-trait = { version = "0.1.85", features = [] }
 protobuf = { version = "3.7.1", features = ["with-bytes"] }
 protobuf-parse = "3.7.1"
 protobuf-json-mapping = "3.7.1"
 tokio-cron-scheduler = { version = "0.13.0", features = [] }
-uuid = { version = "1.11.0", features = ["v4"] }
-colored = "2.2.0"
+uuid = { version = "1.11.1", features = ["v4"] }
+colored = "3.0.0"
 strum_macros = "0.26.4"
 jsonpath-rust = "0.7.5"
 derive_builder = "0.20.2"
