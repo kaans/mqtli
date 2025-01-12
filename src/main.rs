@@ -109,8 +109,7 @@ async fn main() -> anyhow::Result<()> {
     );
 
     let mut incoming_messages_handler = MqttHandler::new(topics.clone());
-    incoming_messages_handler
-        .start_task(sender_receive.subscribe(), sender_message.clone());
+    incoming_messages_handler.start_task(sender_receive.subscribe(), sender_message.clone());
 
     start_subscription_task(mqtt_service, sender_receive, filtered_subscriptions);
 

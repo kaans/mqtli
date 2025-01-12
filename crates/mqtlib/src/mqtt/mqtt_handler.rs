@@ -92,14 +92,18 @@ impl MqttHandler {
                     match result {
                         Ok(content) => match subscription.apply_filters(content) {
                             Ok(content) => content.iter().for_each(|content| {
-                                if let Ok(payload) = PayloadFormat::try_from((content.clone(), output.format())) {
+                                if let Ok(payload) =
+                                    PayloadFormat::try_from((content.clone(), output.format()))
+                                {
                                     if let Ok(payload) = payload.try_into() {
-                                        if let Err(_) = sender_message.send(MessageEvent::Received(MessageReceivedData {
-                                            topic: incoming_topic_str.into(),
-                                            qos,
-                                            retain,
-                                            payload,
-                                        })) {
+                                        if let Err(_) = sender_message.send(MessageEvent::Received(
+                                            MessageReceivedData {
+                                                topic: incoming_topic_str.into(),
+                                                qos,
+                                                retain,
+                                                payload,
+                                            },
+                                        )) {
                                             //ignore, no receiver is listening
                                         }
                                     } else {
