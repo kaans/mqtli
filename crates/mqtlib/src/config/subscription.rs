@@ -3,13 +3,14 @@ use crate::config::filter::{FilterError, FilterTypes};
 use crate::config::PayloadType;
 use crate::mqtt::QoS;
 use crate::payload::PayloadFormat;
+use derive_builder::Builder;
 use derive_getters::Getters;
 use serde::Deserialize;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use validator::Validate;
 
-#[derive(Clone, Debug, Deserialize, Getters, PartialEq, Validate)]
+#[derive(Builder, Clone, Debug, Deserialize, Getters, PartialEq, Validate)]
 pub struct Subscription {
     enabled: bool,
     #[serde(default)]
@@ -52,9 +53,9 @@ impl Default for Subscription {
 
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq, Validate)]
 pub struct Output {
-    format: PayloadType,
+    pub format: PayloadType,
     #[serde(default)]
-    target: OutputTarget,
+    pub target: OutputTarget,
 }
 
 impl Display for Output {
@@ -88,21 +89,21 @@ pub struct OutputTargetConsole {}
 
 #[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq, Validate)]
 pub struct OutputTargetTopic {
-    topic: String,
+    pub topic: String,
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_qos")]
-    qos: QoS,
+    pub qos: QoS,
     #[serde(default)]
-    retain: bool,
+    pub retain: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Getters, PartialEq, Validate)]
 pub struct OutputTargetFile {
-    path: PathBuf,
+    pub path: PathBuf,
     #[serde(default)]
-    overwrite: bool,
-    prepend: Option<String>,
-    append: Option<String>,
+    pub overwrite: bool,
+    pub prepend: Option<String>,
+    pub append: Option<String>,
 }
 
 impl Default for OutputTargetFile {

@@ -3,14 +3,14 @@ mod command;
 pub mod content;
 mod parsers;
 
-use crate::args::command::publish::Command;
-use crate::args::content::MqtliArgs;
+use crate::args::content::{Command, MqtliArgs};
 use clap::Parser;
 use mqtlib::config::mqtli_config::MqtliConfigBuilderError;
 use mqtlib::config::mqtli_config::{
     LastWillConfigBuilderError, MqtliConfig, MqttBrokerConnectBuilderError,
 };
 use mqtlib::config::publish::PublishBuilderError;
+use mqtlib::config::subscription::SubscriptionBuilderError;
 use mqtlib::config::topic::TopicBuilderError;
 use std::fmt::Debug;
 use std::fs::read_to_string;
@@ -32,6 +32,8 @@ pub enum ArgsError {
     TopicConfig(#[from] TopicBuilderError),
     #[error("Error while parsing publish args")]
     PublishConfig(#[from] PublishBuilderError),
+    #[error("Error while parsing subscription args")]
+    SubscriptionConfig(#[from] SubscriptionBuilderError),
     #[error("Could not read config file \"{1}\"")]
     CouldNotReadConfigFile(#[source] io::Error, PathBuf),
     #[error("Could not parse config file \"{1}\"")]
@@ -60,9 +62,7 @@ pub fn load_config() -> Result<MqtliConfig, ArgsError> {
         }
         Err(e) => match e {
             ArgsError::CouldNotReadConfigFile(_, _) => match args.command.as_ref() {
-                Some(command) => match command {
-                    Command::Publish(_) => {}
-                },
+                Some(_) => {}
                 _ => return Err(e),
             },
             _ => return Err(e),
@@ -80,17 +80,13 @@ pub fn load_config() -> Result<MqtliConfig, ArgsError> {
 }
 
 fn move_stdin_to_message(args: &mut MqtliArgs) -> Result<(), io::Error> {
-    if let Some(ref mut command) = args.command {
-        match command {
-            Command::Publish(ref mut publish_command) => {
-                if publish_command.message.from_stdin {
-                    let stdin = io::stdin();
-                    let mut buf_from_stdin = Vec::new();
-                    stdin.lock().read_to_end(&mut buf_from_stdin)?;
+    if let Some(Command::Publish(ref mut publish_command)) = args.command {
+        if publish_command.message.from_stdin {
+            let stdin = io::stdin();
+            let mut buf_from_stdin = Vec::new();
+            stdin.lock().read_to_end(&mut buf_from_stdin)?;
 
-                    publish_command.message.message = Some(Box::new(buf_from_stdin));
-                }
-            }
+            publish_command.message.message = Some(Box::new(buf_from_stdin));
         }
     }
 

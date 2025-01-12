@@ -1,21 +1,14 @@
 use crate::args::parsers::parse_duration_milliseconds;
 use crate::args::parsers::parse_qos;
 use crate::args::parsers::parse_string_as_vec;
-use clap::{Args, Subcommand};
+use clap::Args;
 use derive_getters::Getters;
 use mqtlib::config::{PayloadType, PublishInputType};
 use mqtlib::mqtt::QoS;
-use serde::{Deserialize, Deserializer};
 use std::path::PathBuf;
 use std::time::Duration;
 
-#[derive(Clone, Debug, Deserialize, Subcommand)]
-pub enum Command {
-    #[command(name = "pub")]
-    Publish(CommandPublish),
-}
-
-#[derive(Args, Clone, Debug, Default, Deserialize, Getters)]
+#[derive(Args, Clone, Debug, Default, Getters)]
 pub struct CommandPublish {
     #[arg(
         short = 't',
@@ -69,8 +62,6 @@ pub struct CommandPublish {
         help_heading = "Publish",
         help = "Interval in milliseconds between two messages"
     )]
-    #[serde(default)]
-    #[serde(deserialize_with = "deserialize_duration_milliseconds_from_option")]
     pub interval: Option<Duration>,
 
     #[arg(
@@ -82,7 +73,7 @@ pub struct CommandPublish {
     pub count: Option<u32>,
 }
 
-#[derive(Args, Clone, Debug, Default, Deserialize, Getters)]
+#[derive(Args, Clone, Debug, Default, Getters)]
 #[group(required = true, multiple = false)]
 pub struct CommandPublishMessage {
     #[arg(
@@ -128,20 +119,9 @@ pub struct CommandPublishMessage {
     pub from_stdin: bool,
 }
 
-fn deserialize_duration_milliseconds_from_option<'a, D>(
-    deserializer: D,
-) -> Result<Option<Duration>, D::Error>
-where
-    D: Deserializer<'a>,
-{
-    let value: Option<u64> = Deserialize::deserialize(deserializer)?;
-    Ok(value.map(Duration::from_millis))
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::args::command::publish::Command;
-    use crate::args::content::MqtliArgs;
+    use crate::args::content::{Command, MqtliArgs};
     use clap::Parser;
 
     #[test]
@@ -153,14 +133,12 @@ mod tests {
         let result = result.unwrap();
         assert!(result.command.is_some());
 
-        match result.command.unwrap() {
-            Command::Publish(value) => {
-                assert_eq!(value.topic, "TOPIC");
-                assert!(value.message.null_message);
-                assert!(!value.message.from_stdin);
-                assert!(value.message.message.is_none());
-                assert!(value.message.file.is_none());
-            }
+        if let Command::Publish(value) = result.command.unwrap() {
+            assert_eq!(value.topic, "TOPIC");
+            assert!(value.message.null_message);
+            assert!(!value.message.from_stdin);
+            assert!(value.message.message.is_none());
+            assert!(value.message.file.is_none());
         }
     }
 
@@ -173,14 +151,12 @@ mod tests {
         let result = result.unwrap();
         assert!(result.command.is_some());
 
-        match result.command.unwrap() {
-            Command::Publish(value) => {
-                assert_eq!(value.topic, "TOPIC");
-                assert!(!value.message.null_message);
-                assert!(!value.message.from_stdin);
-                assert!(value.message.message.is_none());
-                assert!(value.message.file.is_some());
-            }
+        if let Command::Publish(value) = result.command.unwrap() {
+            assert_eq!(value.topic, "TOPIC");
+            assert!(!value.message.null_message);
+            assert!(!value.message.from_stdin);
+            assert!(value.message.message.is_none());
+            assert!(value.message.file.is_some());
         }
     }
 
@@ -193,14 +169,12 @@ mod tests {
         let result = result.unwrap();
         assert!(result.command.is_some());
 
-        match result.command.unwrap() {
-            Command::Publish(value) => {
-                assert_eq!(value.topic, "TOPIC");
-                assert!(!value.message.null_message);
-                assert!(value.message.from_stdin);
-                assert!(value.message.message.is_none());
-                assert!(value.message.file.is_none());
-            }
+        if let Command::Publish(value) = result.command.unwrap() {
+            assert_eq!(value.topic, "TOPIC");
+            assert!(!value.message.null_message);
+            assert!(value.message.from_stdin);
+            assert!(value.message.message.is_none());
+            assert!(value.message.file.is_none());
         }
     }
 
@@ -247,14 +221,12 @@ mod tests {
         let result = result.unwrap();
         assert!(result.command.is_some());
 
-        match result.command.unwrap() {
-            Command::Publish(value) => {
-                assert_eq!(value.topic, "TOPIC");
-                assert_eq!(
-                    value.message.message.unwrap().to_vec(),
-                    "MESSAGE to send".as_bytes()
-                );
-            }
+        if let Command::Publish(value) = result.command.unwrap() {
+            assert_eq!(value.topic, "TOPIC");
+            assert_eq!(
+                value.message.message.unwrap().to_vec(),
+                "MESSAGE to send".as_bytes()
+            );
         }
     }
 
@@ -275,16 +247,13 @@ mod tests {
 
         assert!(result.is_ok());
         let result = result.unwrap();
-        assert!(result.command.is_some());
 
-        match result.command.unwrap() {
-            Command::Publish(value) => {
-                assert_eq!(value.topic, "TOPIC");
-                assert_eq!(
-                    value.message.message.unwrap().to_vec(),
-                    "MESSAGE to send".as_bytes()
-                );
-            }
+        if let Command::Publish(value) = result.command.unwrap() {
+            assert_eq!(value.topic, "TOPIC");
+            assert_eq!(
+                value.message.message.unwrap().to_vec(),
+                "MESSAGE to send".as_bytes()
+            );
         }
     }
 
