@@ -11,7 +11,7 @@ use tokio::task::JoinHandle;
 
 use crate::config::mqtli_config::MqttBrokerConnect;
 use crate::mqtt::{
-    get_transport_parameters, MqttPublishEvent, MqttReceiveEvent, MqttService, MqttServiceError,
+    get_transport_parameters, MessagePublishData, MqttReceiveEvent, MqttService, MqttServiceError,
     QoS,
 };
 
@@ -150,7 +150,7 @@ impl MqttService for MqttServiceV311 {
         Ok(())
     }
 
-    async fn publish(&self, payload: MqttPublishEvent) {
+    async fn publish(&self, payload: MessagePublishData) {
         if let Some(client) = self.client.as_ref() {
             if let Err(e) = client
                 .publish(

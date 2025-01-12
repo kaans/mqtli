@@ -10,7 +10,7 @@ use tokio::{select, task};
 use tokio_cron_scheduler::{Job, JobScheduler, JobSchedulerError};
 use uuid::Uuid;
 
-use crate::mqtt::{MqttPublishEvent, MqttService, QoS};
+use crate::mqtt::{MessagePublishData, MqttService, QoS};
 use crate::publish::TriggerError;
 
 #[derive(Clone, Debug)]
@@ -229,7 +229,7 @@ impl TriggerPeriodic {
                                 mqtt_service
                                     .lock()
                                     .await
-                                    .publish(MqttPublishEvent::new(topic, qos, retain, payload))
+                                    .publish(MessagePublishData::new(topic, qos, retain, payload))
                                     .await;
 
                                 if !is_task_pending(&scheduler, &sender_command).await {

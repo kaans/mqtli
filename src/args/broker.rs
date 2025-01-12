@@ -147,7 +147,7 @@ pub struct MqttBrokerConnectArgs {
 }
 
 impl MqttBrokerConnectArgs {
-    pub(crate) fn merge(self, other: MqttBrokerConnect) -> Result<MqttBrokerConnect, ArgsError> {
+    pub fn merge(self, other: MqttBrokerConnect) -> Result<MqttBrokerConnect, ArgsError> {
         let mut builder = MqttBrokerConnectBuilder::default();
 
         builder.host(match &self.host {

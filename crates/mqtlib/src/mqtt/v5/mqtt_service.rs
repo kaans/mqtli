@@ -1,6 +1,6 @@
 use crate::config::mqtli_config::MqttBrokerConnect;
 use crate::mqtt::{
-    get_transport_parameters, MqttPublishEvent, MqttReceiveEvent, MqttService, MqttServiceError,
+    get_transport_parameters, MessagePublishData, MqttReceiveEvent, MqttService, MqttServiceError,
     QoS,
 };
 use async_trait::async_trait;
@@ -149,7 +149,7 @@ impl MqttService for MqttServiceV5 {
         Ok(())
     }
 
-    async fn publish(&self, payload: MqttPublishEvent) {
+    async fn publish(&self, payload: MessagePublishData) {
         if let Some(client) = self.client.as_ref() {
             if let Err(e) = client
                 .publish(

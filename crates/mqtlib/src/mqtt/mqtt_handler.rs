@@ -8,7 +8,7 @@ use tokio::task::JoinHandle;
 
 use crate::config::subscription::{Output, OutputTarget};
 use crate::config::topic::Topic;
-use crate::mqtt::{MqttPublishEvent, MqttReceiveEvent, QoS};
+use crate::mqtt::{MessageEvent, MessagePublishData, MessageReceivedData, MqttReceiveEvent, QoS};
 use crate::output::console::ConsoleOutput;
 use crate::output::file::FileOutput;
 use crate::output::OutputError;
@@ -30,13 +30,13 @@ impl MqttHandler {
     pub fn start_task(
         &mut self,
         mut receiver: Receiver<MqttReceiveEvent>,
-        sender_publish: Sender<MqttPublishEvent>,
+        sender_message: Sender<MessageEvent>,
     ) {
         let topics = self.topics.clone();
 
         self.task_handle = Some(task::spawn(async move {
             while let Ok(event) = receiver.recv().await {
-                MqttHandler::handle_event(event, &topics, &sender_publish);
+                MqttHandler::handle_event(event, &topics, &sender_message);
             }
         }));
     }
@@ -53,14 +53,14 @@ impl MqttHandler {
     pub fn handle_event(
         event: MqttReceiveEvent,
         topics: &[Topic],
-        sender_publish: &Sender<MqttPublishEvent>,
+        sender_message: &Sender<MessageEvent>,
     ) {
         match event {
             MqttReceiveEvent::V5(event) => {
-                v5::handle_event(event, topics, sender_publish);
+                v5::handle_event(event, topics, sender_message);
             }
             MqttReceiveEvent::V311(event) => {
-                v311::handle_event(event, topics, sender_publish);
+                v311::handle_event(event, topics, sender_message);
             }
         }
     }
@@ -72,7 +72,7 @@ impl MqttHandler {
         qos: QoS,
         retain: bool,
         _option: Option<PublishProperties>,
-        sender_publish: &Sender<MqttPublishEvent>,
+        sender_message: &Sender<MessageEvent>,
     ) {
         topics
             .iter()
@@ -92,13 +92,30 @@ impl MqttHandler {
                     match result {
                         Ok(content) => match subscription.apply_filters(content) {
                             Ok(content) => content.iter().for_each(|content| {
+                                if let Ok(payload) = PayloadFormat::try_from((content.clone(), output.format())) {
+                                    if let Ok(payload) = payload.try_into() {
+                                        if let Err(_) = sender_message.send(MessageEvent::Received(MessageReceivedData {
+                                            topic: incoming_topic_str.into(),
+                                            qos,
+                                            retain,
+                                            payload,
+                                        })) {
+                                            //ignore, no receiver is listening
+                                        }
+                                    } else {
+                                        error!("Could not convert payload");
+                                    }
+                                } else {
+                                    error!("Could not convert payload");
+                                }
+
                                 if let Err(e) = Self::forward_to_output(
                                     output,
                                     incoming_topic_str,
                                     content.clone(),
                                     qos,
                                     retain,
-                                    sender_publish,
+                                    sender_message,
                                 ) {
                                     error!("{}", e);
                                 }
@@ -121,7 +138,7 @@ impl MqttHandler {
         content: PayloadFormat,
         qos: QoS,
         retain: bool,
-        sender_publish: &Sender<MqttPublishEvent>,
+        sender_message: &Sender<MessageEvent>,
     ) -> Result<(), OutputError> {
         let conv = PayloadFormat::try_from((content, output.format()))?;
 
@@ -131,13 +148,13 @@ impl MqttHandler {
             }
             OutputTarget::File(file) => FileOutput::output(conv.try_into()?, file),
             OutputTarget::Topic(options) => {
-                sender_publish
-                    .send(MqttPublishEvent::new(
+                sender_message
+                    .send(MessageEvent::Publish(MessagePublishData::new(
                         options.topic().clone(),
                         *options.qos(),
                         *options.retain(),
                         conv.try_into()?,
-                    ))
+                    )))
                     .map_err(OutputError::SendError)?;
                 Ok(())
             }
@@ -151,7 +168,7 @@ impl MqttHandler {
 mod v5 {
     use crate::config::topic::Topic;
     use crate::mqtt::mqtt_handler::MqttHandler;
-    use crate::mqtt::{MqttPublishEvent, QoS};
+    use crate::mqtt::{MessageEvent, QoS};
     use log::info;
     use std::str::from_utf8;
     use tokio::sync::broadcast::Sender;
@@ -159,7 +176,7 @@ mod v5 {
     pub fn handle_event(
         event: rumqttc::v5::Event,
         topics: &[Topic],
-        sender_publish: &Sender<MqttPublishEvent>,
+        sender_message: &Sender<MessageEvent>,
     ) {
         match event {
             rumqttc::v5::Event::Incoming(event) => {
@@ -180,7 +197,7 @@ mod v5 {
                         qos,
                         value.retain,
                         value.properties,
-                        sender_publish,
+                        sender_message,
                     );
                 }
             }
@@ -192,7 +209,7 @@ mod v5 {
 mod v311 {
     use crate::config::topic::Topic;
     use crate::mqtt::mqtt_handler::MqttHandler;
-    use crate::mqtt::{MqttPublishEvent, QoS};
+    use crate::mqtt::{MessageEvent, QoS};
     use log::info;
     use std::str::from_utf8;
     use tokio::sync::broadcast::Sender;
@@ -200,7 +217,7 @@ mod v311 {
     pub fn handle_event(
         event: rumqttc::Event,
         topics: &[Topic],
-        sender_publish: &Sender<MqttPublishEvent>,
+        sender_message: &Sender<MessageEvent>,
     ) {
         match event {
             rumqttc::Event::Incoming(event) => {
@@ -221,7 +238,7 @@ mod v311 {
                         qos,
                         value.retain,
                         None,
-                        sender_publish,
+                        sender_message,
                     );
                 }
             }

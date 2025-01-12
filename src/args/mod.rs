@@ -1,4 +1,4 @@
-mod broker;
+pub mod broker;
 mod command;
 pub mod content;
 mod parsers;

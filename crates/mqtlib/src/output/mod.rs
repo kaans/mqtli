@@ -1,7 +1,7 @@
 use std::io;
 use std::path::PathBuf;
 
-use crate::mqtt::MqttPublishEvent;
+use crate::mqtt::MessageEvent;
 use crate::payload::PayloadFormatError;
 use thiserror::Error;
 use tokio::sync::broadcast::error::SendError;
@@ -18,7 +18,7 @@ pub enum OutputError {
     #[error("Error while formatting payload: {0}")]
     ErrorPayloadFormat(#[source] PayloadFormatError),
     #[error("Error while sending payload to topic: {0}")]
-    SendError(#[source] SendError<MqttPublishEvent>),
+    SendError(#[source] SendError<MessageEvent>),
 }
 
 impl From<PayloadFormatError> for OutputError {

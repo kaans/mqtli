@@ -140,26 +140,51 @@ pub trait MqttService: Send {
 
     async fn disconnect(&self) -> Result<(), MqttServiceError>;
 
-    async fn publish(&self, payload: MqttPublishEvent);
+    async fn publish(&self, payload: MessagePublishData);
 
     async fn subscribe(&mut self, topic: String, qos: QoS) -> Result<(), MqttServiceError>;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum MqttReceiveEvent {
     V5(rumqttc::v5::Event),
     V311(rumqttc::Event),
 }
 
 #[derive(Clone, Debug)]
-pub struct MqttPublishEvent {
-    topic: String,
-    qos: QoS,
-    retain: bool,
-    payload: Vec<u8>,
+pub enum MessageEvent {
+    Received(MessageReceivedData),
+    Publish(MessagePublishData),
 }
 
-impl MqttPublishEvent {
+#[derive(Clone, Debug)]
+pub struct MessageReceivedData {
+    pub topic: String,
+    pub qos: QoS,
+    pub retain: bool,
+    pub payload: Vec<u8>,
+}
+
+impl MessageReceivedData {
+    pub fn new(topic: String, qos: QoS, retain: bool, payload: Vec<u8>) -> Self {
+        Self {
+            topic,
+            qos,
+            retain,
+            payload,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct MessagePublishData {
+    pub topic: String,
+    pub qos: QoS,
+    pub retain: bool,
+    pub payload: Vec<u8>,
+}
+
+impl MessagePublishData {
     pub fn new(topic: String, qos: QoS, retain: bool, payload: Vec<u8>) -> Self {
         Self {
             topic,
