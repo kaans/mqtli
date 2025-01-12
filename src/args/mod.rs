@@ -1,6 +1,7 @@
 mod command;
 pub mod content;
 mod parsers;
+mod broker;
 
 use crate::args::command::publish::Command;
 use crate::args::content::MqtliArgs;
