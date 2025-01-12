@@ -118,13 +118,14 @@ pub struct CommandPublishMessage {
     pub file: Option<PathBuf>,
 
     #[arg(
-        long = "stdin-single",
-        env = "PUBLISH_STDIN_ALL",
+        short = 's',
+        long = "from-stdin",
+        env = "PUBLISH_FROM_STDIN",
         help_heading = "Publish",
         help = "Read message from stdin and send content as a single message",
         group = "publish_message"
     )]
-    pub from_stdin_single: bool,
+    pub from_stdin: bool,
 }
 
 fn deserialize_duration_milliseconds_from_option<'a, D>(
@@ -156,10 +157,74 @@ mod tests {
             Command::Publish(value) => {
                 assert_eq!(value.topic, "TOPIC");
                 assert!(value.message.null_message);
+                assert!(!value.message.from_stdin);
                 assert!(value.message.message.is_none());
                 assert!(value.message.file.is_none());
             }
         }
+    }
+
+    #[test]
+    fn file() {
+        let args = ["mqtli", "pub", "--topic", "TOPIC", "--file", "filename"];
+        let result = MqtliArgs::try_parse_from(args);
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert!(result.command.is_some());
+
+        match result.command.unwrap() {
+            Command::Publish(value) => {
+                assert_eq!(value.topic, "TOPIC");
+                assert!(!value.message.null_message);
+                assert!(!value.message.from_stdin);
+                assert!(value.message.message.is_none());
+                assert!(value.message.file.is_some());
+            }
+        }
+    }
+
+    #[test]
+    fn stdin() {
+        let args = ["mqtli", "pub", "--topic", "TOPIC", "-s"];
+        let result = MqtliArgs::try_parse_from(args);
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert!(result.command.is_some());
+
+        match result.command.unwrap() {
+            Command::Publish(value) => {
+                assert_eq!(value.topic, "TOPIC");
+                assert!(!value.message.null_message);
+                assert!(value.message.from_stdin);
+                assert!(value.message.message.is_none());
+                assert!(value.message.file.is_none());
+            }
+        }
+    }
+
+    fn illegal_combination(a: &str, b: &str) -> Result<(), String> {
+        let args = ["mqtli", "pub", "--topic", "TOPIC", a, b];
+        let result = MqtliArgs::try_parse_from(args);
+
+        if result.is_ok() {
+            Err(format!(
+                "{} and {} must not be specified together",
+                a, b
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn illegal_combinations() -> Result<(), String> {
+        [("-mTest", "-n"), ("-mTest", "-f"), ("-mTest", "-l"), ("-n", "-f"), ("-n", "-l"), ("-f", "-l")]
+            .iter()
+            .try_for_each(|(a, b)| illegal_combination(a, b))?;
+
+        Ok(())
     }
 
     #[test]

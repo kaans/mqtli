@@ -82,7 +82,7 @@ fn move_stdin_to_message(args: &mut MqtliArgs) -> Result<(), io::Error> {
     if let Some(ref mut command) = args.command {
         match command {
             Command::Publish(ref mut publish_command) => {
-                if publish_command.message.from_stdin_single {
+                if publish_command.message.from_stdin {
                     let stdin = io::stdin();
                     let mut buf_from_stdin = Vec::new();
                     stdin.lock().read_to_end(&mut buf_from_stdin)?;
