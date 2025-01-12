@@ -96,14 +96,14 @@ impl MqttHandler {
                                     PayloadFormat::try_from((content.clone(), output.format()))
                                 {
                                     if let Ok(payload) = payload.try_into() {
-                                        if let Err(_) = sender_message.send(MessageEvent::Received(
+                                        if sender_message.send(MessageEvent::Received(
                                             MessageReceivedData {
                                                 topic: incoming_topic_str.into(),
                                                 qos,
                                                 retain,
                                                 payload,
                                             },
-                                        )) {
+                                        )).is_err() {
                                             //ignore, no receiver is listening
                                         }
                                     } else {
@@ -113,140 +113,140 @@ impl MqttHandler {
                                     error!("Could not convert payload");
                                 }
 
-                                if let Err(e) = Self::forward_to_output(
-                                    output,
-                                    incoming_topic_str,
-                                    content.clone(),
-                                    qos,
-                                    retain,
-                                    sender_message,
-                                ) {
-                                    error!("{}", e);
+                                    if let Err(e) = Self::forward_to_output(
+                                        output,
+                                        incoming_topic_str,
+                                        content.clone(),
+                                        qos,
+                                        retain,
+                                        sender_message,
+                                    ) {
+                                        error!("{}", e);
+                                    }
+                                }),
+                                Err(e) => {
+                                    error!("{:?}", e);
                                 }
-                            }),
-                            Err(e) => {
-                                error!("{:?}", e);
-                            }
-                        },
-                        Err(e) => {
-                            error!("{}", e);
-                        }
-                    };
+                            },
+                                                                   Err(e) => {
+                                                                       error!("{}", e);
+                                                                   }
+                        };
+                    }
+                })
+            }
+
+        fn forward_to_output(
+            output: &Output,
+            topic: &str,
+            content: PayloadFormat,
+            qos: QoS,
+            retain: bool,
+            sender_message: &Sender<MessageEvent>,
+        ) -> Result<(), OutputError> {
+            let conv = PayloadFormat::try_from((content, output.format()))?;
+
+            let result = match output.target() {
+                OutputTarget::Console(_options) => {
+                    ConsoleOutput::output(topic, conv.clone().try_into()?, conv, qos, retain)
                 }
-            })
+                OutputTarget::File(file) => FileOutput::output(conv.try_into()?, file),
+                OutputTarget::Topic(options) => {
+                    sender_message
+                        .send(MessageEvent::Publish(MessagePublishData::new(
+                            options.topic().clone(),
+                            *options.qos(),
+                            *options.retain(),
+                            conv.try_into()?,
+                        )))
+                        .map_err(OutputError::SendError)?;
+                    Ok(())
+                }
+                OutputTarget::Null => Ok(()),
+            };
+
+            result
+        }
     }
 
-    fn forward_to_output(
-        output: &Output,
-        topic: &str,
-        content: PayloadFormat,
-        qos: QoS,
-        retain: bool,
-        sender_message: &Sender<MessageEvent>,
-    ) -> Result<(), OutputError> {
-        let conv = PayloadFormat::try_from((content, output.format()))?;
+    mod v5 {
+        use crate::config::topic::Topic;
+        use crate::mqtt::mqtt_handler::MqttHandler;
+        use crate::mqtt::{MessageEvent, QoS};
+        use log::info;
+        use std::str::from_utf8;
+        use tokio::sync::broadcast::Sender;
 
-        let result = match output.target() {
-            OutputTarget::Console(_options) => {
-                ConsoleOutput::output(topic, conv.clone().try_into()?, conv, qos, retain)
-            }
-            OutputTarget::File(file) => FileOutput::output(conv.try_into()?, file),
-            OutputTarget::Topic(options) => {
-                sender_message
-                    .send(MessageEvent::Publish(MessagePublishData::new(
-                        options.topic().clone(),
-                        *options.qos(),
-                        *options.retain(),
-                        conv.try_into()?,
-                    )))
-                    .map_err(OutputError::SendError)?;
-                Ok(())
-            }
-            OutputTarget::Null => Ok(()),
-        };
+        pub fn handle_event(
+            event: rumqttc::v5::Event,
+            topics: &[Topic],
+            sender_message: &Sender<MessageEvent>,
+        ) {
+            match event {
+                rumqttc::v5::Event::Incoming(event) => {
+                    if let rumqttc::v5::Incoming::Publish(value) = event {
+                        let incoming_topic =
+                            from_utf8(value.topic.as_ref()).expect("Topic is not in UTF-8 format");
+                        let qos = QoS::from(value.qos);
 
-        result
-    }
-}
-
-mod v5 {
-    use crate::config::topic::Topic;
-    use crate::mqtt::mqtt_handler::MqttHandler;
-    use crate::mqtt::{MessageEvent, QoS};
-    use log::info;
-    use std::str::from_utf8;
-    use tokio::sync::broadcast::Sender;
-
-    pub fn handle_event(
-        event: rumqttc::v5::Event,
-        topics: &[Topic],
-        sender_message: &Sender<MessageEvent>,
-    ) {
-        match event {
-            rumqttc::v5::Event::Incoming(event) => {
-                if let rumqttc::v5::Incoming::Publish(value) = event {
-                    let incoming_topic =
-                        from_utf8(value.topic.as_ref()).expect("Topic is not in UTF-8 format");
-                    let qos = QoS::from(value.qos);
-
-                    info!(
+                        info!(
                         "Incoming message on topic {} (QoS: {})",
                         incoming_topic, qos
                     );
 
-                    MqttHandler::handle_incoming_message(
-                        topics,
-                        value.payload.to_vec(),
-                        incoming_topic,
-                        qos,
-                        value.retain,
-                        value.properties,
-                        sender_message,
-                    );
+                        MqttHandler::handle_incoming_message(
+                            topics,
+                            value.payload.to_vec(),
+                            incoming_topic,
+                            qos,
+                            value.retain,
+                            value.properties,
+                            sender_message,
+                        );
+                    }
                 }
+                rumqttc::v5::Event::Outgoing(_event) => {}
             }
-            rumqttc::v5::Event::Outgoing(_event) => {}
         }
     }
-}
 
-mod v311 {
-    use crate::config::topic::Topic;
-    use crate::mqtt::mqtt_handler::MqttHandler;
-    use crate::mqtt::{MessageEvent, QoS};
-    use log::info;
-    use std::str::from_utf8;
-    use tokio::sync::broadcast::Sender;
+    mod v311 {
+        use crate::config::topic::Topic;
+        use crate::mqtt::mqtt_handler::MqttHandler;
+        use crate::mqtt::{MessageEvent, QoS};
+        use log::info;
+        use std::str::from_utf8;
+        use tokio::sync::broadcast::Sender;
 
-    pub fn handle_event(
-        event: rumqttc::Event,
-        topics: &[Topic],
-        sender_message: &Sender<MessageEvent>,
-    ) {
-        match event {
-            rumqttc::Event::Incoming(event) => {
-                if let rumqttc::Incoming::Publish(value) = event {
-                    let incoming_topic =
-                        from_utf8(value.topic.as_ref()).expect("Topic is not in UTF-8 format");
-                    let qos = QoS::from(value.qos);
+        pub fn handle_event(
+            event: rumqttc::Event,
+            topics: &[Topic],
+            sender_message: &Sender<MessageEvent>,
+        ) {
+            match event {
+                rumqttc::Event::Incoming(event) => {
+                    if let rumqttc::Incoming::Publish(value) = event {
+                        let incoming_topic =
+                            from_utf8(value.topic.as_ref()).expect("Topic is not in UTF-8 format");
+                        let qos = QoS::from(value.qos);
 
-                    info!(
+                        info!(
                         "Incoming message on topic {} (QoS: {})",
                         incoming_topic, qos
                     );
 
-                    MqttHandler::handle_incoming_message(
-                        topics,
-                        value.payload.to_vec(),
-                        incoming_topic,
-                        qos,
-                        value.retain,
-                        None,
-                        sender_message,
-                    );
+                        MqttHandler::handle_incoming_message(
+                            topics,
+                            value.payload.to_vec(),
+                            incoming_topic,
+                            qos,
+                            value.retain,
+                            None,
+                            sender_message,
+                        );
+                    }
                 }
+                rumqttc::Event::Outgoing(_event) => {}
             }
-            rumqttc::Event::Outgoing(_event) => {}
         }
     }
-}
