@@ -141,6 +141,7 @@ impl MqttHandler {
                     .map_err(OutputError::SendError)?;
                 Ok(())
             }
+            OutputTarget::Null => Ok(()),
         };
 
         result

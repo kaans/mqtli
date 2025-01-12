@@ -76,6 +76,8 @@ pub enum OutputTarget {
     File(OutputTargetFile),
     #[serde(rename = "topic")]
     Topic(OutputTargetTopic),
+    #[serde(rename = "null")]
+    Null,
 }
 
 impl Default for OutputTarget {
