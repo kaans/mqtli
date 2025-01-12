@@ -1,11 +1,13 @@
 use crate::args::broker::MqttBrokerConnectArgs;
-use crate::args::command::publish::Command;
+use crate::args::command::publish::CommandPublish;
+use crate::args::command::subscribe::CommandSubscribe;
 use crate::args::parsers::deserialize_level_filter;
 use crate::args::ArgsError;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use mqtlib::config::filter::FilterTypes;
 use mqtlib::config::mqtli_config::{Mode, MqtliConfig, MqtliConfigBuilder};
 use mqtlib::config::publish::{PublishBuilder, PublishTriggerType, PublishTriggerTypePeriodic};
+use mqtlib::config::subscription::{Output, SubscriptionBuilder};
 use mqtlib::config::topic::{Topic, TopicBuilder};
 use mqtlib::config::{PayloadType, PublishInputType, PublishInputTypeContentPath};
 use mqtlib::mqtt::QoS;
@@ -79,6 +81,7 @@ impl MqtliArgs {
             Some(command) => {
                 match command {
                     Command::Publish(_) => builder.mode(Mode::Publish),
+                    Command::Subscribe(_) => builder.mode(Mode::Subscribe),
                 };
             }
         };
@@ -167,9 +170,41 @@ impl MqtliArgs {
 
                     result.push(topic);
                 }
+
+                Command::Subscribe(subscribe_command) => {
+                    let topic_type = subscribe_command
+                        .topic_type
+                        .clone()
+                        .unwrap_or(PayloadType::Text);
+
+                    let output = Output::default();
+
+                    let subscription = SubscriptionBuilder::default()
+                        .qos(subscribe_command.qos.unwrap_or(QoS::AtLeastOnce))
+                        .enabled(true)
+                        .filters(FilterTypes::default())
+                        .outputs(vec![output])
+                        .build()?;
+                    let topic = TopicBuilder::default()
+                        .topic(subscribe_command.topic.clone())
+                        .subscription(Some(subscription))
+                        .publish(None)
+                        .payload_type(topic_type)
+                        .build()?;
+
+                    result.push(topic);
+                }
             }
         }
 
         Ok(result)
     }
+}
+
+#[derive(Clone, Debug, Deserialize, Subcommand)]
+pub enum Command {
+    #[command(name = "pub")]
+    Publish(CommandPublish),
+    #[command(name = "sub")]
+    Subscribe(CommandSubscribe),
 }

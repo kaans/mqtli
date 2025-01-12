@@ -3,13 +3,14 @@ use crate::config::filter::{FilterError, FilterTypes};
 use crate::config::PayloadType;
 use crate::mqtt::QoS;
 use crate::payload::PayloadFormat;
+use derive_builder::Builder;
 use derive_getters::Getters;
 use serde::Deserialize;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use validator::Validate;
 
-#[derive(Clone, Debug, Deserialize, Getters, PartialEq, Validate)]
+#[derive(Builder, Clone, Debug, Deserialize, Getters, PartialEq, Validate)]
 pub struct Subscription {
     enabled: bool,
     #[serde(default)]

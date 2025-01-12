@@ -49,6 +49,7 @@ pub enum Mode {
     #[default]
     MultiTopic,
     Publish,
+    Subscribe,
 }
 
 impl Display for Mode {
@@ -56,6 +57,7 @@ impl Display for Mode {
         match self {
             Mode::MultiTopic => write!(f, "Multi-Topic"),
             Mode::Publish => write!(f, "Publish"),
+            Mode::Subscribe => write!(f, "Subscribe"),
         }
     }
 }
