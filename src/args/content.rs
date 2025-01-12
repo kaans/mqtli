@@ -1,13 +1,17 @@
 use crate::args::broker::MqttBrokerConnectArgs;
 use crate::args::command::publish::CommandPublish;
-use crate::args::command::subscribe::CommandSubscribe;
+use crate::args::command::subscribe::{CommandSubscribe, OutputTarget};
 use crate::args::parsers::deserialize_level_filter;
 use crate::args::ArgsError;
+use mqtlib::config::subscription;
+
 use clap::{Parser, Subcommand};
 use mqtlib::config::filter::FilterTypes;
 use mqtlib::config::mqtli_config::{Mode, MqtliConfig, MqtliConfigBuilder};
 use mqtlib::config::publish::{PublishBuilder, PublishTriggerType, PublishTriggerTypePeriodic};
-use mqtlib::config::subscription::{Output, SubscriptionBuilder};
+use mqtlib::config::subscription::{
+    Output, OutputTargetConsole, OutputTargetFile, OutputTargetTopic, SubscriptionBuilder,
+};
 use mqtlib::config::topic::{Topic, TopicBuilder};
 use mqtlib::config::{PayloadType, PublishInputType, PublishInputTypeContentPath};
 use mqtlib::mqtt::QoS;
@@ -57,7 +61,7 @@ pub struct MqtliArgs {
     pub topics: Vec<Topic>,
 
     #[clap(subcommand)]
-    #[serde(skip_serializing)]
+    #[serde(skip_serializing, skip_deserializing)]
     pub command: Option<Command>,
 }
 
@@ -177,7 +181,39 @@ impl MqtliArgs {
                         .clone()
                         .unwrap_or(PayloadType::Text);
 
-                    let output = Output::default();
+                    let output_target: subscription::OutputTarget = match &subscribe_command
+                        .output_target
+                    {
+                        None => subscription::OutputTarget::Console(OutputTargetConsole::default()),
+                        Some(target) => match target {
+                            OutputTarget::Console(_) => {
+                                subscription::OutputTarget::Console(OutputTargetConsole::default())
+                            }
+                            OutputTarget::File(config) => {
+                                subscription::OutputTarget::File(OutputTargetFile {
+                                    path: config.path.clone(),
+                                    overwrite: config.overwrite,
+                                    prepend: config.prepend.clone(),
+                                    append: config.append.clone(),
+                                })
+                            }
+                            OutputTarget::Topic(config) => {
+                                subscription::OutputTarget::Topic(OutputTargetTopic {
+                                    topic: config.topic.clone(),
+                                    qos: config.qos.unwrap_or(QoS::AtLeastOnce),
+                                    retain: config.retain,
+                                })
+                            }
+                        },
+                    };
+
+                    let output = Output {
+                        format: subscribe_command
+                            .output_type
+                            .clone()
+                            .unwrap_or(PayloadType::Text),
+                        target: output_target,
+                    };
 
                     let subscription = SubscriptionBuilder::default()
                         .qos(subscribe_command.qos.unwrap_or(QoS::AtLeastOnce))
@@ -201,7 +237,7 @@ impl MqtliArgs {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Subcommand)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum Command {
     #[command(name = "pub")]
     Publish(CommandPublish),
