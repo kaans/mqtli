@@ -209,10 +209,7 @@ mod tests {
         let result = MqtliArgs::try_parse_from(args);
 
         if result.is_ok() {
-            Err(format!(
-                "{} and {} must not be specified together",
-                a, b
-            ))
+            Err(format!("{} and {} must not be specified together", a, b))
         } else {
             Ok(())
         }
@@ -220,9 +217,16 @@ mod tests {
 
     #[test]
     fn illegal_combinations() -> Result<(), String> {
-        [("-mTest", "-n"), ("-mTest", "-f"), ("-mTest", "-l"), ("-n", "-f"), ("-n", "-l"), ("-f", "-l")]
-            .iter()
-            .try_for_each(|(a, b)| illegal_combination(a, b))?;
+        [
+            ("-mTest", "-n"),
+            ("-mTest", "-f"),
+            ("-mTest", "-l"),
+            ("-n", "-f"),
+            ("-n", "-l"),
+            ("-f", "-l"),
+        ]
+        .iter()
+        .try_for_each(|(a, b)| illegal_combination(a, b))?;
 
         Ok(())
     }
