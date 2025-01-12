@@ -104,10 +104,13 @@ async fn main() -> anyhow::Result<()> {
     start_scheduler_task(
         scheduler,
         sender_receive.clone(),
-        sender_message,
-        topics,
+        topics.clone(),
         sender_exit.subscribe(),
     );
+
+    let mut incoming_messages_handler = MqttHandler::new(topics.clone());
+    incoming_messages_handler
+        .start_task(sender_receive.subscribe(), sender_message.clone());
 
     start_subscription_task(mqtt_service, sender_receive, filtered_subscriptions);
 
@@ -144,7 +147,6 @@ fn start_scheduler_monitor_task(
 fn start_scheduler_task(
     scheduler: TriggerPeriodic,
     sender: Sender<MqttReceiveEvent>,
-    sender_message: Sender<MessageEvent>,
     topics: Arc<Vec<Topic>>,
     receiver_exit: Receiver<()>,
 ) {
@@ -156,9 +158,6 @@ fn start_scheduler_task(
                 MqttReceiveEvent::V5(rumqttc::v5::Event::Incoming(Incoming::ConnAck(_)))
                 | MqttReceiveEvent::V311(rumqttc::Event::Incoming(IncomingV311::ConnAck(_))) => {
                     info!("Connected to broker");
-                    let mut incoming_messages_handler = MqttHandler::new(topics.clone());
-                    incoming_messages_handler
-                        .start_task(sender.subscribe(), sender_message.clone());
 
                     let _ = start_scheduler(topics.clone(), scheduler, receiver_exit).await;
 
