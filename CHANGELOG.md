@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.0](https://github.com/kaans/mqtli/compare/v0.10.0...v0.11.0) (2025-01-12)
+
+
+### Features
+
+* add output targets to subscribe command ([5f2de05](https://github.com/kaans/mqtli/commit/5f2de050e329b38a5b320a2769cac655f89d0b0e))
+* add subscribe command ([9f53f0b](https://github.com/kaans/mqtli/commit/9f53f0bcfd552e89bb4bff99b1bc82ffe68647f0))
+
 ## [0.10.0](https://github.com/kaans/mqtli/compare/v0.9.0...v0.10.0) (2025-01-11)
 
 
