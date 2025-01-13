@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.12.0](https://github.com/kaans/mqtli/compare/v0.11.0...v0.12.0) (2025-01-13)
+
+
+### Features
+
+* add null output target ([bf9767d](https://github.com/kaans/mqtli/commit/bf9767d354b4786f2640d1e017043c57c9a00994))
+
+
+### Bug Fixes
+
+* downgrade yanked log crate ([eedc10d](https://github.com/kaans/mqtli/commit/eedc10d94304b5b4d74fc089c47f2f8463d68365))
+* move mqtt handler outside so it starts before subscription ([42a0203](https://github.com/kaans/mqtli/commit/42a020386236ca9133f5c2df273510c049834348))
+
 ## [0.11.0](https://github.com/kaans/mqtli/compare/v0.10.0...v0.11.0) (2025-01-12)
 
 
