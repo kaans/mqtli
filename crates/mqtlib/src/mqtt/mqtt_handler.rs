@@ -85,24 +85,38 @@ impl MqttHandler {
             })
             .filter(|(subscription, _)| *subscription.enabled())
             .for_each(|(subscription, payload_type)| {
-                for output in subscription.outputs() {
-                    let result =
-                        PayloadFormat::try_from((payload_type.clone(), incoming_value.clone()));
+                let result =
+                    PayloadFormat::try_from((payload_type.clone(), incoming_value.clone()));
 
-                    match result {
-                        Ok(content) => match subscription.apply_filters(content) {
-                            Ok(content) => content.iter().for_each(|content| {
-                                if let Ok(payload) =
-                                    PayloadFormat::try_from((content.clone(), output.format()))
-                                {
-                                    if let Ok(payload) = payload.try_into() {
+                match result {
+                    Ok(content) => {
+                        if sender_message
+                            .send(MessageEvent::ReceivedUnfiltered(MessageReceivedData {
+                                topic: incoming_topic_str.into(),
+                                qos,
+                                retain,
+                                payload: content.clone(),
+                            }))
+                            .is_err()
+                        {
+                            //ignore, no receiver is listening
+                        }
+
+                        for output in subscription.outputs() {
+                            match subscription.apply_filters(content.clone()) {
+                                Ok(content) => content.iter().for_each(|content| {
+                                    if let Ok(payload) =
+                                        PayloadFormat::try_from((content.clone(), output.format()))
+                                    {
                                         if sender_message
-                                            .send(MessageEvent::Received(MessageReceivedData {
-                                                topic: incoming_topic_str.into(),
-                                                qos,
-                                                retain,
-                                                payload,
-                                            }))
+                                            .send(MessageEvent::ReceivedFiltered(
+                                                MessageReceivedData {
+                                                    topic: incoming_topic_str.into(),
+                                                    qos,
+                                                    retain,
+                                                    payload,
+                                                },
+                                            ))
                                             .is_err()
                                         {
                                             //ignore, no receiver is listening
@@ -110,30 +124,28 @@ impl MqttHandler {
                                     } else {
                                         error!("Could not convert payload");
                                     }
-                                } else {
-                                    error!("Could not convert payload");
-                                }
 
-                                if let Err(e) = Self::forward_to_output(
-                                    output,
-                                    incoming_topic_str,
-                                    content.clone(),
-                                    qos,
-                                    retain,
-                                    sender_message,
-                                ) {
-                                    error!("{}", e);
+                                    if let Err(e) = Self::forward_to_output(
+                                        output,
+                                        incoming_topic_str,
+                                        content.clone(),
+                                        qos,
+                                        retain,
+                                        sender_message,
+                                    ) {
+                                        error!("{}", e);
+                                    }
+                                }),
+                                Err(e) => {
+                                    error!("{:?}", e);
                                 }
-                            }),
-                            Err(e) => {
-                                error!("{:?}", e);
                             }
-                        },
-                        Err(e) => {
-                            error!("{}", e);
                         }
-                    };
-                }
+                    }
+                    Err(e) => {
+                        error!("{}", e);
+                    }
+                };
             })
     }
 

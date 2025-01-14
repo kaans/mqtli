@@ -30,8 +30,10 @@ use mqtlib::payload::PayloadFormat;
 use mqtlib::payload::PayloadFormatError;
 use mqtlib::publish::trigger_periodic::{Command, TriggerPeriodic};
 use mqtlib::publish::TriggerError;
+use mqtlib::sparkplug::SparkplugNetwork;
 use rumqttc::v5::Incoming;
 use rumqttc::Incoming as IncomingV311;
+use tokio::sync::broadcast::error::RecvError;
 use tokio::sync::broadcast::{Receiver, Sender};
 use tokio::sync::{broadcast, Mutex};
 use tokio::task::JoinHandle;
@@ -113,6 +115,9 @@ async fn main() -> anyhow::Result<()> {
 
     start_subscription_task(mqtt_service, sender_receive, filtered_subscriptions);
 
+    let sparkplug_network = Arc::new(Mutex::new(SparkplugNetwork::default()));
+    start_sparkplug_monitor(sparkplug_network, sender_message.subscribe());
+
     start_exit_task(sender_exit).await;
 
     mqtt_loop_handle
@@ -120,6 +125,39 @@ async fn main() -> anyhow::Result<()> {
         .expect("Error while waiting for tasks to shut down");
 
     Ok(())
+}
+
+fn start_sparkplug_monitor(
+    sparkplug_network: Arc<Mutex<SparkplugNetwork>>,
+    mut receiver: Receiver<MessageEvent>,
+) {
+    tracing::debug!("Starting sparkplug network monitor");
+
+    tokio::spawn(async move {
+        loop {
+            match receiver.recv().await {
+                Ok(MessageEvent::ReceivedUnfiltered(data)) => {
+                    if let PayloadFormat::Sparkplug(payload) = data.payload {
+                        tracing::debug!("Received sparkplug message {}", payload);
+                        if let Err(e) = sparkplug_network
+                            .lock()
+                            .await
+                            .try_parse_message(data.topic, payload)
+                        {
+                            tracing::error!("Error while parsing sparkplug message: {e:?}");
+                        }
+                    }
+                }
+                Err(RecvError::Lagged(skipped_messages)) => {
+                    tracing::warn!("Receiver skipped {skipped_messages} messages");
+                }
+                Err(RecvError::Closed) => break,
+                _ => {}
+            }
+        }
+
+        tracing::debug!("Sparkplug network monitor exited");
+    });
 }
 
 fn start_scheduler_monitor_task(

@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::config::mqtli_config::{MqttBrokerConnect, MqttProtocol, TlsVersion};
+use crate::payload::PayloadFormat;
 use async_trait::async_trait;
 use log::{debug, info};
 use rumqttc::tokio_rustls::rustls::version::{TLS12, TLS13};
@@ -153,7 +154,8 @@ pub enum MqttReceiveEvent {
 
 #[derive(Clone, Debug)]
 pub enum MessageEvent {
-    Received(MessageReceivedData),
+    ReceivedFiltered(MessageReceivedData),
+    ReceivedUnfiltered(MessageReceivedData),
     Publish(MessagePublishData),
 }
 
@@ -162,11 +164,11 @@ pub struct MessageReceivedData {
     pub topic: String,
     pub qos: QoS,
     pub retain: bool,
-    pub payload: Vec<u8>,
+    pub payload: PayloadFormat,
 }
 
 impl MessageReceivedData {
-    pub fn new(topic: String, qos: QoS, retain: bool, payload: Vec<u8>) -> Self {
+    pub fn new(topic: String, qos: QoS, retain: bool, payload: PayloadFormat) -> Self {
         Self {
             topic,
             qos,
