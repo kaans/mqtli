@@ -9,13 +9,15 @@ type GroupId = String;
 type EdgeNodeId = String;
 type DeviceId = String;
 
+pub const SPARKPLUG_TOPIC_VERSION: &str = "spBv1.0";
+
 #[derive(Debug, Error)]
 pub enum SparkplugError {
     #[error(
         "Topic did not contain at least 4 parts (namespace, group id, message type, edge node id)"
     )]
     NotEnoughPartsInTopic,
-    #[error("Version of topic must be spBv1.0")]
+    #[error("Version of topic must be {version}", version = SPARKPLUG_TOPIC_VERSION)]
     InvalidTopicVersion,
     #[error("Message type not valid")]
     InvalidTopicMessageType,
@@ -191,7 +193,7 @@ impl TryFrom<String> for SparkplugTopic {
                 if split.len() < 4 {
                     Err(SparkplugError::NotEnoughPartsInTopic)
                 } else {
-                    if split[0] != "spBv1.0" {
+                    if split[0] != SPARKPLUG_TOPIC_VERSION {
                         return Err(SparkplugError::InvalidTopicVersion);
                     }
 
