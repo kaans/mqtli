@@ -57,13 +57,14 @@ impl SparkplugEdgeNodeStorage {
     }
 
     pub fn find_by_group_id(&self, group_id: GroupId) -> HashSet<&SparkplugEdgeNode> {
-        self.0
-            .keys()
-            .filter(|e| e.group_id == group_id)
-            .collect()
+        self.0.keys().filter(|e| e.group_id == group_id).collect()
     }
 
-    pub fn find_by_edge_node_id(&self, group_id: GroupId, edge_node_id: EdgeNodeId) -> HashSet<&SparkplugEdgeNode> {
+    pub fn find_by_edge_node_id(
+        &self,
+        group_id: GroupId,
+        edge_node_id: EdgeNodeId,
+    ) -> HashSet<&SparkplugEdgeNode> {
         self.0
             .keys()
             .filter(|e| e.group_id == group_id)
@@ -216,7 +217,13 @@ impl TryFrom<String> for SparkplugTopic {
                     } else {
                         None
                     };
-                    let metric_levels = split[5..].iter().map(|s| s.to_string()).collect();
+                    let mut metric_levels = vec![];
+
+                    if split.len() > 5 {
+                        split[5..]
+                            .iter()
+                            .for_each(|s| metric_levels.push(s.to_string()));
+                    }
 
                     Ok(Self::EdgeNode(SparkplugTopicEdgeNode {
                         version: split[0].to_string(),

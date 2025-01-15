@@ -5,6 +5,7 @@ use crate::args::parsers::deserialize_level_filter;
 use crate::args::ArgsError;
 use mqtlib::config::subscription;
 
+use crate::args::command::sparkplug::CommandSparkplug;
 use clap::{Parser, Subcommand};
 use mqtlib::config::filter::FilterTypes;
 use mqtlib::config::mqtli_config::{Mode, MqtliConfig, MqtliConfigBuilder};
@@ -12,9 +13,10 @@ use mqtlib::config::publish::{PublishBuilder, PublishTriggerType, PublishTrigger
 use mqtlib::config::subscription::{
     Output, OutputTargetConsole, OutputTargetFile, OutputTargetTopic, SubscriptionBuilder,
 };
-use mqtlib::config::topic::{Topic, TopicBuilder};
+use mqtlib::config::topic::{Topic, TopicBuilder, TopicStorage};
 use mqtlib::config::{PayloadType, PublishInputType, PublishInputTypeContentPath};
 use mqtlib::mqtt::QoS;
+use mqtlib::sparkplug::SPARKPLUG_TOPIC_VERSION;
 use serde::Deserialize;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -86,18 +88,20 @@ impl MqtliArgs {
                 match command {
                     Command::Publish(_) => builder.mode(Mode::Publish),
                     Command::Subscribe(_) => builder.mode(Mode::Subscribe),
+                    Command::Sparkplug(_) => builder.mode(Mode::Sparkplug),
                 };
             }
         };
 
-        builder.topics(
-            other
+        builder.topic_storage(TopicStorage {
+            topics: other
+                .topic_storage
                 .topics
                 .into_iter()
                 .chain(self.topics)
                 .chain(command_topics)
                 .collect(),
-        );
+        });
 
         builder.build().map_err(ArgsError::from)
     }
@@ -107,19 +111,19 @@ impl MqtliArgs {
 
         if let Some(command) = self.command.as_ref() {
             match command {
-                Command::Publish(publish_command) => {
+                Command::Publish(command_config) => {
                     let trigger = PublishTriggerType::Periodic(PublishTriggerTypePeriodic::new(
-                        publish_command.interval.unwrap_or(Duration::from_secs(1)),
-                        publish_command.count.or(Some(1)),
+                        command_config.interval.unwrap_or(Duration::from_secs(1)),
+                        command_config.count.or(Some(1)),
                         Duration::from_millis(1000),
                     ));
 
                     let message_type = PublishInputTypeContentPath {
-                        content: if publish_command.message.null_message {
+                        content: if command_config.message.null_message {
                             None
-                        } else if publish_command.message.message.is_some() {
+                        } else if command_config.message.message.is_some() {
                             Some(
-                                publish_command
+                                command_config
                                     .message
                                     .clone()
                                     .message
@@ -130,14 +134,14 @@ impl MqtliArgs {
                         } else {
                             None
                         },
-                        path: if publish_command.message.file.is_some() {
-                            publish_command.message.file.clone()
+                        path: if command_config.message.file.is_some() {
+                            command_config.message.file.clone()
                         } else {
                             None
                         },
                     };
 
-                    let message_input_type = match &publish_command.message_type {
+                    let message_input_type = match &command_config.message_type {
                         None => PublishInputType::Text(message_type),
                         Some(payload_type) => match payload_type {
                             PublishInputType::Text(_) => PublishInputType::Text(message_type),
@@ -152,21 +156,21 @@ impl MqtliArgs {
                         },
                     };
 
-                    let topic_type = publish_command
+                    let topic_type = command_config
                         .topic_type
                         .clone()
                         .unwrap_or(PayloadType::Text);
 
                     let publish = PublishBuilder::default()
-                        .qos(publish_command.qos.unwrap_or(QoS::AtLeastOnce))
-                        .retain(publish_command.retain)
+                        .qos(command_config.qos.unwrap_or(QoS::AtLeastOnce))
+                        .retain(command_config.retain)
                         .enabled(true)
                         .trigger(vec![trigger])
                         .input(message_input_type)
                         .filters(FilterTypes::default())
                         .build()?;
                     let topic = TopicBuilder::default()
-                        .topic(publish_command.topic.clone())
+                        .topic(command_config.topic.clone())
                         .publish(Some(publish))
                         .subscription(None)
                         .payload_type(topic_type)
@@ -175,13 +179,13 @@ impl MqtliArgs {
                     result.push(topic);
                 }
 
-                Command::Subscribe(subscribe_command) => {
-                    let topic_type = subscribe_command
+                Command::Subscribe(command_config) => {
+                    let topic_type = command_config
                         .topic_type
                         .clone()
                         .unwrap_or(PayloadType::Text);
 
-                    let output_target: subscription::OutputTarget = match &subscribe_command
+                    let output_target: subscription::OutputTarget = match &command_config
                         .output_target
                     {
                         None => subscription::OutputTarget::Console(OutputTargetConsole::default()),
@@ -208,7 +212,7 @@ impl MqtliArgs {
                     };
 
                     let output = Output {
-                        format: subscribe_command
+                        format: command_config
                             .output_type
                             .clone()
                             .unwrap_or(PayloadType::Text),
@@ -216,19 +220,71 @@ impl MqtliArgs {
                     };
 
                     let subscription = SubscriptionBuilder::default()
-                        .qos(subscribe_command.qos.unwrap_or(QoS::AtLeastOnce))
+                        .qos(command_config.qos.unwrap_or(QoS::AtLeastOnce))
                         .enabled(true)
                         .filters(FilterTypes::default())
                         .outputs(vec![output])
                         .build()?;
                     let topic = TopicBuilder::default()
-                        .topic(subscribe_command.topic.clone())
+                        .topic(command_config.topic.clone())
                         .subscription(Some(subscription))
                         .publish(None)
                         .payload_type(topic_type)
                         .build()?;
 
                     result.push(topic);
+                }
+                Command::Sparkplug(command_config) => {
+                    let subscription = SubscriptionBuilder::default()
+                        .qos(command_config.qos.unwrap_or(QoS::AtLeastOnce))
+                        .enabled(true)
+                        .filters(FilterTypes::default())
+                        .outputs(vec![])
+                        .build()?;
+
+                    let topic_nbirth = TopicBuilder::default()
+                        .topic(format!("{}/+/NBIRTH/#", SPARKPLUG_TOPIC_VERSION))
+                        .subscription(Some(subscription))
+                        .publish(None)
+                        .payload_type(PayloadType::Sparkplug)
+                        .build()?;
+
+                    let mut topic_ndata = topic_nbirth.clone();
+                    topic_ndata.topic = format!("{}/+/NDATA/#", SPARKPLUG_TOPIC_VERSION);
+
+                    let mut topic_ndeath = topic_nbirth.clone();
+                    topic_ndeath.topic = format!("{}/+/NDEATH/#", SPARKPLUG_TOPIC_VERSION);
+
+                    let mut topic_ncmd = topic_nbirth.clone();
+                    topic_ncmd.topic = format!("{}/+/NCMD/#", SPARKPLUG_TOPIC_VERSION);
+
+                    let mut topic_dbirth = topic_nbirth.clone();
+                    topic_dbirth.topic = format!("{}/+/DBIRTH/#", SPARKPLUG_TOPIC_VERSION);
+
+                    let mut topic_ddeath = topic_nbirth.clone();
+                    topic_ddeath.topic = format!("{}/+/DDEATH/#", SPARKPLUG_TOPIC_VERSION);
+
+                    let mut topic_ddata = topic_nbirth.clone();
+                    topic_ddata.topic = format!("{}/+/DDATA/#", SPARKPLUG_TOPIC_VERSION);
+
+                    let mut topic_dcmd = topic_nbirth.clone();
+                    topic_dcmd.topic = format!("{}/+/DCMD/#", SPARKPLUG_TOPIC_VERSION);
+
+                    let mut topic_state = topic_nbirth.clone();
+                    topic_state.topic = format!("{}/+/STATE/+", SPARKPLUG_TOPIC_VERSION);
+                    topic_state.payload_type = PayloadType::Json;
+
+                    result.push(topic_nbirth);
+                    result.push(topic_ndata);
+                    result.push(topic_ndeath);
+                    result.push(topic_ncmd);
+
+                    result.push(topic_dbirth);
+                    result.push(topic_ddeath);
+                    result.push(topic_ddata);
+                    result.push(topic_dcmd);
+
+                    result.push(topic_state);
                 }
             }
         }
@@ -243,4 +299,6 @@ pub enum Command {
     Publish(CommandPublish),
     #[command(name = "sub")]
     Subscribe(CommandSubscribe),
+    #[command(name = "sparkplug", alias = "sp")]
+    Sparkplug(CommandSparkplug),
 }

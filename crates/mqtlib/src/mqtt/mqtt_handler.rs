@@ -6,24 +6,20 @@ use tokio::sync::broadcast::{Receiver, Sender};
 use tokio::task;
 use tokio::task::JoinHandle;
 
-use crate::config::subscription::{Output, OutputTarget};
-use crate::config::topic::Topic;
-use crate::mqtt::{MessageEvent, MessagePublishData, MessageReceivedData, MqttReceiveEvent, QoS};
-use crate::output::console::ConsoleOutput;
-use crate::output::file::FileOutput;
-use crate::output::OutputError;
+use crate::config::topic::TopicStorage;
+use crate::mqtt::{MessageEvent, MessageReceivedData, MqttReceiveEvent, QoS};
 use crate::payload::PayloadFormat;
 
 pub struct MqttHandler {
     task_handle: Option<JoinHandle<()>>,
-    topics: Arc<Vec<Topic>>,
+    topic_storage: Arc<TopicStorage>,
 }
 
 impl MqttHandler {
-    pub fn new(topics: Arc<Vec<Topic>>) -> MqttHandler {
+    pub fn new(topic_storage: Arc<TopicStorage>) -> MqttHandler {
         MqttHandler {
             task_handle: None,
-            topics,
+            topic_storage,
         }
     }
 
@@ -32,11 +28,11 @@ impl MqttHandler {
         mut receiver: Receiver<MqttReceiveEvent>,
         sender_message: Sender<MessageEvent>,
     ) {
-        let topics = self.topics.clone();
+        let topic_storage = self.topic_storage.clone();
 
         self.task_handle = Some(task::spawn(async move {
             while let Ok(event) = receiver.recv().await {
-                MqttHandler::handle_event(event, &topics, &sender_message);
+                MqttHandler::handle_event(event, &topic_storage, &sender_message);
             }
         }));
     }
@@ -52,21 +48,21 @@ impl MqttHandler {
 
     pub fn handle_event(
         event: MqttReceiveEvent,
-        topics: &[Topic],
+        topic_storage: &Arc<TopicStorage>,
         sender_message: &Sender<MessageEvent>,
     ) {
         match event {
             MqttReceiveEvent::V5(event) => {
-                v5::handle_event(event, topics, sender_message);
+                v5::handle_event(event, topic_storage, sender_message);
             }
             MqttReceiveEvent::V311(event) => {
-                v311::handle_event(event, topics, sender_message);
+                v311::handle_event(event, topic_storage, sender_message);
             }
         }
     }
 
     fn handle_incoming_message(
-        topics: &[Topic],
+        topic_storage: &Arc<TopicStorage>,
         incoming_value: Vec<u8>,
         incoming_topic_str: &str,
         qos: QoS,
@@ -74,7 +70,8 @@ impl MqttHandler {
         _option: Option<PublishProperties>,
         sender_message: &Sender<MessageEvent>,
     ) {
-        topics
+        topic_storage
+            .topics
             .iter()
             .filter(|topic| topic.contains(incoming_topic_str))
             .filter_map(|topic| {
@@ -124,17 +121,6 @@ impl MqttHandler {
                                     } else {
                                         error!("Could not convert payload");
                                     }
-
-                                    if let Err(e) = Self::forward_to_output(
-                                        output,
-                                        incoming_topic_str,
-                                        content.clone(),
-                                        qos,
-                                        retain,
-                                        sender_message,
-                                    ) {
-                                        error!("{}", e);
-                                    }
                                 }),
                                 Err(e) => {
                                     error!("{:?}", e);
@@ -148,51 +134,20 @@ impl MqttHandler {
                 };
             })
     }
-
-    fn forward_to_output(
-        output: &Output,
-        topic: &str,
-        content: PayloadFormat,
-        qos: QoS,
-        retain: bool,
-        sender_message: &Sender<MessageEvent>,
-    ) -> Result<(), OutputError> {
-        let conv = PayloadFormat::try_from((content, output.format()))?;
-
-        let result = match output.target() {
-            OutputTarget::Console(_options) => {
-                ConsoleOutput::output(topic, conv.clone().try_into()?, conv, qos, retain)
-            }
-            OutputTarget::File(file) => FileOutput::output(conv.try_into()?, file),
-            OutputTarget::Topic(options) => {
-                sender_message
-                    .send(MessageEvent::Publish(MessagePublishData::new(
-                        options.topic().clone(),
-                        *options.qos(),
-                        *options.retain(),
-                        conv.try_into()?,
-                    )))
-                    .map_err(OutputError::SendError)?;
-                Ok(())
-            }
-            OutputTarget::Null => Ok(()),
-        };
-
-        result
-    }
 }
 
 mod v5 {
-    use crate::config::topic::Topic;
+    use crate::config::topic::TopicStorage;
     use crate::mqtt::mqtt_handler::MqttHandler;
     use crate::mqtt::{MessageEvent, QoS};
     use log::info;
     use std::str::from_utf8;
+    use std::sync::Arc;
     use tokio::sync::broadcast::Sender;
 
     pub fn handle_event(
         event: rumqttc::v5::Event,
-        topics: &[Topic],
+        topic_storage: &Arc<TopicStorage>,
         sender_message: &Sender<MessageEvent>,
     ) {
         match event {
@@ -208,7 +163,7 @@ mod v5 {
                     );
 
                     MqttHandler::handle_incoming_message(
-                        topics,
+                        topic_storage,
                         value.payload.to_vec(),
                         incoming_topic,
                         qos,
@@ -224,16 +179,17 @@ mod v5 {
 }
 
 mod v311 {
-    use crate::config::topic::Topic;
+    use crate::config::topic::TopicStorage;
     use crate::mqtt::mqtt_handler::MqttHandler;
     use crate::mqtt::{MessageEvent, QoS};
     use log::info;
     use std::str::from_utf8;
+    use std::sync::Arc;
     use tokio::sync::broadcast::Sender;
 
     pub fn handle_event(
         event: rumqttc::Event,
-        topics: &[Topic],
+        topic_storage: &Arc<TopicStorage>,
         sender_message: &Sender<MessageEvent>,
     ) {
         match event {
@@ -249,7 +205,7 @@ mod v311 {
                     );
 
                     MqttHandler::handle_incoming_message(
-                        topics,
+                        topic_storage,
                         value.payload.to_vec(),
                         incoming_topic,
                         qos,

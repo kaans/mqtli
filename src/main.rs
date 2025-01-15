@@ -20,12 +20,17 @@ use anyhow::Context;
 use log::{debug, error, info, warn};
 use mqtlib::config::mqtli_config::MqttVersion;
 use mqtlib::config::publish::PublishTriggerType::Periodic;
-use mqtlib::config::subscription::Subscription;
-use mqtlib::config::topic::Topic;
+use mqtlib::config::subscription::{Output, OutputTarget, Subscription};
+use mqtlib::config::topic::TopicStorage;
 use mqtlib::mqtt::mqtt_handler::MqttHandler;
 use mqtlib::mqtt::v311::mqtt_service::MqttServiceV311;
 use mqtlib::mqtt::v5::mqtt_service::MqttServiceV5;
-use mqtlib::mqtt::{MessageEvent, MqttReceiveEvent, MqttService};
+use mqtlib::mqtt::{
+    MessageEvent, MessagePublishData, MessageReceivedData, MqttReceiveEvent, MqttService,
+};
+use mqtlib::output::console::ConsoleOutput;
+use mqtlib::output::file::FileOutput;
+use mqtlib::output::OutputError;
 use mqtlib::payload::PayloadFormat;
 use mqtlib::payload::PayloadFormatError;
 use mqtlib::publish::trigger_periodic::{Command, TriggerPeriodic};
@@ -70,7 +75,8 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let filtered_subscriptions: Vec<(Subscription, String)> = config
-        .topics()
+        .topic_storage
+        .topics
         .iter()
         .filter_map(|topic| {
             topic
@@ -84,7 +90,8 @@ async fn main() -> anyhow::Result<()> {
     let (sender_receive, _) = broadcast::channel::<MqttReceiveEvent>(32);
     let (sender_message, _) = broadcast::channel::<MessageEvent>(32);
 
-    let topics = Arc::new(config.topics);
+    let topic_storage = Arc::new(config.topic_storage);
+    //let topics = Arc::new(config.topic_storage.topics);
 
     let mqtt_loop_handle = mqtt_service
         .lock()
@@ -106,17 +113,23 @@ async fn main() -> anyhow::Result<()> {
     start_scheduler_task(
         scheduler,
         sender_receive.clone(),
-        topics.clone(),
+        topic_storage.clone(),
         sender_exit.subscribe(),
     );
 
-    let mut incoming_messages_handler = MqttHandler::new(topics.clone());
+    let mut incoming_messages_handler = MqttHandler::new(topic_storage.clone());
     incoming_messages_handler.start_task(sender_receive.subscribe(), sender_message.clone());
 
     start_subscription_task(mqtt_service, sender_receive, filtered_subscriptions);
 
     let sparkplug_network = Arc::new(Mutex::new(SparkplugNetwork::default()));
     start_sparkplug_monitor(sparkplug_network, sender_message.subscribe());
+
+    start_output_task(
+        sender_message.subscribe(),
+        topic_storage.clone(),
+        sender_message.clone(),
+    );
 
     start_exit_task(sender_exit).await;
 
@@ -125,6 +138,54 @@ async fn main() -> anyhow::Result<()> {
         .expect("Error while waiting for tasks to shut down");
 
     Ok(())
+}
+
+fn start_output_task(
+    mut receiver: Receiver<MessageEvent>,
+    topic_storage: Arc<TopicStorage>,
+    sender_message: Sender<MessageEvent>,
+) {
+    task::spawn(async move {
+        loop {
+            if let Ok(MessageEvent::ReceivedFiltered(message)) = receiver.recv().await {
+                let outputs = topic_storage.get_outputs_for_topic(&message.topic);
+                for output in outputs {
+                    if let Err(e) = write_to_output(sender_message.clone(), &message, output) {
+                        error!("Error while writing to output {}: {e:?}", output.target);
+                    }
+                }
+            }
+        }
+    });
+}
+
+fn write_to_output(
+    sender_message: Sender<MessageEvent>,
+    message: &MessageReceivedData,
+    output: &Output,
+) -> Result<(), OutputError> {
+    let conv = PayloadFormat::try_from((message.payload.clone(), output.format()))?;
+    match output.target() {
+        OutputTarget::Console(_options) => ConsoleOutput::output(
+            &message.topic,
+            conv.clone().try_into()?,
+            conv,
+            message.qos,
+            message.retain,
+        ),
+        OutputTarget::File(file) => FileOutput::output(conv.try_into()?, file),
+        OutputTarget::Topic(options) => {
+            sender_message
+                .send(MessageEvent::Publish(MessagePublishData::new(
+                    options.topic().clone(),
+                    *options.qos(),
+                    *options.retain(),
+                    conv.try_into()?,
+                )))
+                .map_err(OutputError::SendError)?;
+            Ok(())
+        }
+    }
 }
 
 fn start_sparkplug_monitor(
@@ -136,13 +197,17 @@ fn start_sparkplug_monitor(
     tokio::spawn(async move {
         loop {
             match receiver.recv().await {
-                Ok(MessageEvent::ReceivedUnfiltered(data)) => {
-                    if let PayloadFormat::Sparkplug(payload) = data.payload {
-                        tracing::debug!("Received sparkplug message\n{}", payload);
+                Ok(MessageEvent::ReceivedUnfiltered(message)) => {
+                    if let PayloadFormat::Sparkplug(payload) = message.payload {
+                        tracing::debug!(
+                            "Received sparkplug message on topic {}\n{}",
+                            message.topic,
+                            payload
+                        );
                         if let Err(e) = sparkplug_network
                             .lock()
                             .await
-                            .try_parse_message(data.topic, payload)
+                            .try_parse_message(message.topic, payload)
                         {
                             tracing::error!("Error while parsing sparkplug message: {e:?}");
                         }
@@ -184,7 +249,7 @@ fn start_scheduler_monitor_task(
 fn start_scheduler_task(
     scheduler: TriggerPeriodic,
     sender: Sender<MqttReceiveEvent>,
-    topics: Arc<Vec<Topic>>,
+    topics: Arc<TopicStorage>,
     receiver_exit: Receiver<()>,
 ) {
     let mut receiver_connect = sender.subscribe();
@@ -252,11 +317,11 @@ fn start_publish_task(
 }
 
 async fn start_scheduler(
-    topics: Arc<Vec<Topic>>,
+    topic_storage: Arc<TopicStorage>,
     mut scheduler: TriggerPeriodic,
     receiver_exit: Receiver<()>,
 ) -> Result<JoinHandle<()>, TriggerError> {
-    for topic in topics.iter() {
+    for topic in topic_storage.topics.iter() {
         if let Some(publish) = topic
             .publish()
             .as_ref()
