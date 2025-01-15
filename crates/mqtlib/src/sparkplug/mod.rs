@@ -1,5 +1,5 @@
 use crate::payload::sparkplug::PayloadFormatSparkplug;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::hash::Hash;
 use strum_macros::{Display, EnumString};
@@ -29,8 +29,50 @@ pub enum SparkplugError {
 
 #[derive(Clone, Debug, Default)]
 pub struct SparkplugNetwork {
-    pub host_applications: HashSet<SparkplugHostApplication>,
-    pub edge_nodes: HashSet<SparkplugEdgeNode>,
+    pub host_applications: SparkplugHostApplicationStorage,
+    pub edge_nodes: SparkplugEdgeNodeStorage,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct SparkplugHostApplicationStorage(HashMap<SparkplugHostApplication, MessageStorage>);
+
+impl SparkplugHostApplicationStorage {
+    pub fn count_received_messages(&self) -> usize {
+        self.0.values().map(|e| e.messages.len()).sum()
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct SparkplugEdgeNodeStorage(HashMap<SparkplugEdgeNode, MessageStorage>);
+
+impl SparkplugEdgeNodeStorage {
+    pub fn count_received_messages(&self) -> usize {
+        self.0.values().map(|e| e.messages.len()).sum()
+    }
+
+    pub fn list_group_ids(&self) -> HashSet<GroupId> {
+        self.0.keys().map(|e| e.group_id.clone()).collect()
+    }
+
+    pub fn find_by_group_id(&self, group_id: GroupId) -> HashSet<&SparkplugEdgeNode> {
+        self.0
+            .keys()
+            .filter(|e| e.group_id == group_id)
+            .collect()
+    }
+
+    pub fn find_by_edge_node_id(&self, group_id: GroupId, edge_node_id: EdgeNodeId) -> HashSet<&SparkplugEdgeNode> {
+        self.0
+            .keys()
+            .filter(|e| e.group_id == group_id)
+            .filter(|e| e.edge_node_id == edge_node_id)
+            .collect()
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct MessageStorage {
+    pub messages: Vec<PayloadFormatSparkplug>,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Hash)]
@@ -47,21 +89,15 @@ pub struct SparkplugEdgeNode {
 }
 
 impl SparkplugNetwork {
+    pub fn count_received_messages(&self) -> usize {
+        self.edge_nodes.count_received_messages() + self.host_applications.count_received_messages()
+    }
+
     pub fn try_parse_message(
         &mut self,
         topic: String,
         message: PayloadFormatSparkplug,
     ) -> Result<(), SparkplugError> {
-        self.add_to_network_by_topic(topic)?;
-
-        Ok(())
-    }
-
-    pub fn groups(&self) -> HashSet<GroupId> {
-        self.edge_nodes.iter().map(|e| e.group_id.clone()).collect()
-    }
-
-    fn add_to_network_by_topic(&mut self, topic: String) -> Result<(), SparkplugError> {
         let topic = SparkplugTopic::try_from(topic)?;
 
         match topic {
@@ -73,27 +109,24 @@ impl SparkplugNetwork {
                     metric_levels: data.metric_levels,
                 };
 
-                let edge_node = if let Some(existing) = self.edge_nodes.take(&edge_node) {
-                    existing
-                } else {
-                    edge_node
-                };
-
-                self.edge_nodes.insert(edge_node);
+                let storage = self.edge_nodes.0.entry(edge_node).or_default();
+                storage.messages.push(message);
             }
             SparkplugTopic::HostApplication(data) => {
                 let host = SparkplugHostApplication {
                     host_id: data.host_id,
                 };
 
-                self.host_applications.insert(host);
+                let storage = self.host_applications.0.entry(host).or_default();
+                storage.messages.push(message);
             }
         }
+
         Ok(())
     }
 }
 
-#[derive(Display, EnumString)]
+#[derive(Clone, Display, EnumString)]
 pub enum SparkplugMessageType {
     NBIRTH,
     NDATA,
@@ -106,11 +139,13 @@ pub enum SparkplugMessageType {
     STATE,
 }
 
+#[derive(Clone)]
 pub enum SparkplugTopic {
     EdgeNode(SparkplugTopicEdgeNode),
     HostApplication(SparkplugTopicHostApplication),
 }
 
+#[derive(Clone)]
 pub struct SparkplugTopicEdgeNode {
     pub version: String,
     pub group_id: String,
@@ -120,6 +155,7 @@ pub struct SparkplugTopicEdgeNode {
     pub metric_levels: Vec<String>,
 }
 
+#[derive(Clone)]
 pub struct SparkplugTopicHostApplication {
     pub version: String,
     pub host_id: String,

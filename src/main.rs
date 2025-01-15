@@ -138,7 +138,7 @@ fn start_sparkplug_monitor(
             match receiver.recv().await {
                 Ok(MessageEvent::ReceivedUnfiltered(data)) => {
                     if let PayloadFormat::Sparkplug(payload) = data.payload {
-                        tracing::debug!("Received sparkplug message {}", payload);
+                        tracing::debug!("Received sparkplug message\n{}", payload);
                         if let Err(e) = sparkplug_network
                             .lock()
                             .await
