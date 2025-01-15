@@ -71,7 +71,7 @@ impl MqtliArgs {
     pub fn merge(self, other: MqtliConfig) -> Result<MqtliConfig, ArgsError> {
         let mut builder = MqtliConfigBuilder::default();
 
-        let command_topics = self.extract_topics_from_commands()?;
+        let command_topics = self.extract_topics_from_commands(self.topics.clone())?;
 
         builder.broker(self.broker.merge(other.broker)?);
 
@@ -98,7 +98,6 @@ impl MqtliArgs {
                 .topic_storage
                 .topics
                 .into_iter()
-                .chain(self.topics)
                 .chain(command_topics)
                 .collect(),
         });
@@ -106,7 +105,7 @@ impl MqtliArgs {
         builder.build().map_err(ArgsError::from)
     }
 
-    fn extract_topics_from_commands(&self) -> Result<Vec<Topic>, ArgsError> {
+    fn extract_topics_from_commands(&self, topics: Vec<Topic>) -> Result<Vec<Topic>, ArgsError> {
         let mut result = Vec::new();
 
         if let Some(command) = self.command.as_ref() {
@@ -285,8 +284,14 @@ impl MqtliArgs {
                     result.push(topic_dcmd);
 
                     result.push(topic_state);
+
+                    if command_config.include_topics_from_file {
+                        result.extend(topics);
+                    }
                 }
             }
+        } else {
+            result.extend(topics);
         }
 
         Ok(result)

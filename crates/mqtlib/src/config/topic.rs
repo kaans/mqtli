@@ -16,7 +16,7 @@ impl TopicStorage {
     pub fn get_outputs_for_topic(&self, topic: &str) -> Vec<&Output> {
         self.topics
             .iter()
-            .filter(|t| t.topic == topic)
+            .filter(|t| t.contains(topic))
             .filter_map(|t| t.subscription.as_ref())
             .flat_map(|s| s.outputs())
             .collect()

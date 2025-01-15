@@ -199,11 +199,8 @@ fn start_sparkplug_monitor(
             match receiver.recv().await {
                 Ok(MessageEvent::ReceivedUnfiltered(message)) => {
                     if let PayloadFormat::Sparkplug(payload) = message.payload {
-                        tracing::debug!(
-                            "Received sparkplug message on topic {}\n{}",
-                            message.topic,
-                            payload
-                        );
+                        tracing::debug!("Received sparkplug message on topic {}", message.topic);
+                        tracing::trace!("{}", payload);
                         if let Err(e) = sparkplug_network
                             .lock()
                             .await
