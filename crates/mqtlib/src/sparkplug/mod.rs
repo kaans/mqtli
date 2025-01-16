@@ -5,9 +5,9 @@ use std::hash::Hash;
 use strum_macros::{Display, EnumString};
 use thiserror::Error;
 
-type GroupId = String;
-type EdgeNodeId = String;
-type DeviceId = String;
+pub type GroupId = String;
+pub type EdgeNodeId = String;
+pub type DeviceId = String;
 
 pub const SPARKPLUG_TOPIC_VERSION: &str = "spBv1.0";
 

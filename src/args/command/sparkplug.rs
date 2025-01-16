@@ -1,6 +1,7 @@
 use crate::args::parsers::parse_qos;
 use clap::Args;
 use mqtlib::mqtt::QoS;
+use mqtlib::sparkplug::GroupId;
 
 #[derive(Args, Clone, Debug, Default)]
 pub struct CommandSparkplug {
@@ -31,4 +32,14 @@ pub struct CommandSparkplug {
         help = "Include topics defined in the config file"
     )]
     pub include_topics_from_file: bool,
+
+    #[arg(
+        long = "include-group",
+        alias = "ig",
+        env = "SPARKPLUG_INCLUDE_GROUPS",
+        value_delimiter = ',',
+        help_heading = "Sparkplug",
+        help = "Include only the given topics; if not specified, all groups are subscribed to"
+    )]
+    pub include_groups: Vec<GroupId>,
 }

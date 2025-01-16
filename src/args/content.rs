@@ -4,6 +4,7 @@ use crate::args::command::subscribe::{CommandSubscribe, OutputTarget};
 use crate::args::parsers::deserialize_level_filter;
 use crate::args::ArgsError;
 use mqtlib::config::subscription;
+use std::fmt::Display;
 
 use crate::args::command::sparkplug::CommandSparkplug;
 use clap::{Parser, Subcommand};
@@ -11,12 +12,13 @@ use mqtlib::config::filter::FilterTypes;
 use mqtlib::config::mqtli_config::{Mode, MqtliConfig, MqtliConfigBuilder};
 use mqtlib::config::publish::{PublishBuilder, PublishTriggerType, PublishTriggerTypePeriodic};
 use mqtlib::config::subscription::{
-    Output, OutputTargetConsole, OutputTargetFile, OutputTargetTopic, SubscriptionBuilder,
+    Output, OutputTargetConsole, OutputTargetFile, OutputTargetTopic, Subscription,
+    SubscriptionBuilder,
 };
 use mqtlib::config::topic::{Topic, TopicBuilder, TopicStorage};
 use mqtlib::config::{PayloadType, PublishInputType, PublishInputTypeContentPath};
 use mqtlib::mqtt::QoS;
-use mqtlib::sparkplug::SPARKPLUG_TOPIC_VERSION;
+use mqtlib::sparkplug::{GroupId, SPARKPLUG_TOPIC_VERSION};
 use serde::Deserialize;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -241,49 +243,19 @@ impl MqtliArgs {
                         .outputs(vec![])
                         .build()?;
 
-                    let topic_nbirth = TopicBuilder::default()
-                        .topic(format!("{}/+/NBIRTH/#", SPARKPLUG_TOPIC_VERSION))
-                        .subscription(Some(subscription))
-                        .publish(None)
-                        .payload_type(PayloadType::Sparkplug)
-                        .build()?;
-
-                    let mut topic_ndata = topic_nbirth.clone();
-                    topic_ndata.topic = format!("{}/+/NDATA/#", SPARKPLUG_TOPIC_VERSION);
-
-                    let mut topic_ndeath = topic_nbirth.clone();
-                    topic_ndeath.topic = format!("{}/+/NDEATH/#", SPARKPLUG_TOPIC_VERSION);
-
-                    let mut topic_ncmd = topic_nbirth.clone();
-                    topic_ncmd.topic = format!("{}/+/NCMD/#", SPARKPLUG_TOPIC_VERSION);
-
-                    let mut topic_dbirth = topic_nbirth.clone();
-                    topic_dbirth.topic = format!("{}/+/DBIRTH/#", SPARKPLUG_TOPIC_VERSION);
-
-                    let mut topic_ddeath = topic_nbirth.clone();
-                    topic_ddeath.topic = format!("{}/+/DDEATH/#", SPARKPLUG_TOPIC_VERSION);
-
-                    let mut topic_ddata = topic_nbirth.clone();
-                    topic_ddata.topic = format!("{}/+/DDATA/#", SPARKPLUG_TOPIC_VERSION);
-
-                    let mut topic_dcmd = topic_nbirth.clone();
-                    topic_dcmd.topic = format!("{}/+/DCMD/#", SPARKPLUG_TOPIC_VERSION);
-
-                    let mut topic_state = topic_nbirth.clone();
-                    topic_state.topic = format!("{}/+/STATE/+", SPARKPLUG_TOPIC_VERSION);
-                    topic_state.payload_type = PayloadType::Json;
-
-                    result.push(topic_nbirth);
-                    result.push(topic_ndata);
-                    result.push(topic_ndeath);
-                    result.push(topic_ncmd);
-
-                    result.push(topic_dbirth);
-                    result.push(topic_ddeath);
-                    result.push(topic_ddata);
-                    result.push(topic_dcmd);
-
-                    result.push(topic_state);
+                    if command_config.include_groups.is_empty() {
+                        result.append(&mut Self::add_sparkplug_topics_for_group_id(
+                            "+",
+                            subscription.clone(),
+                        )?);
+                    } else {
+                        for group_id in &command_config.include_groups {
+                            result.append(&mut Self::add_sparkplug_topics_for_group_id(
+                                group_id,
+                                subscription.clone(),
+                            )?);
+                        }
+                    }
 
                     if command_config.include_topics_from_file {
                         result.extend(topics);
@@ -293,6 +265,59 @@ impl MqtliArgs {
         } else {
             result.extend(topics);
         }
+
+        Ok(result)
+    }
+
+    fn add_sparkplug_topics_for_group_id<T: Into<GroupId> + Display>(
+        group_id: T,
+        subscription: Subscription,
+    ) -> Result<Vec<Topic>, ArgsError> {
+        let mut result: Vec<Topic> = vec![];
+
+        let topic_nbirth = TopicBuilder::default()
+            .topic(format!("{}/{}/NBIRTH/#", SPARKPLUG_TOPIC_VERSION, group_id))
+            .subscription(Some(subscription))
+            .publish(None)
+            .payload_type(PayloadType::Sparkplug)
+            .build()?;
+
+        let mut topic_ndata = topic_nbirth.clone();
+        topic_ndata.topic = format!("{}/{}/NDATA/#", SPARKPLUG_TOPIC_VERSION, group_id);
+
+        let mut topic_ndeath = topic_nbirth.clone();
+        topic_ndeath.topic = format!("{}/{}/NDEATH/#", SPARKPLUG_TOPIC_VERSION, group_id);
+
+        let mut topic_ncmd = topic_nbirth.clone();
+        topic_ncmd.topic = format!("{}/{}/NCMD/#", SPARKPLUG_TOPIC_VERSION, group_id);
+
+        let mut topic_dbirth = topic_nbirth.clone();
+        topic_dbirth.topic = format!("{}/{}/DBIRTH/#", SPARKPLUG_TOPIC_VERSION, group_id);
+
+        let mut topic_ddeath = topic_nbirth.clone();
+        topic_ddeath.topic = format!("{}/{}/DDEATH/#", SPARKPLUG_TOPIC_VERSION, group_id);
+
+        let mut topic_ddata = topic_nbirth.clone();
+        topic_ddata.topic = format!("{}/{}/DDATA/#", SPARKPLUG_TOPIC_VERSION, group_id);
+
+        let mut topic_dcmd = topic_nbirth.clone();
+        topic_dcmd.topic = format!("{}/{}/DCMD/#", SPARKPLUG_TOPIC_VERSION, group_id);
+
+        let mut topic_state = topic_nbirth.clone();
+        topic_state.topic = format!("{}/{}/STATE/+", SPARKPLUG_TOPIC_VERSION, group_id);
+        topic_state.payload_type = PayloadType::Json;
+
+        result.push(topic_nbirth);
+        result.push(topic_ndata);
+        result.push(topic_ndeath);
+        result.push(topic_ncmd);
+
+        result.push(topic_dbirth);
+        result.push(topic_ddeath);
+        result.push(topic_ddata);
+        result.push(topic_dcmd);
+
+        result.push(topic_state);
 
         Ok(result)
     }
