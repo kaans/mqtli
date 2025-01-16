@@ -3,7 +3,8 @@ mod command;
 pub mod content;
 mod parsers;
 
-use crate::args::content::{Command, MqtliArgs};
+use crate::args::command::Command;
+use crate::args::content::MqtliArgs;
 use clap::Parser;
 use mqtlib::config::mqtli_config::MqtliConfigBuilderError;
 use mqtlib::config::mqtli_config::{

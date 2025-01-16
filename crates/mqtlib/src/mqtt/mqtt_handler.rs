@@ -140,10 +140,10 @@ mod v5 {
     use crate::config::topic::TopicStorage;
     use crate::mqtt::mqtt_handler::MqttHandler;
     use crate::mqtt::{MessageEvent, QoS};
-    use log::info;
     use std::str::from_utf8;
     use std::sync::Arc;
     use tokio::sync::broadcast::Sender;
+    use tracing::debug;
 
     pub fn handle_event(
         event: rumqttc::v5::Event,
@@ -157,7 +157,7 @@ mod v5 {
                         from_utf8(value.topic.as_ref()).expect("Topic is not in UTF-8 format");
                     let qos = QoS::from(value.qos);
 
-                    info!(
+                    debug!(
                         "Incoming message on topic {} (QoS: {})",
                         incoming_topic, qos
                     );
@@ -182,10 +182,10 @@ mod v311 {
     use crate::config::topic::TopicStorage;
     use crate::mqtt::mqtt_handler::MqttHandler;
     use crate::mqtt::{MessageEvent, QoS};
-    use log::info;
     use std::str::from_utf8;
     use std::sync::Arc;
     use tokio::sync::broadcast::Sender;
+    use tracing::debug;
 
     pub fn handle_event(
         event: rumqttc::Event,
@@ -199,7 +199,7 @@ mod v311 {
                         from_utf8(value.topic.as_ref()).expect("Topic is not in UTF-8 format");
                     let qos = QoS::from(value.qos);
 
-                    info!(
+                    debug!(
                         "Incoming message on topic {} (QoS: {})",
                         incoming_topic, qos
                     );
