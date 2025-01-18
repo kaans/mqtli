@@ -101,27 +101,30 @@ impl MqttHandler {
 
                         for output in subscription.outputs() {
                             match subscription.apply_filters(content.clone()) {
-                                Ok(content) => content.iter().for_each(|content| {
-                                    if let Ok(payload) =
-                                        PayloadFormat::try_from((content.clone(), output.format()))
-                                    {
-                                        if sender_message
-                                            .send(MessageEvent::ReceivedFiltered(
-                                                MessageReceivedData {
-                                                    topic: incoming_topic_str.into(),
-                                                    qos,
-                                                    retain,
-                                                    payload,
-                                                },
-                                            ))
-                                            .is_err()
-                                        {
-                                            //ignore, no receiver is listening
+                                Ok(content) => {
+                                    content.iter().for_each(|content| {
+                                        if let Ok(payload) = PayloadFormat::try_from((
+                                            content.clone(),
+                                            output.format(),
+                                        )) {
+                                            if sender_message
+                                                .send(MessageEvent::ReceivedFiltered(
+                                                    MessageReceivedData {
+                                                        topic: incoming_topic_str.into(),
+                                                        qos,
+                                                        retain,
+                                                        payload,
+                                                    },
+                                                ))
+                                                .is_err()
+                                            {
+                                                //ignore, no receiver is listening
+                                            }
+                                        } else {
+                                            error!("Could not convert payload");
                                         }
-                                    } else {
-                                        error!("Could not convert payload");
-                                    }
-                                }),
+                                    })
+                                }
                                 Err(e) => {
                                     error!("{:?}", e);
                                 }

@@ -19,7 +19,7 @@ use std::sync::Arc;
 use crate::args::load_config;
 use anyhow::Context;
 use log::{debug, error, info, warn};
-use mqtlib::config::mqtli_config::MqttVersion;
+use mqtlib::config::mqtli_config::{Mode, MqttVersion};
 use mqtlib::config::subscription::Subscription;
 use mqtlib::mqtt::mqtt_handler::MqttHandler;
 use mqtlib::mqtt::v311::mqtt_service::MqttServiceV311;
@@ -33,6 +33,7 @@ use tokio::{signal, task};
 use tracing::Level;
 use tracing_subscriber::fmt::SubscriberBuilder;
 use tracing_subscriber::util::{SubscriberInitExt, TryInitError};
+use mqtlib::config::PayloadType;
 
 type ExitCommand = ();
 
@@ -78,7 +79,6 @@ async fn main() -> anyhow::Result<()> {
     let (sender_message, _) = broadcast::channel::<MessageEvent>(32);
 
     let topic_storage = Arc::new(config.topic_storage);
-    //let topics = Arc::new(config.topic_storage.topics);
 
     let mqtt_loop_handle = mqtt_service
         .lock()
@@ -113,13 +113,22 @@ async fn main() -> anyhow::Result<()> {
         filtered_subscriptions,
     );
 
-    let sparkplug_network = Arc::new(Mutex::new(SparkplugNetwork::default()));
-    tasks::sparkplug::start_sparkplug_monitor(sparkplug_network, sender_message.subscribe());
+    let exclude_types = match config.mode {
+        Mode::Sparkplug => vec![PayloadType::Sparkplug],
+        _ => vec![],
+    };
 
     tasks::output::start_output_task(
         sender_message.subscribe(),
         topic_storage.clone(),
         sender_message.clone(),
+        exclude_types,
+    );
+
+    let sparkplug_network = Arc::new(Mutex::new(SparkplugNetwork::default()));
+    tasks::sparkplug::start_sparkplug_monitor(sparkplug_network,
+                                              topic_storage.clone(),
+                                              sender_message.subscribe(),
     );
 
     start_exit_task(sender_exit).await;

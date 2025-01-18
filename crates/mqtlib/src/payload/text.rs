@@ -95,7 +95,7 @@ impl TryFrom<PayloadFormat> for PayloadFormatText {
             }),
             PayloadFormat::Json(value) => Ok(Self::from(value.to_string())),
             PayloadFormat::Yaml(value) => Ok(Self::from(value.to_string())),
-            PayloadFormat::Sparkplug(_) => Ok(Self {
+            PayloadFormat::Sparkplug(value) => Ok(Self {
                 content: value.to_string().into_bytes(),
             }),
         }

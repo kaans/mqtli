@@ -93,19 +93,19 @@ impl MqtliArgs {
         builder.build().map_err(ArgsError::from)
     }
 
-    fn assemble_topics(&self, topics: Vec<Topic>) -> Result<Vec<Topic>, ArgsError> {
+    fn assemble_topics(&self, topics_from_config_file: Vec<Topic>) -> Result<Vec<Topic>, ArgsError> {
         let mut result = Vec::new();
 
         if let Some(command) = self.command.as_ref() {
-            let topics = command.get_topics()?;
+            result.extend(command.get_topics()?);
 
             if let Command::Sparkplug(config) = command {
                 if config.include_topics_from_file {
-                    result.extend(topics);
+                    result.extend(topics_from_config_file);
                 }
             }
         } else {
-            result.extend(topics);
+            result.extend(topics_from_config_file);
         }
 
         Ok(result)

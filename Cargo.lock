@@ -963,7 +963,9 @@ dependencies = [
  "anyhow",
  "base64 0.22.1",
  "built",
+ "chrono",
  "clap",
+ "colored",
  "derive-getters",
  "log",
  "mqtlib",
@@ -983,7 +985,6 @@ version = "0.7.0"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
- "chrono",
  "colored",
  "derive-getters",
  "derive-new",

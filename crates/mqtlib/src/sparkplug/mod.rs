@@ -96,13 +96,7 @@ impl SparkplugNetwork {
         self.edge_nodes.count_received_messages() + self.host_applications.count_received_messages()
     }
 
-    pub fn try_parse_message(
-        &mut self,
-        topic: String,
-        message: PayloadFormatSparkplug,
-    ) -> Result<(), SparkplugError> {
-        let topic = SparkplugTopic::try_from(topic)?;
-
+    pub fn parse_message(&mut self, topic: SparkplugTopic, message: PayloadFormatSparkplug) {
         match topic {
             SparkplugTopic::EdgeNode(data) => {
                 let edge_node = SparkplugEdgeNode {
@@ -124,8 +118,6 @@ impl SparkplugNetwork {
                 storage.messages.push(message);
             }
         }
-
-        Ok(())
     }
 }
 

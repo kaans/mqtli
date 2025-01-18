@@ -18,8 +18,7 @@ impl TopicStorage {
             .iter()
             .filter(|t| t.contains(topic))
             .filter_map(|t| t.subscription.as_ref())
-            .flat_map(|s| s.outputs())
-            .collect()
+            .flat_map(|s| s.outputs()).collect()
     }
 }
 

@@ -8,19 +8,23 @@ use mqtlib::output::OutputError;
 use mqtlib::payload::PayloadFormat;
 use std::sync::Arc;
 use tokio::sync::broadcast::{Receiver, Sender};
+use mqtlib::config::PayloadType;
 
 pub fn start_output_task(
     mut receiver: Receiver<MessageEvent>,
     topic_storage: Arc<TopicStorage>,
     sender_message: Sender<MessageEvent>,
+    exclude_types: Vec<PayloadType>
 ) {
     tokio::spawn(async move {
         loop {
             if let Ok(MessageEvent::ReceivedFiltered(message)) = receiver.recv().await {
-                let outputs = topic_storage.get_outputs_for_topic(&message.topic);
-                for output in outputs {
-                    if let Err(e) = write_to_output(sender_message.clone(), &message, output) {
-                        error!("Error while writing to output {}: {e:?}", output.target);
+                if !exclude_types.contains(&message.payload.clone().to_owned().into()) {
+                    let outputs = topic_storage.get_outputs_for_topic(&message.topic);
+                    for output in outputs {
+                        if let Err(e) = write_to_output(sender_message.clone(), &message, output) {
+                            error!("Error while writing to output {}: {e:?}", output.target);
+                        }
                     }
                 }
             }
@@ -35,7 +39,7 @@ fn write_to_output(
 ) -> Result<(), OutputError> {
     let conv = PayloadFormat::try_from((message.payload.clone(), output.format()))?;
     match output.target() {
-        OutputTarget::Console(_options) => ConsoleOutput::output(
+        OutputTarget::Console(_options) => ConsoleOutput::output_topic(
             &message.topic,
             conv.clone().try_into()?,
             conv,

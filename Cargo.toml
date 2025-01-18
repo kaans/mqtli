@@ -27,6 +27,8 @@ base64 = "0.22.1"
 rumqttc = { git = "https://github.com/bytebeamio/rumqtt.git", rev = "431be1b", features = ["websocket"] }
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
+colored = "3.0.0"
+chrono = "0.4.39"
 
 [build-dependencies]
 built = "0.7.5"

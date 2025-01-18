@@ -1,19 +1,17 @@
 use crate::args::command::publish::CommandPublish;
 use crate::args::command::sparkplug::CommandSparkplug;
-use crate::args::command::subscribe::{CommandSubscribe, OutputTarget};
+use crate::args::command::subscribe::{CommandSubscribe, OutputTarget as OutputTargetArgs};
 use clap::Subcommand;
 use mqtlib::config::filter::FilterTypes;
 use mqtlib::config::publish::{PublishBuilder, PublishTriggerType, PublishTriggerTypePeriodic};
-use mqtlib::config::subscription::{
-    Output, OutputTargetConsole, OutputTargetFile, OutputTargetTopic, Subscription,
-    SubscriptionBuilder,
-};
+use mqtlib::config::subscription::{Output, OutputTarget, OutputTargetConsole, OutputTargetFile, OutputTargetTopic, Subscription, SubscriptionBuilder};
 use mqtlib::config::topic::{Topic, TopicBuilder};
-use mqtlib::config::{subscription, PayloadType, PublishInputType, PublishInputTypeContentPath};
+use mqtlib::config::{PayloadType, PublishInputType, PublishInputTypeContentPath};
 use mqtlib::mqtt::QoS;
 use mqtlib::sparkplug::{GroupId, SPARKPLUG_TOPIC_VERSION};
 use std::fmt::Display;
 use std::time::Duration;
+use crate::args::ArgsError;
 
 pub mod publish;
 pub mod sparkplug;
@@ -103,25 +101,25 @@ impl Command {
 
     fn get_topics_for_subscribe(
         config: &CommandSubscribe,
-    ) -> Result<Vec<Topic>, crate::args::ArgsError> {
+    ) -> Result<Vec<Topic>, ArgsError> {
         let mut result = Vec::new();
 
         let topic_type = config.topic_type.clone().unwrap_or(PayloadType::Text);
 
-        let output_target: subscription::OutputTarget = match &config.output_target {
-            None => subscription::OutputTarget::Console(OutputTargetConsole::default()),
+        let output_target: OutputTarget = match &config.output_target {
+            None => OutputTarget::Console(OutputTargetConsole::default()),
             Some(target) => match target {
-                OutputTarget::Console(_) => {
-                    subscription::OutputTarget::Console(OutputTargetConsole::default())
+                OutputTargetArgs::Console(_) => {
+                    OutputTarget::Console(OutputTargetConsole::default())
                 }
-                OutputTarget::File(config) => subscription::OutputTarget::File(OutputTargetFile {
+                OutputTargetArgs::File(config) => OutputTarget::File(OutputTargetFile {
                     path: config.path.clone(),
                     overwrite: config.overwrite,
                     prepend: config.prepend.clone(),
                     append: config.append.clone(),
                 }),
-                OutputTarget::Topic(config) => {
-                    subscription::OutputTarget::Topic(OutputTargetTopic {
+                OutputTargetArgs::Topic(config) => {
+                    OutputTarget::Topic(OutputTargetTopic {
                         topic: config.topic.clone(),
                         qos: config.qos.unwrap_or(QoS::AtLeastOnce),
                         retain: config.retain,
@@ -158,23 +156,16 @@ impl Command {
     ) -> Result<Vec<Topic>, crate::args::ArgsError> {
         let mut result = Vec::new();
 
-        let subscription = SubscriptionBuilder::default()
-            .qos(config.qos.unwrap_or(QoS::AtLeastOnce))
-            .enabled(true)
-            .filters(FilterTypes::default())
-            .outputs(vec![])
-            .build()?;
-
         if config.include_groups.is_empty() {
             result.append(&mut Self::add_sparkplug_topics_for_group_id(
                 "+",
-                subscription.clone(),
+                config.qos.unwrap_or(QoS::AtLeastOnce)
             )?);
         } else {
             for group_id in &config.include_groups {
                 result.append(&mut Self::add_sparkplug_topics_for_group_id(
                     group_id,
-                    subscription.clone(),
+                    config.qos.unwrap_or(QoS::AtLeastOnce)
                 )?);
             }
         }
@@ -184,22 +175,35 @@ impl Command {
 
     fn add_sparkplug_topics_for_group_id<T: Into<GroupId> + Display>(
         group_id: T,
-        subscription: Subscription,
-    ) -> Result<Vec<Topic>, crate::args::ArgsError> {
+        qos: QoS,
+    ) -> Result<Vec<Topic>, ArgsError> {
+        fn get_subscription(qos: QoS, format: PayloadType) -> Result<Subscription, ArgsError> {
+            let output = Output {
+                format,
+                target: OutputTarget::Console(OutputTargetConsole::default()),
+            };
+
+            Ok(SubscriptionBuilder::default()
+                .qos(qos)
+                .enabled(true)
+                .filters(FilterTypes::default())
+                .outputs(vec![output])
+                .build()?)
+        }
         let mut result: Vec<Topic> = vec![];
 
         let topic_nbirth = TopicBuilder::default()
             .topic(format!("{}/{}/NBIRTH/#", SPARKPLUG_TOPIC_VERSION, group_id))
-            .subscription(Some(subscription))
+            .subscription(Some(get_subscription(qos, PayloadType::Sparkplug)?))
             .publish(None)
             .payload_type(PayloadType::Sparkplug)
             .build()?;
 
-        let mut topic_ndata = topic_nbirth.clone();
-        topic_ndata.topic = format!("{}/{}/NDATA/#", SPARKPLUG_TOPIC_VERSION, group_id);
-
         let mut topic_ndeath = topic_nbirth.clone();
         topic_ndeath.topic = format!("{}/{}/NDEATH/#", SPARKPLUG_TOPIC_VERSION, group_id);
+
+        let mut topic_ndata = topic_nbirth.clone();
+        topic_ndata.topic = format!("{}/{}/NDATA/#", SPARKPLUG_TOPIC_VERSION, group_id);
 
         let mut topic_ncmd = topic_nbirth.clone();
         topic_ncmd.topic = format!("{}/{}/NCMD/#", SPARKPLUG_TOPIC_VERSION, group_id);
@@ -207,7 +211,7 @@ impl Command {
         let mut topic_dbirth = topic_nbirth.clone();
         topic_dbirth.topic = format!("{}/{}/DBIRTH/#", SPARKPLUG_TOPIC_VERSION, group_id);
 
-        let mut topic_ddeath = topic_nbirth.clone();
+        let mut topic_ddeath = topic_ndeath.clone();
         topic_ddeath.topic = format!("{}/{}/DDEATH/#", SPARKPLUG_TOPIC_VERSION, group_id);
 
         let mut topic_ddata = topic_nbirth.clone();
@@ -216,9 +220,12 @@ impl Command {
         let mut topic_dcmd = topic_nbirth.clone();
         topic_dcmd.topic = format!("{}/{}/DCMD/#", SPARKPLUG_TOPIC_VERSION, group_id);
 
-        let mut topic_state = topic_nbirth.clone();
-        topic_state.topic = format!("{}/{}/STATE/+", SPARKPLUG_TOPIC_VERSION, group_id);
-        topic_state.payload_type = PayloadType::Json;
+        let topic_state = TopicBuilder::default()
+            .topic(format!("{}/{}/STATE/#", SPARKPLUG_TOPIC_VERSION, group_id))
+            .subscription(Some(get_subscription(qos, PayloadType::Json)?))
+            .publish(None)
+            .payload_type(PayloadType::Json)
+            .build()?;
 
         result.push(topic_nbirth);
         result.push(topic_ndata);

@@ -14,7 +14,7 @@ use crate::payload::sparkplug::protos::sparkplug_b::Payload as SparkplugPayload;
 
 #[derive(Clone, Debug, Getters)]
 pub struct PayloadFormatSparkplug {
-    content: SparkplugPayload,
+    pub content: SparkplugPayload,
 }
 
 impl Display for PayloadFormatSparkplug {
