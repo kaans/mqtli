@@ -68,26 +68,10 @@ fn output_sparkplug_message(
         SparkplugTopic::EdgeNode(topic) => match topic.message_type {
             SparkplugMessageType::NBIRTH => format_nbirth(message, topic),
             SparkplugMessageType::NDATA => format_ndata(message, topic),
-            SparkplugMessageType::NDEATH => {
-                let mut result: Vec<String> = vec![];
-                result.push(format!(
-                    "Edge node \"{}\" left the network",
-                    topic.edge_node_id
-                ));
-
-                result
-            }
+            SparkplugMessageType::NDEATH => format_ndeath(message, topic),
             SparkplugMessageType::DBIRTH => format_dbirth(message, topic),
             SparkplugMessageType::DDATA => format_ddata(message, topic),
-            SparkplugMessageType::DDEATH => {
-                let mut result: Vec<String> = vec![];
-                result.push(format!(
-                    "Device \"{}\" left the network",
-                    topic.device_id.as_ref().unwrap_or(&"unknown".to_string())
-                ));
-
-                result
-            }
+            SparkplugMessageType::DDEATH => format_ddeath(message, topic),
             SparkplugMessageType::NCMD => {
                 let mut result: Vec<String> = vec![];
                 result.push(format!(
@@ -158,25 +142,6 @@ fn format_ddata(message: &PayloadFormatSparkplug, topic: &SparkplugTopicEdgeNode
     result
 }
 
-fn format_ndata(message: &PayloadFormatSparkplug, topic: &SparkplugTopicEdgeNode) -> Vec<String> {
-    let mut result: Vec<String> = vec![];
-
-    let content = format!(
-        "[{}] {}/{} (seq {})",
-        topic.message_type.to_string().magenta(),
-        topic.group_id.yellow(),
-        topic.edge_node_id.magenta(),
-        message.content.seq.unwrap_or(999).to_string().white()
-    )
-    .black()
-    .on_cyan();
-
-    result.push(content.to_string());
-    result.extend(add_metrics(&message.content.metrics, false));
-
-    result
-}
-
 fn format_nbirth(message: &PayloadFormatSparkplug, topic: &SparkplugTopicEdgeNode) -> Vec<String> {
     let mut result: Vec<String> = vec![];
 
@@ -188,10 +153,66 @@ fn format_nbirth(message: &PayloadFormatSparkplug, topic: &SparkplugTopicEdgeNod
         message.content.seq.unwrap_or(999).to_string().white()
     )
     .black()
-    .on_cyan();
+    .on_magenta();
 
     result.push(content.to_string());
     result.extend(add_metrics(&message.content.metrics, false));
+
+    result
+}
+
+fn format_ndata(message: &PayloadFormatSparkplug, topic: &SparkplugTopicEdgeNode) -> Vec<String> {
+    let mut result: Vec<String> = vec![];
+
+    let content = format!(
+        "[{}] {}/{} (seq {})",
+        topic.message_type.to_string().magenta(),
+        topic.group_id.yellow(),
+        topic.edge_node_id.magenta(),
+        message.content.seq.unwrap_or(999).to_string().white()
+    )
+        .black()
+        .on_magenta();
+
+    result.push(content.to_string());
+    result.extend(add_metrics(&message.content.metrics, false));
+
+    result
+}
+
+fn format_ndeath(message: &PayloadFormatSparkplug, topic: &SparkplugTopicEdgeNode) -> Vec<String> {
+    let mut result: Vec<String> = vec![];
+
+    let bd_seq = message.content.metrics.iter()
+        .filter(|m| m.name.is_some())
+        .find(|m| m.name.as_ref().unwrap() == "bdSeq");
+
+    let content = format!(
+        "[{}] Edge node {}/{} left the network (seq {})",
+        topic.message_type.to_string().magenta(),
+        topic.group_id.yellow(),
+        topic.edge_node_id.magenta(),
+        message.content.seq.unwrap_or(999).to_string().white()
+    )
+        .black()
+        .on_magenta();
+
+    result.push(content.to_string());
+
+    match bd_seq {
+        None => {
+            warn!("NDEATH message did not have a bdSeq metric");
+        }
+        Some(bd_seq) if !bd_seq.has_long_value() => {
+            warn!("bdSeq metric is not a long integer value");
+        }
+        Some(bd_seq) => {
+            result.push(format!("bdSeq number: {}", bd_seq.int_value())
+                .green()
+                .to_string()
+            );
+        }
+    }
 
     result
 }
@@ -216,6 +237,29 @@ fn format_dbirth(message: &PayloadFormatSparkplug, topic: &SparkplugTopicEdgeNod
 
     result.push(content.to_string());
     result.extend(add_metrics(&message.content.metrics, false));
+
+    result
+}
+
+fn format_ddeath(message: &PayloadFormatSparkplug, topic: &SparkplugTopicEdgeNode) -> Vec<String> {
+    let mut result: Vec<String> = vec![];
+
+    let content = format!(
+        "[{}] Device {}/{}/{} died (seq {})",
+        topic.message_type.to_string().blue(),
+        topic.group_id.yellow(),
+        topic.edge_node_id.magenta(),
+        topic
+            .device_id
+            .as_ref()
+            .unwrap_or(&"unknown".to_string())
+            .blue(),
+        message.content.seq.unwrap_or(999).to_string().white()
+    )
+        .black()
+        .on_cyan();
+
+    result.push(content.to_string());
 
     result
 }
