@@ -1,17 +1,20 @@
 use crate::args::command::publish::CommandPublish;
 use crate::args::command::sparkplug::CommandSparkplug;
 use crate::args::command::subscribe::{CommandSubscribe, OutputTarget as OutputTargetArgs};
+use crate::args::ArgsError;
 use clap::Subcommand;
 use mqtlib::config::filter::FilterTypes;
 use mqtlib::config::publish::{PublishBuilder, PublishTriggerType, PublishTriggerTypePeriodic};
-use mqtlib::config::subscription::{Output, OutputTarget, OutputTargetConsole, OutputTargetFile, OutputTargetTopic, Subscription, SubscriptionBuilder};
+use mqtlib::config::subscription::{
+    Output, OutputTarget, OutputTargetConsole, OutputTargetFile, OutputTargetTopic, Subscription,
+    SubscriptionBuilder,
+};
 use mqtlib::config::topic::{Topic, TopicBuilder};
 use mqtlib::config::{PayloadType, PublishInputType, PublishInputTypeContentPath};
 use mqtlib::mqtt::QoS;
 use mqtlib::sparkplug::{GroupId, SPARKPLUG_TOPIC_VERSION};
 use std::fmt::Display;
 use std::time::Duration;
-use crate::args::ArgsError;
 
 pub mod publish;
 pub mod sparkplug;
@@ -99,9 +102,7 @@ impl Command {
         Ok(result)
     }
 
-    fn get_topics_for_subscribe(
-        config: &CommandSubscribe,
-    ) -> Result<Vec<Topic>, ArgsError> {
+    fn get_topics_for_subscribe(config: &CommandSubscribe) -> Result<Vec<Topic>, ArgsError> {
         let mut result = Vec::new();
 
         let topic_type = config.topic_type.clone().unwrap_or(PayloadType::Text);
@@ -118,13 +119,11 @@ impl Command {
                     prepend: config.prepend.clone(),
                     append: config.append.clone(),
                 }),
-                OutputTargetArgs::Topic(config) => {
-                    OutputTarget::Topic(OutputTargetTopic {
-                        topic: config.topic.clone(),
-                        qos: config.qos.unwrap_or(QoS::AtLeastOnce),
-                        retain: config.retain,
-                    })
-                }
+                OutputTargetArgs::Topic(config) => OutputTarget::Topic(OutputTargetTopic {
+                    topic: config.topic.clone(),
+                    qos: config.qos.unwrap_or(QoS::AtLeastOnce),
+                    retain: config.retain,
+                }),
             },
         };
 
@@ -159,13 +158,13 @@ impl Command {
         if config.include_groups.is_empty() {
             result.append(&mut Self::add_sparkplug_topics_for_group_id(
                 "+",
-                config.qos.unwrap_or(QoS::AtLeastOnce)
+                config.qos.unwrap_or(QoS::AtLeastOnce),
             )?);
         } else {
             for group_id in &config.include_groups {
                 result.append(&mut Self::add_sparkplug_topics_for_group_id(
                     group_id,
-                    config.qos.unwrap_or(QoS::AtLeastOnce)
+                    config.qos.unwrap_or(QoS::AtLeastOnce),
                 )?);
             }
         }

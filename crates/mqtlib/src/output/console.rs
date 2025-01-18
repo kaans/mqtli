@@ -29,9 +29,7 @@ impl ConsoleOutput {
         Ok(())
     }
 
-    pub fn output_string(
-        content: String,
-    ) -> Result<(), OutputError> {
+    pub fn output_string(content: String) -> Result<(), OutputError> {
         println!("{}", content);
         Ok(())
     }

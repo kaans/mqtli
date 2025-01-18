@@ -1,4 +1,3 @@
-use log::{debug, error, info};
 use mqtlib::config::publish::PublishTriggerType::Periodic;
 use mqtlib::config::subscription::Subscription;
 use mqtlib::config::topic::TopicStorage;
@@ -12,6 +11,7 @@ use std::sync::Arc;
 use tokio::sync::broadcast::{Receiver, Sender};
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
+use tracing::{debug, error, info};
 
 pub fn start_scheduler_monitor_task(
     mqtt_service_publish: Arc<Mutex<dyn MqttService>>,

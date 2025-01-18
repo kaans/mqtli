@@ -1,4 +1,3 @@
-use log::{error, info};
 use mqtlib::config::subscription::Subscription;
 use mqtlib::mqtt::{MqttReceiveEvent, MqttService};
 use rumqttc::v5::Incoming;
@@ -6,6 +5,7 @@ use rumqttc::Incoming as IncomingV311;
 use std::sync::Arc;
 use tokio::sync::broadcast::Sender;
 use tokio::sync::Mutex;
+use tracing::{error, info};
 
 pub fn start_subscription_task(
     mqtt_service: Arc<Mutex<dyn MqttService>>,

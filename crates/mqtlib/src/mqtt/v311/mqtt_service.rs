@@ -2,12 +2,12 @@ use std::io::ErrorKind;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use log::{debug, error, info};
 use rumqttc::{AsyncClient, ConnectionError, EventLoop, MqttOptions, StateError};
 use rumqttc::{ConnectReturnCode, LastWill};
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Receiver;
 use tokio::task::JoinHandle;
+use tracing::{debug, error, info};
 
 use crate::config::mqtli_config::MqttBrokerConnect;
 use crate::mqtt::{

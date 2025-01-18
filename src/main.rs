@@ -18,9 +18,9 @@ use std::sync::Arc;
 
 use crate::args::load_config;
 use anyhow::Context;
-use log::{debug, error, info, warn};
 use mqtlib::config::mqtli_config::{Mode, MqttVersion};
 use mqtlib::config::subscription::Subscription;
+use mqtlib::config::PayloadType;
 use mqtlib::mqtt::mqtt_handler::MqttHandler;
 use mqtlib::mqtt::v311::mqtt_service::MqttServiceV311;
 use mqtlib::mqtt::v5::mqtt_service::MqttServiceV5;
@@ -30,10 +30,9 @@ use mqtlib::sparkplug::SparkplugNetwork;
 use tokio::sync::broadcast::Sender;
 use tokio::sync::{broadcast, Mutex};
 use tokio::{signal, task};
-use tracing::Level;
+use tracing::{error, info, trace, warn, Level};
 use tracing_subscriber::fmt::SubscriberBuilder;
 use tracing_subscriber::util::{SubscriberInitExt, TryInitError};
-use mqtlib::config::PayloadType;
 
 type ExitCommand = ();
 
@@ -49,7 +48,7 @@ async fn main() -> anyhow::Result<()> {
         built_info::PKG_VERSION
     );
 
-    debug!("{}", config);
+    trace!("{}", config);
 
     let (sender_exit, _) = broadcast::channel::<ExitCommand>(5);
 
@@ -126,9 +125,10 @@ async fn main() -> anyhow::Result<()> {
     );
 
     let sparkplug_network = Arc::new(Mutex::new(SparkplugNetwork::default()));
-    tasks::sparkplug::start_sparkplug_monitor(sparkplug_network,
-                                              topic_storage.clone(),
-                                              sender_message.subscribe(),
+    tasks::sparkplug::start_sparkplug_monitor(
+        sparkplug_network,
+        topic_storage.clone(),
+        sender_message.subscribe(),
     );
 
     start_exit_task(sender_exit).await;

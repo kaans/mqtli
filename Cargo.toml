@@ -17,7 +17,6 @@ mqtlib = { path = "crates/mqtlib" }
 clap = { version = "4.5.26", features = ["derive", "env"] }
 derive-getters = "0.5.0"
 anyhow = "1.0.94"
-log = "0.4.22"
 tokio = { version = "1.42.0", features = ["macros", "rt", "rt-multi-thread", "sync", "signal"] }
 serde = { version = "1.0.217", features = ["derive"] }
 serde_yaml = "0.9.30"

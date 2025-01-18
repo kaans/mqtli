@@ -8,7 +8,6 @@ use std::sync::Arc;
 use crate::config::mqtli_config::{MqttBrokerConnect, MqttProtocol, TlsVersion};
 use crate::payload::PayloadFormat;
 use async_trait::async_trait;
-use log::{debug, info};
 use rumqttc::tokio_rustls::rustls::version::{TLS12, TLS13};
 use rumqttc::tokio_rustls::rustls::{Certificate, PrivateKey, SupportedProtocolVersion};
 use rumqttc::{TlsConfiguration, Transport};
@@ -17,6 +16,7 @@ use thiserror::Error;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Receiver;
 use tokio::task::JoinHandle;
+use tracing::{debug, info};
 
 pub mod v5;
 

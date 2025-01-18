@@ -2,12 +2,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use log::{debug, error};
 use tokio::sync::broadcast::Receiver as BroadcastReceiver;
 use tokio::sync::{broadcast, Mutex};
 use tokio::task::JoinHandle;
 use tokio::{select, task};
 use tokio_cron_scheduler::{Job, JobScheduler, JobSchedulerError};
+use tracing::{debug, error};
 use uuid::Uuid;
 
 use crate::mqtt::{MessagePublishData, MqttService, QoS};

@@ -6,15 +6,17 @@ use mqtlib::mqtt::MessageEvent;
 use mqtlib::output::console::ConsoleOutput;
 use mqtlib::output::file::FileOutput;
 use mqtlib::payload::sparkplug::protos::sparkplug_b::payload::metric::Value;
+use mqtlib::payload::sparkplug::protos::sparkplug_b::payload::Metric;
 use mqtlib::payload::sparkplug::PayloadFormatSparkplug;
 use mqtlib::payload::PayloadFormat;
-use mqtlib::sparkplug::{SparkplugMessageType, SparkplugNetwork, SparkplugTopic, SparkplugTopicEdgeNode};
+use mqtlib::sparkplug::{
+    SparkplugMessageType, SparkplugNetwork, SparkplugTopic, SparkplugTopicEdgeNode,
+};
 use std::sync::Arc;
 use tokio::sync::broadcast::error::RecvError;
 use tokio::sync::broadcast::Receiver;
 use tokio::sync::Mutex;
 use tracing::error;
-use mqtlib::payload::sparkplug::protos::sparkplug_b::payload::Metric;
 
 pub fn start_sparkplug_monitor(
     sparkplug_network: Arc<Mutex<SparkplugNetwork>>,
@@ -64,12 +66,8 @@ fn output_sparkplug_message(
 
     let content: String = match topic {
         SparkplugTopic::EdgeNode(topic) => match topic.message_type {
-            SparkplugMessageType::NBIRTH => {
-                format_nbirth(message, topic)
-            }
-            SparkplugMessageType::NDATA => {
-                format_ndata(message, topic)
-            }
+            SparkplugMessageType::NBIRTH => format_nbirth(message, topic),
+            SparkplugMessageType::NDATA => format_ndata(message, topic),
             SparkplugMessageType::NDEATH => {
                 let mut result: Vec<String> = vec![];
                 result.push(format!(
@@ -79,12 +77,8 @@ fn output_sparkplug_message(
 
                 result
             }
-            SparkplugMessageType::DBIRTH => {
-                format_dbirth(message, topic)
-            }
-            SparkplugMessageType::DDATA => {
-                format_ddata(message, topic)
-            }
+            SparkplugMessageType::DBIRTH => format_dbirth(message, topic),
+            SparkplugMessageType::DDATA => format_ddata(message, topic),
             SparkplugMessageType::DDEATH => {
                 let mut result: Vec<String> = vec![];
                 result.push(format!(
@@ -127,7 +121,7 @@ fn output_sparkplug_message(
             _ => vec![],
         },
     }
-        .join("\n");
+    .join("\n");
 
     for output in outputs {
         if let Err(e) = match output.target() {
@@ -155,14 +149,14 @@ fn format_ddata(message: &PayloadFormatSparkplug, topic: &SparkplugTopicEdgeNode
             .blue(),
         message.content.seq.unwrap_or(999).to_string().white()
     )
-        .black().on_cyan();
+    .black()
+    .on_cyan();
 
     result.push(content.to_string());
     result.extend(add_metrics(&message.content.metrics, false));
 
     result
 }
-
 
 fn format_ndata(message: &PayloadFormatSparkplug, topic: &SparkplugTopicEdgeNode) -> Vec<String> {
     let mut result: Vec<String> = vec![];
@@ -174,7 +168,8 @@ fn format_ndata(message: &PayloadFormatSparkplug, topic: &SparkplugTopicEdgeNode
         topic.edge_node_id.magenta(),
         message.content.seq.unwrap_or(999).to_string().white()
     )
-        .black().on_cyan();
+    .black()
+    .on_cyan();
 
     result.push(content.to_string());
     result.extend(add_metrics(&message.content.metrics, false));
@@ -192,7 +187,8 @@ fn format_nbirth(message: &PayloadFormatSparkplug, topic: &SparkplugTopicEdgeNod
         topic.edge_node_id.magenta(),
         message.content.seq.unwrap_or(999).to_string().white()
     )
-        .black().on_cyan();
+    .black()
+    .on_cyan();
 
     result.push(content.to_string());
     result.extend(add_metrics(&message.content.metrics, false));
@@ -215,7 +211,8 @@ fn format_dbirth(message: &PayloadFormatSparkplug, topic: &SparkplugTopicEdgeNod
             .blue(),
         message.content.seq.unwrap_or(999).to_string().white()
     )
-        .black().on_cyan();
+    .black()
+    .on_cyan();
 
     result.push(content.to_string());
     result.extend(add_metrics(&message.content.metrics, false));
@@ -256,16 +253,22 @@ fn add_metrics(metrics: &Vec<Metric>, is_template: bool) -> Vec<String> {
             true => {
                 format!(
                     "    [{}{}{}] {} = {}",
-                    metric
-                        .timestamp
-                        .map_or("unknown".to_string(), |t| {
-                            if let Some(utc) = DateTime::from_timestamp_millis(t as i64) {
-                                return utc.format("%H:%M:%S%.3f").to_string();
-                            }
-                            "unknown".to_string()
-                        }),
-                    if metric.is_historical() { ", historical".red().to_string() } else { "".to_string() },
-                    if metric.is_transient() { ", transient".red().to_string() } else { "".to_string() },
+                    metric.timestamp.map_or("unknown".to_string(), |t| {
+                        if let Some(utc) = DateTime::from_timestamp_millis(t as i64) {
+                            return utc.format("%H:%M:%S%.3f").to_string();
+                        }
+                        "unknown".to_string()
+                    }),
+                    if metric.is_historical() {
+                        ", historical".red().to_string()
+                    } else {
+                        "".to_string()
+                    },
+                    if metric.is_transient() {
+                        ", transient".red().to_string()
+                    } else {
+                        "".to_string()
+                    },
                     metric.name.clone().unwrap_or("unknown".to_string()).green(),
                     value,
                 )
@@ -273,16 +276,22 @@ fn add_metrics(metrics: &Vec<Metric>, is_template: bool) -> Vec<String> {
             false => {
                 format!(
                     "- [{}{}{}] {} = {}",
-                    metric
-                        .timestamp
-                        .map_or("unknown".to_string(), |t| {
-                            if let Some(utc) = DateTime::from_timestamp_millis(t as i64) {
-                                return utc.format("%H:%M:%S%.3f").to_string();
-                            }
-                            "unknown".to_string()
-                        }),
-                    if metric.is_historical() { ", historical".red().to_string() } else { "".to_string() },
-                    if metric.is_transient() { ", transient".red().to_string() } else { "".to_string() },
+                    metric.timestamp.map_or("unknown".to_string(), |t| {
+                        if let Some(utc) = DateTime::from_timestamp_millis(t as i64) {
+                            return utc.format("%H:%M:%S%.3f").to_string();
+                        }
+                        "unknown".to_string()
+                    }),
+                    if metric.is_historical() {
+                        ", historical".red().to_string()
+                    } else {
+                        "".to_string()
+                    },
+                    if metric.is_transient() {
+                        ", transient".red().to_string()
+                    } else {
+                        "".to_string()
+                    },
                     metric.name.clone().unwrap_or("unknown".to_string()).green(),
                     value,
                 )

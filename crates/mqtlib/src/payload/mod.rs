@@ -7,10 +7,10 @@ use std::string::FromUtf8Error;
 
 use ::base64::DecodeError;
 use ::hex::FromHexError;
-use log::error;
 use protobuf_json_mapping::PrintError;
 use strum_macros::IntoStaticStr;
 use thiserror::Error;
+use tracing::error;
 
 use crate::config::filter::FilterError;
 use crate::config::{PayloadType, PublishInputType, PublishInputTypeContentPath};

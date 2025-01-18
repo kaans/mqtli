@@ -4,7 +4,6 @@ use crate::mqtt::{
     QoS,
 };
 use async_trait::async_trait;
-use log::{debug, error, info};
 use rumqttc::v5::mqttbytes::v5::{ConnectReturnCode, LastWill};
 use rumqttc::v5::{AsyncClient, ConnectionError, EventLoop, MqttOptions, StateError};
 use std::io::ErrorKind;
@@ -12,6 +11,7 @@ use std::sync::Arc;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Receiver;
 use tokio::task::JoinHandle;
+use tracing::{debug, error, info};
 
 pub struct MqttServiceV5 {
     config: Arc<MqttBrokerConnect>,

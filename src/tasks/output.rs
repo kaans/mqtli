@@ -1,6 +1,6 @@
-use log::error;
 use mqtlib::config::subscription::{Output, OutputTarget};
 use mqtlib::config::topic::TopicStorage;
+use mqtlib::config::PayloadType;
 use mqtlib::mqtt::{MessageEvent, MessagePublishData, MessageReceivedData};
 use mqtlib::output::console::ConsoleOutput;
 use mqtlib::output::file::FileOutput;
@@ -8,13 +8,13 @@ use mqtlib::output::OutputError;
 use mqtlib::payload::PayloadFormat;
 use std::sync::Arc;
 use tokio::sync::broadcast::{Receiver, Sender};
-use mqtlib::config::PayloadType;
+use tracing::error;
 
 pub fn start_output_task(
     mut receiver: Receiver<MessageEvent>,
     topic_storage: Arc<TopicStorage>,
     sender_message: Sender<MessageEvent>,
-    exclude_types: Vec<PayloadType>
+    exclude_types: Vec<PayloadType>,
 ) {
     tokio::spawn(async move {
         loop {

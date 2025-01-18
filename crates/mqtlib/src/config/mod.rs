@@ -1,4 +1,5 @@
 use crate::mqtt::QoS;
+use crate::payload::PayloadFormat;
 use derive_getters::Getters;
 use serde::de::{Error, Unexpected};
 use serde::{Deserialize, Deserializer};
@@ -7,7 +8,6 @@ use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use strum_macros::EnumString;
 use validator::{Validate, ValidationError, ValidationErrors};
-use crate::payload::PayloadFormat;
 
 pub mod filter;
 pub mod mqtli_config;

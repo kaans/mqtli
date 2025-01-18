@@ -93,7 +93,10 @@ impl MqtliArgs {
         builder.build().map_err(ArgsError::from)
     }
 
-    fn assemble_topics(&self, topics_from_config_file: Vec<Topic>) -> Result<Vec<Topic>, ArgsError> {
+    fn assemble_topics(
+        &self,
+        topics_from_config_file: Vec<Topic>,
+    ) -> Result<Vec<Topic>, ArgsError> {
         let mut result = Vec::new();
 
         if let Some(command) = self.command.as_ref() {

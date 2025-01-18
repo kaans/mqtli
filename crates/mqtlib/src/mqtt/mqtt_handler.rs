@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use log::error;
 use rumqttc::v5::mqttbytes::v5::PublishProperties;
 use tokio::sync::broadcast::{Receiver, Sender};
 use tokio::task;
 use tokio::task::JoinHandle;
+use tracing::error;
 
 use crate::config::topic::TopicStorage;
 use crate::mqtt::{MessageEvent, MessageReceivedData, MqttReceiveEvent, QoS};
