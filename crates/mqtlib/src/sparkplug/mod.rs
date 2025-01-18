@@ -1,9 +1,12 @@
+use crate::payload::sparkplug::protos::sparkplug_b::payload::metric::Value;
+use crate::payload::sparkplug::protos::sparkplug_b::payload::Template;
 use crate::payload::sparkplug::PayloadFormatSparkplug;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 use strum_macros::{Display, EnumString};
 use thiserror::Error;
+use tracing::{debug, trace, warn};
 
 pub type GroupId = String;
 pub type EdgeNodeId = String;
@@ -83,13 +86,25 @@ pub struct SparkplugHostApplication {
     pub host_id: String,
 }
 
-#[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SparkplugEdgeNode {
     pub group_id: GroupId,
     pub edge_node_id: EdgeNodeId,
     pub device_id: Option<DeviceId>,
     pub metric_levels: Vec<String>,
+    pub templates: HashMap<String, Template>,
 }
+
+impl Hash for SparkplugEdgeNode {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.group_id.hash(state);
+        self.edge_node_id.hash(state);
+        self.device_id.hash(state);
+        self.metric_levels.hash(state);
+    }
+}
+
+impl Eq for SparkplugEdgeNode {}
 
 impl SparkplugNetwork {
     pub fn count_received_messages(&self) -> usize {
@@ -104,6 +119,7 @@ impl SparkplugNetwork {
                     edge_node_id: data.edge_node_id,
                     device_id: data.device_id,
                     metric_levels: data.metric_levels,
+                    templates: self.extract_templates(&message),
                 };
 
                 let storage = self.edge_nodes.0.entry(edge_node).or_default();
@@ -118,6 +134,27 @@ impl SparkplugNetwork {
                 storage.messages.push(message);
             }
         }
+    }
+
+    fn extract_templates(&self, message: &PayloadFormatSparkplug) -> HashMap<String, Template> {
+        let mut result = HashMap::new();
+
+        for metric in &message.content.metrics {
+            if let Some(Value::TemplateValue(template)) = &metric.value {
+                match &metric.name {
+                    None => {
+                        warn!("Ignoring template definition because it doesn't have a name");
+                        trace!("Offending template definition: {}", template);
+                    }
+                    Some(name) => {
+                        debug!("Found template {name}");
+                        result.insert(name.clone(), template.clone());
+                    }
+                }
+            }
+        }
+
+        result
     }
 }
 
@@ -313,6 +350,7 @@ mod tests {
             edge_node_id: "edge".to_string(),
             device_id: None,
             metric_levels: vec![],
+            templates: Default::default(),
         }
     }
 }
