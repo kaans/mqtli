@@ -59,10 +59,12 @@ impl SparkplugEdgeNodeStorage {
         self.0.keys().map(|e| e.group_id.clone()).collect()
     }
 
+    #[allow(clippy::mutable_key_type)]
     pub fn find_by_group_id(&self, group_id: GroupId) -> HashSet<&SparkplugEdgeNode> {
         self.0.keys().filter(|e| e.group_id == group_id).collect()
     }
 
+    #[allow(clippy::mutable_key_type)]
     pub fn find_by_edge_node_id(
         &self,
         group_id: GroupId,
