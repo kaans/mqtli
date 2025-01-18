@@ -143,14 +143,16 @@ impl SparkplugNetwork {
 
         for metric in &message.content.metrics {
             if let Some(Value::TemplateValue(template)) = &metric.value {
-                match &metric.name {
-                    None => {
-                        warn!("Ignoring template definition because it doesn't have a name");
-                        trace!("Offending template definition: {}", template);
-                    }
-                    Some(name) => {
-                        debug!("Found template {name}");
-                        result.insert(name.clone(), template.clone());
+                if template.is_definition() {
+                    match &metric.name {
+                        None => {
+                            warn!("Ignoring template definition because it doesn't have a name");
+                            trace!("Offending template definition: {}", template);
+                        }
+                        Some(name) => {
+                            debug!("Found template definition {name}");
+                            result.insert(name.clone(), template.clone());
+                        }
                     }
                 }
             }

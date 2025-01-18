@@ -7,7 +7,7 @@ use rumqttc::{ConnectReturnCode, LastWill};
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Receiver;
 use tokio::task::JoinHandle;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, trace};
 
 use crate::config::mqtli_config::MqttBrokerConnect;
 use crate::mqtt::{
@@ -51,7 +51,7 @@ impl MqttServiceV311 {
             loop {
                 match event_loop.poll().await {
                     Ok(event) => {
-                        debug!("Received {:?}", &event);
+                        trace!("Received {:?}", &event);
                         let _ = channel.send(MqttReceiveEvent::V311(event));
                     }
                     Err(e) => match e {
