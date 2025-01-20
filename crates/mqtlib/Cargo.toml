@@ -19,7 +19,7 @@ serde_yaml = "0.9.30"
 thiserror = "2.0.11"
 tokio = { version = "1.43.0", features = ["macros", "rt", "rt-multi-thread", "sync", "signal"] }
 validator = { version = "0.19.0", features = ["derive"] }
-serde_json = "1.0.135"
+serde_json = "1.0.137"
 base64 = "0.22.1"
 hex = "0.4.3"
 rustls-pemfile = "1.0.4"
