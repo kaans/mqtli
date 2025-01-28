@@ -26,13 +26,13 @@ use mqtlib::mqtt::v311::mqtt_service::MqttServiceV311;
 use mqtlib::mqtt::v5::mqtt_service::MqttServiceV5;
 use mqtlib::mqtt::{MessageEvent, MqttReceiveEvent, MqttService};
 use mqtlib::publish::trigger_periodic::TriggerPeriodic;
-use mqtlib::sparkplug::SparkplugNetwork;
 use tokio::sync::broadcast::Sender;
 use tokio::sync::{broadcast, Mutex};
 use tokio::{signal, task};
 use tracing::{error, info, trace, warn, Level};
 use tracing_subscriber::fmt::SubscriberBuilder;
 use tracing_subscriber::util::{SubscriberInitExt, TryInitError};
+use mqtlib::sparkplug::network::SparkplugNetwork;
 
 type ExitCommand = ();
 

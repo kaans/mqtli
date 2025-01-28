@@ -10,13 +10,15 @@ use mqtlib::payload::sparkplug::protos::sparkplug_b::payload::Metric;
 use mqtlib::payload::sparkplug::PayloadFormatSparkplug;
 use mqtlib::payload::PayloadFormat;
 use mqtlib::sparkplug::{
-    SparkplugMessageType, SparkplugNetwork, SparkplugTopic, SparkplugTopicEdgeNode,
+    SparkplugMessageType,
 };
 use std::sync::Arc;
 use tokio::sync::broadcast::error::RecvError;
 use tokio::sync::broadcast::Receiver;
 use tokio::sync::Mutex;
 use tracing::{debug, error, trace, warn};
+use mqtlib::sparkplug::network::SparkplugNetwork;
+use mqtlib::sparkplug::topic::{SparkplugTopic, SparkplugTopicEdgeNode};
 
 pub fn start_sparkplug_monitor(
     sparkplug_network: Arc<Mutex<SparkplugNetwork>>,

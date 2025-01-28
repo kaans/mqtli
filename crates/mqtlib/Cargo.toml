@@ -37,6 +37,7 @@ derive_builder = "0.20.2"
 derive-new = "0.7.0"
 tracing = "0.1.41"
 strum = "0.26.3"
+chrono = "0.4.39"
 
 [build-dependencies]
 protobuf-codegen = "3.7.1"
