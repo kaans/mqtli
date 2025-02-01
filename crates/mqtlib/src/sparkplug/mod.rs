@@ -95,8 +95,6 @@ mod tests {
 
         let mut a = get_edge_node();
         let mut b = get_edge_node();
-        let mut a = get_edge_node();
-        let mut b = get_edge_node();
         a.devices.push(SparkplugDevice {
             device_id: Some("a".to_string()),
             ..Default::default()
