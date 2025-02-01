@@ -1,13 +1,15 @@
-use std::collections::HashMap;
-use tracing::{debug, trace, warn};
-use crate::payload::sparkplug::PayloadFormatSparkplug;
 use crate::payload::sparkplug::protos::sparkplug_b::payload::metric::Value;
 use crate::payload::sparkplug::protos::sparkplug_b::payload::Template;
-use crate::sparkplug::{SparkplugMessageType};
+use crate::payload::sparkplug::PayloadFormatSparkplug;
 use crate::sparkplug::edge_node::{SparkplugEdgeNode, SparkplugEdgeNodeStorage};
-use crate::sparkplug::host_application::{SparkplugHostApplication, SparkplugHostApplicationStorage};
-use crate::sparkplug::Status::ONLINE;
+use crate::sparkplug::host_application::{
+    SparkplugHostApplication, SparkplugHostApplicationStorage,
+};
 use crate::sparkplug::topic::SparkplugTopic;
+use crate::sparkplug::SparkplugMessageType;
+use crate::sparkplug::Status::ONLINE;
+use std::collections::HashMap;
+use tracing::{debug, trace, warn};
 
 #[derive(Clone, Debug, Default)]
 pub struct SparkplugNetwork {
@@ -31,7 +33,9 @@ impl SparkplugNetwork {
                     _ => {}
                 }
 
-                let storage = self.edge_nodes.get_message_storage(data.group_id, data.edge_node_id);
+                let storage = self
+                    .edge_nodes
+                    .get_message_storage(data.group_id, data.edge_node_id);
                 storage.messages.push(message);
             }
             SparkplugTopic::HostApplication(data) => {

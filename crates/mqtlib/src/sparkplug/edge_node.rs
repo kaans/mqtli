@@ -101,12 +101,7 @@ impl SparkplugEdgeNodeStorage {
     }
 
     #[allow(clippy::mutable_key_type)]
-    pub fn set_status(
-        &mut self,
-        group_id: &GroupId,
-        edge_node_id: &EdgeNodeId,
-        status: Status,
-    ) {
+    pub fn set_status(&mut self, group_id: &GroupId, edge_node_id: &EdgeNodeId, status: Status) {
         if let Some(mut edge_node) = self.find_by_edge_node_id(group_id, edge_node_id) {
             //edge_node.status = status;
         }

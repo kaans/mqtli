@@ -58,7 +58,6 @@ pub enum SparkplugMessageType {
     STATE,
 }
 
-
 #[cfg(test)]
 mod tests {
     use crate::sparkplug::device::SparkplugDevice;

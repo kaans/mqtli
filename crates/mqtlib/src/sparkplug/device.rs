@@ -1,6 +1,6 @@
-use std::hash::{Hash, Hasher};
-use chrono::{DateTime, Utc};
 use crate::sparkplug::{DeviceId, Status};
+use chrono::{DateTime, Utc};
+use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SparkplugDevice {
@@ -10,7 +10,7 @@ pub struct SparkplugDevice {
 
     // status attributes
     pub status: Status,
-    pub last_status_update: DateTime<Utc>
+    pub last_status_update: DateTime<Utc>,
 }
 
 impl Hash for SparkplugDevice {

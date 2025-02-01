@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use crate::sparkplug::MessageStorage;
+use std::collections::HashMap;
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Hash)]
 pub struct SparkplugHostApplication {
@@ -7,7 +7,9 @@ pub struct SparkplugHostApplication {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct SparkplugHostApplicationStorage(pub(crate) HashMap<SparkplugHostApplication, MessageStorage>);
+pub struct SparkplugHostApplicationStorage(
+    pub(crate) HashMap<SparkplugHostApplication, MessageStorage>,
+);
 
 impl SparkplugHostApplicationStorage {
     pub fn count_received_messages(&self) -> usize {

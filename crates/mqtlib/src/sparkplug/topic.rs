@@ -1,5 +1,5 @@
-use std::fmt::{Display, Formatter};
 use crate::sparkplug::{SparkplugError, SparkplugMessageType, SPARKPLUG_TOPIC_VERSION};
+use std::fmt::{Display, Formatter};
 
 #[derive(Clone)]
 pub enum SparkplugTopic {

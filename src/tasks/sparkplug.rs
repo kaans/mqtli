@@ -9,16 +9,14 @@ use mqtlib::payload::sparkplug::protos::sparkplug_b::payload::metric::Value;
 use mqtlib::payload::sparkplug::protos::sparkplug_b::payload::Metric;
 use mqtlib::payload::sparkplug::PayloadFormatSparkplug;
 use mqtlib::payload::PayloadFormat;
-use mqtlib::sparkplug::{
-    SparkplugMessageType,
-};
+use mqtlib::sparkplug::network::SparkplugNetwork;
+use mqtlib::sparkplug::topic::{SparkplugTopic, SparkplugTopicEdgeNode};
+use mqtlib::sparkplug::SparkplugMessageType;
 use std::sync::Arc;
 use tokio::sync::broadcast::error::RecvError;
 use tokio::sync::broadcast::Receiver;
 use tokio::sync::Mutex;
 use tracing::{debug, error, trace, warn};
-use mqtlib::sparkplug::network::SparkplugNetwork;
-use mqtlib::sparkplug::topic::{SparkplugTopic, SparkplugTopicEdgeNode};
 
 pub fn start_sparkplug_monitor(
     sparkplug_network: Arc<Mutex<SparkplugNetwork>>,
@@ -173,8 +171,8 @@ fn format_ndata(message: &PayloadFormatSparkplug, topic: &SparkplugTopicEdgeNode
         topic.edge_node_id.magenta(),
         message.content.seq.unwrap_or(999).to_string().white()
     )
-        .black()
-        .on_magenta();
+    .black()
+    .on_magenta();
 
     result.push(content.to_string());
     result.extend(add_metrics(&message.content.metrics, false));
@@ -185,7 +183,10 @@ fn format_ndata(message: &PayloadFormatSparkplug, topic: &SparkplugTopicEdgeNode
 fn format_ndeath(message: &PayloadFormatSparkplug, topic: &SparkplugTopicEdgeNode) -> Vec<String> {
     let mut result: Vec<String> = vec![];
 
-    let bd_seq = message.content.metrics.iter()
+    let bd_seq = message
+        .content
+        .metrics
+        .iter()
         .filter(|m| m.name.is_some())
         .find(|m| m.name.as_ref().unwrap() == "bdSeq");
 
@@ -196,8 +197,8 @@ fn format_ndeath(message: &PayloadFormatSparkplug, topic: &SparkplugTopicEdgeNod
         topic.edge_node_id.magenta(),
         message.content.seq.unwrap_or(999).to_string().white()
     )
-        .black()
-        .on_magenta();
+    .black()
+    .on_magenta();
 
     result.push(content.to_string());
 
@@ -209,9 +210,10 @@ fn format_ndeath(message: &PayloadFormatSparkplug, topic: &SparkplugTopicEdgeNod
             warn!("bdSeq metric is not a long integer value");
         }
         Some(bd_seq) => {
-            result.push(format!("bdSeq number: {}", bd_seq.int_value())
-                .green()
-                .to_string()
+            result.push(
+                format!("bdSeq number: {}", bd_seq.int_value())
+                    .green()
+                    .to_string(),
             );
         }
     }
@@ -258,8 +260,8 @@ fn format_ddeath(message: &PayloadFormatSparkplug, topic: &SparkplugTopicEdgeNod
             .blue(),
         message.content.seq.unwrap_or(999).to_string().white()
     )
-        .black()
-        .on_cyan();
+    .black()
+    .on_cyan();
 
     result.push(content.to_string());
 
