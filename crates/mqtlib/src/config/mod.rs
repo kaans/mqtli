@@ -1,4 +1,5 @@
 use crate::mqtt::QoS;
+use crate::payload::PayloadFormat;
 use derive_getters::Getters;
 use serde::de::{Error, Unexpected};
 use serde::{Deserialize, Deserializer};
@@ -69,6 +70,21 @@ impl Display for PayloadType {
                 write!(f, "Raw")
             }
             PayloadType::Sparkplug => write!(f, "Sparkplug"),
+        }
+    }
+}
+
+impl From<PayloadFormat> for PayloadType {
+    fn from(value: PayloadFormat) -> Self {
+        match value {
+            PayloadFormat::Text(_) => PayloadType::Text,
+            PayloadFormat::Raw(_) => PayloadType::Raw,
+            PayloadFormat::Protobuf(_) => PayloadType::Protobuf(Default::default()),
+            PayloadFormat::Hex(_) => PayloadType::Hex,
+            PayloadFormat::Base64(_) => PayloadType::Base64,
+            PayloadFormat::Json(_) => PayloadType::Json,
+            PayloadFormat::Yaml(_) => PayloadType::Yaml,
+            PayloadFormat::Sparkplug(_) => PayloadType::Sparkplug,
         }
     }
 }

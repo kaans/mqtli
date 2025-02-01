@@ -17,7 +17,6 @@ mqtlib = { path = "crates/mqtlib" }
 clap = { version = "4.5.26", features = ["derive", "env"] }
 derive-getters = "0.5.0"
 anyhow = "1.0.94"
-log = "0.4.22"
 tokio = { version = "1.42.0", features = ["macros", "rt", "rt-multi-thread", "sync", "signal"] }
 serde = { version = "1.0.217", features = ["derive"] }
 serde_yaml = "0.9.30"
@@ -27,6 +26,8 @@ base64 = "0.22.1"
 rumqttc = { git = "https://github.com/bytebeamio/rumqtt.git", rev = "431be1b", features = ["websocket"] }
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
+colored = "3.0.0"
+chrono = "0.4.39"
 
 [build-dependencies]
 built = "0.7.5"

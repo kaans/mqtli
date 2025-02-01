@@ -6,7 +6,7 @@ use protobuf::Message;
 use protobuf_json_mapping::parse_from_str;
 use std::fmt::{Display, Formatter};
 
-mod protos {
+pub mod protos {
     include!(concat!(env!("OUT_DIR"), "/protos/mod.rs"));
 }
 
@@ -14,7 +14,7 @@ use crate::payload::sparkplug::protos::sparkplug_b::Payload as SparkplugPayload;
 
 #[derive(Clone, Debug, Getters)]
 pub struct PayloadFormatSparkplug {
-    content: SparkplugPayload,
+    pub content: SparkplugPayload,
 }
 
 impl Display for PayloadFormatSparkplug {

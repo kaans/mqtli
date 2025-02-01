@@ -12,13 +12,13 @@ use validator::Validate;
 
 #[derive(Builder, Clone, Debug, Deserialize, Getters, PartialEq, Validate)]
 pub struct Subscription {
-    enabled: bool,
+    pub enabled: bool,
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_qos")]
-    qos: QoS,
-    outputs: Vec<Output>,
+    pub qos: QoS,
+    pub outputs: Vec<Output>,
     #[serde(default)]
-    filters: FilterTypes,
+    pub filters: FilterTypes,
 }
 
 impl Subscription {
@@ -76,8 +76,6 @@ pub enum OutputTarget {
     File(OutputTargetFile),
     #[serde(rename = "topic")]
     Topic(OutputTargetTopic),
-    #[serde(rename = "null")]
-    Null,
 }
 
 impl Default for OutputTarget {

@@ -1,3 +1,5 @@
+use crate::config::topic::TopicStorage;
+use crate::mqtt::QoS;
 use derive_builder::Builder;
 use derive_getters::Getters;
 use serde::Deserialize;
@@ -8,16 +10,13 @@ use std::time::Duration;
 use tracing::Level;
 use validator::{Validate, ValidationError};
 
-use crate::config::topic::Topic;
-use crate::mqtt::QoS;
-
 #[derive(Debug, Getters, Validate, Builder)]
 pub struct MqtliConfig {
     #[validate(nested)]
     pub broker: MqttBrokerConnect,
     pub log_level: Level,
     #[validate(nested)]
-    pub topics: Vec<Topic>,
+    pub topic_storage: TopicStorage,
     pub mode: Mode,
 }
 
@@ -25,7 +24,7 @@ impl Display for MqtliConfig {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Parsed configuration:")?;
         write!(f, "topics:")?;
-        for topic in &self.topics {
+        for topic in &self.topic_storage.topics {
             write!(f, "\n\n{}", topic)?;
         }
 
@@ -38,7 +37,7 @@ impl Default for MqtliConfig {
         Self {
             broker: Default::default(),
             log_level: Level::INFO,
-            topics: vec![],
+            topic_storage: TopicStorage::default(),
             mode: Default::default(),
         }
     }
@@ -50,6 +49,7 @@ pub enum Mode {
     MultiTopic,
     Publish,
     Subscribe,
+    Sparkplug,
 }
 
 impl Display for Mode {
@@ -58,6 +58,7 @@ impl Display for Mode {
             Mode::MultiTopic => write!(f, "Multi-Topic"),
             Mode::Publish => write!(f, "Publish"),
             Mode::Subscribe => write!(f, "Subscribe"),
+            Mode::Sparkplug => write!(f, "Sparkplug"),
         }
     }
 }

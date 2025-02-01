@@ -1,5 +1,5 @@
 use crate::config::publish::Publish;
-use crate::config::subscription::Subscription;
+use crate::config::subscription::{Output, Subscription};
 use crate::config::PayloadType;
 use derive_builder::Builder;
 use derive_getters::Getters;
@@ -7,15 +7,31 @@ use serde::Deserialize;
 use std::fmt::{Display, Formatter};
 use validator::Validate;
 
+#[derive(Builder, Clone, Debug, Default, Validate)]
+pub struct TopicStorage {
+    pub topics: Vec<Topic>,
+}
+
+impl TopicStorage {
+    pub fn get_outputs_for_topic(&self, topic: &str) -> Vec<&Output> {
+        self.topics
+            .iter()
+            .filter(|t| t.contains(topic))
+            .filter_map(|t| t.subscription.as_ref())
+            .flat_map(|s| s.outputs())
+            .collect()
+    }
+}
+
 #[derive(Builder, Clone, Debug, Default, Deserialize, Getters, Validate)]
 pub struct Topic {
     #[validate(length(min = 1, message = "Topic must be given"))]
-    topic: String,
+    pub topic: String,
     #[validate(nested)]
-    subscription: Option<Subscription>,
+    pub subscription: Option<Subscription>,
     #[serde(default)]
     #[serde(rename = "payload")]
-    payload_type: PayloadType,
+    pub payload_type: PayloadType,
     #[validate(nested)]
     pub publish: Option<Publish>,
 }

@@ -1,8 +1,8 @@
 use std::fmt::{Display, Formatter};
 
 use derive_getters::Getters;
-use log::error;
 use serde_yaml::{from_slice, Value};
+use tracing::error;
 
 use crate::payload::json::PayloadFormatJson;
 use crate::payload::{PayloadFormat, PayloadFormatError};

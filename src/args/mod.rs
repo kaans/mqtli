@@ -3,7 +3,8 @@ mod command;
 pub mod content;
 mod parsers;
 
-use crate::args::content::{Command, MqtliArgs};
+use crate::args::command::Command;
+use crate::args::content::MqtliArgs;
 use clap::Parser;
 use mqtlib::config::mqtli_config::MqtliConfigBuilderError;
 use mqtlib::config::mqtli_config::{
@@ -55,8 +56,17 @@ pub fn load_config() -> Result<MqtliConfig, ArgsError> {
 
     match read_config_from_file(&config_file_path) {
         Ok(mut config_from_file) => {
-            if args.command.is_some() {
-                config_from_file.topics.clear();
+            if let Some(command) = &args.command {
+                match command {
+                    Command::Publish(_) | Command::Subscribe(_) => {
+                        config_from_file.topics.clear();
+                    }
+                    Command::Sparkplug(config) => {
+                        if !config.include_topics_from_file {
+                            config_from_file.topics.clear();
+                        }
+                    }
+                }
             }
             config = config_from_file.merge(config)?;
         }

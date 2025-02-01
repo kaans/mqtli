@@ -121,7 +121,8 @@ pub struct CommandPublishMessage {
 
 #[cfg(test)]
 mod tests {
-    use crate::args::content::{Command, MqtliArgs};
+    use crate::args::command::Command;
+    use crate::args::content::MqtliArgs;
     use clap::Parser;
 
     #[test]

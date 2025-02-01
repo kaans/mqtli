@@ -6,7 +6,7 @@ use colored::Colorize;
 pub struct ConsoleOutput {}
 
 impl ConsoleOutput {
-    pub fn output(
+    pub fn output_topic(
         topic: &str,
         content: String,
         format: PayloadFormat,
@@ -26,6 +26,11 @@ impl ConsoleOutput {
             retained.purple()
         );
         println!("{}", content.yellow());
+        Ok(())
+    }
+
+    pub fn output_string(content: String) -> Result<(), OutputError> {
+        println!("{}", content);
         Ok(())
     }
 }
