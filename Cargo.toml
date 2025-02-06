@@ -21,7 +21,7 @@ tokio = { version = "1.42.0", features = ["macros", "rt", "rt-multi-thread", "sy
 serde = { version = "1.0.217", features = ["derive"] }
 serde_yaml = "0.9.30"
 thiserror = "2.0.9"
-validator = { version = "0.19.0", features = ["derive"] }
+validator = { version = "0.20.0", features = ["derive"] }
 base64 = "0.22.1"
 rumqttc = { git = "https://github.com/bytebeamio/rumqtt.git", rev = "431be1b", features = ["websocket"] }
 tracing = "0.1.41"
