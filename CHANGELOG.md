@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.12.0](https://github.com/kaans/mqtli/compare/v0.11.0...v0.12.0) (2025-02-06)
+
+
+### Features
+
+* add null output target ([bf9767d](https://github.com/kaans/mqtli/commit/bf9767d354b4786f2640d1e017043c57c9a00994))
+* add sparkplug network ([b58d792](https://github.com/kaans/mqtli/commit/b58d7922faf7768b5020580731a7ae19923b8466))
+* collect templates of each edge node ([a408e3f](https://github.com/kaans/mqtli/commit/a408e3f08f434d32184cbb10c5d2dfa51f6773e4))
+* format death messages ([178430e](https://github.com/kaans/mqtli/commit/178430e00210320434ba0c792354da7877c2151e))
+* introduce message storages ([a04ad42](https://github.com/kaans/mqtli/commit/a04ad42b864827dbc8ed9f6c0c4f1ebd10d593b9))
+* load topics from config file in sparkplug mode on demand ([e76172d](https://github.com/kaans/mqtli/commit/e76172d08dfd3dc72930690a3e5e7583b1be4d3b))
+* print sparkplug specific messages to console ([bdd42b5](https://github.com/kaans/mqtli/commit/bdd42b59086af527233465ba9254e464982cc662))
+* specify group ids to include ([75885f9](https://github.com/kaans/mqtli/commit/75885f93ececec834cdd49a91fc5ec3b81b1e884))
+
+
+### Bug Fixes
+
+* downgrade yanked log crate ([eedc10d](https://github.com/kaans/mqtli/commit/eedc10d94304b5b4d74fc089c47f2f8463d68365))
+* move mqtt handler outside so it starts before subscription ([42a0203](https://github.com/kaans/mqtli/commit/42a020386236ca9133f5c2df273510c049834348))
+* store only template definitions ([f1261d9](https://github.com/kaans/mqtli/commit/f1261d94436c7ed53ee6a29797f417a9ac9b0164))
+
 ## [0.11.0](https://github.com/kaans/mqtli/compare/v0.10.0...v0.11.0) (2025-01-12)
 
 
