@@ -1,9 +1,9 @@
+use crate::mqtt::QoS;
+use crate::payload::PayloadFormat;
 use crate::storage::{SqlStorageError, SqlStorageImpl};
 use async_trait::async_trait;
 use sqlx::SqlitePool;
 use std::fmt::Debug;
-use crate::mqtt::QoS;
-use crate::payload::PayloadFormat;
 
 #[derive(Debug)]
 pub struct SqlStorageSqlite {
@@ -18,17 +18,26 @@ impl SqlStorageSqlite {
 
 #[async_trait]
 impl SqlStorageImpl for SqlStorageSqlite {
-    async fn insert(&self, statement: &str, topic: &str, qos: QoS, retain: bool, payload: &PayloadFormat) -> Result<u64, SqlStorageError> {
+    async fn insert(
+        &self,
+        statement: &str,
+        topic: &str,
+        qos: QoS,
+        retain: bool,
+        payload: &PayloadFormat,
+    ) -> Result<u64, SqlStorageError> {
         let query = statement
             .replace("{{topic}}", topic)
-            .replace("{{retain}}", if retain {"1"} else {"0"})
+            .replace("{{retain}}", if retain { "1" } else { "0" })
             .replace("{{qos}}", (qos as i32).to_string().as_ref())
             .replace("{{payload}}", "$1");
 
         let payload = Vec::<u8>::try_from(payload.clone())?;
 
         let result = sqlx::query(query.as_ref())
-            .bind(payload).execute(&self.pool).await;
+            .bind(payload)
+            .execute(&self.pool)
+            .await;
         Ok(result?.rows_affected())
     }
 
@@ -41,10 +50,10 @@ impl SqlStorageImpl for SqlStorageSqlite {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::payload::text::PayloadFormatText;
     use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode};
     use sqlx::Row;
     use std::str::FromStr;
-    use crate::payload::text::PayloadFormatText;
 
     const CREATE_TABLE: &str = "
 CREATE TABLE test (
@@ -66,7 +75,17 @@ VALUES
     async fn insert() {
         let db = get_db().await;
 
-        let result = db.insert(INSERT, "topic", QoS::AtLeastOnce, false, &PayloadFormat::Text(PayloadFormatText { content: "PAYLOAD".as_bytes().to_vec() })).await;
+        let result = db
+            .insert(
+                INSERT,
+                "topic",
+                QoS::AtLeastOnce,
+                false,
+                &PayloadFormat::Text(PayloadFormatText {
+                    content: "PAYLOAD".as_bytes().to_vec(),
+                }),
+            )
+            .await;
         assert!(result.is_ok());
 
         print_table_content(&db).await;

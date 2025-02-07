@@ -2,22 +2,22 @@ use crate::mqtt::QoS;
 use crate::payload::PayloadFormat;
 use crate::storage::{SqlStorageError, SqlStorageImpl};
 use async_trait::async_trait;
-use sqlx::MySqlPool;
+use sqlx::PgPool;
 use std::fmt::Debug;
 
 #[derive(Debug)]
-pub struct SqlStorageMySql {
-    pool: MySqlPool,
+pub struct SqlStoragePostgres {
+    pool: PgPool,
 }
 
-impl SqlStorageMySql {
-    pub fn new(pool: MySqlPool) -> Self {
+impl SqlStoragePostgres {
+    pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
 
 #[async_trait]
-impl SqlStorageImpl for SqlStorageMySql {
+impl SqlStorageImpl for SqlStoragePostgres {
     async fn insert(
         &self,
         statement: &str,
@@ -26,20 +26,18 @@ impl SqlStorageImpl for SqlStorageMySql {
         retain: bool,
         payload: &PayloadFormat,
     ) -> Result<u64, SqlStorageError> {
-        let query_statement = statement
+        let query = statement
             .replace("{{topic}}", topic)
-            .replace("{{retain}}", if retain { "1" } else { "0" })
+            .replace("{{retain}}", if retain { "true" } else { "false" })
             .replace("{{qos}}", (qos as i32).to_string().as_ref())
-            .replace("{{payload}}", "?");
+            .replace("{{payload}}", "$1");
 
         let payload = Vec::<u8>::try_from(payload.clone())?;
 
-        let mut query = sqlx::query(query_statement.as_ref());
-        if statement.contains("{{payload}}") {
-            query = query.bind(payload);
-        }
-
-        let result = query.execute(&self.pool).await;
+        let result = sqlx::query(query.as_ref())
+            .bind(payload)
+            .execute(&self.pool)
+            .await;
 
         Ok(result?.rows_affected())
     }

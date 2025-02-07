@@ -21,5 +21,16 @@ services:
     volumes:
       - mariadb:/var/lib/mysql
 
+  postgres:
+    image: postgres:17
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: mqtli
+    volumes:
+      - postgres:/var/lib/mysql
+
 volumes:
   mariadb:
+  postgres:

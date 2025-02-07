@@ -1,17 +1,20 @@
-use crate::storage::sqlite::SqlStorageSqlite;
-use async_trait::async_trait;
-use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode};
-use sqlx::{MySqlPool, SqlitePool};
-use std::fmt::Debug;
-use std::str::FromStr;
-use sqlx::mysql::MySqlConnectOptions;
-use thiserror::Error;
 use crate::mqtt::QoS;
 use crate::payload::{PayloadFormat, PayloadFormatError};
 use crate::storage::mysql::SqlStorageMySql;
+use crate::storage::postgres::SqlStoragePostgres;
+use crate::storage::sqlite::SqlStorageSqlite;
+use async_trait::async_trait;
+use sqlx::mysql::MySqlConnectOptions;
+use sqlx::postgres::PgConnectOptions;
+use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode};
+use sqlx::{MySqlPool, PgPool, SqlitePool};
+use std::fmt::Debug;
+use std::str::FromStr;
+use thiserror::Error;
 
-pub mod sqlite;
 pub mod mysql;
+mod postgres;
+pub mod sqlite;
 
 #[derive(Debug, Error)]
 pub enum SqlStorageError {
@@ -25,7 +28,14 @@ pub enum SqlStorageError {
 
 #[async_trait]
 pub trait SqlStorageImpl: Debug + Send + Sync {
-    async fn insert(&self, statement: &str, topic: &str, qos: QoS, retain: bool, payload: &PayloadFormat) -> Result<u64, SqlStorageError>;
+    async fn insert(
+        &self,
+        statement: &str,
+        topic: &str,
+        qos: QoS,
+        retain: bool,
+        payload: &PayloadFormat,
+    ) -> Result<u64, SqlStorageError>;
     async fn execute(&self, statement: &str) -> Result<u64, SqlStorageError>;
 }
 
@@ -46,6 +56,13 @@ pub async fn get_sql_storage(
             let opts = MySqlConnectOptions::from_str(sql.connection_string.as_str())?;
 
             let db = SqlStorageMySql::new(MySqlPool::connect_with(opts).await?);
+
+            Ok(Box::new(db))
+        }
+        "postgresql" => {
+            let opts = PgConnectOptions::from_str(sql.connection_string.as_str())?;
+
+            let db = SqlStoragePostgres::new(PgPool::connect_with(opts).await?);
 
             Ok(Box::new(db))
         }

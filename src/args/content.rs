@@ -100,11 +100,9 @@ impl MqtliArgs {
 
         builder.sql_storage(match self.sql_storage {
             None => other.sql_storage,
-            Some(sql) => {
-                Some(SqlStorageConfig {
-                    connection_string: sql.connection_string,
-                })
-            }
+            Some(sql) => Some(SqlStorageConfig {
+                connection_string: sql.connection_string,
+            }),
         });
 
         builder.build().map_err(ArgsError::from)
