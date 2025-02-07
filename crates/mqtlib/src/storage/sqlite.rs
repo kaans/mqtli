@@ -2,8 +2,10 @@ use crate::mqtt::QoS;
 use crate::payload::PayloadFormat;
 use crate::storage::{SqlStorageError, SqlStorageImpl};
 use async_trait::async_trait;
+use chrono::Utc;
 use sqlx::SqlitePool;
 use std::fmt::Debug;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug)]
 pub struct SqlStorageSqlite {
@@ -30,6 +32,31 @@ impl SqlStorageImpl for SqlStorageSqlite {
             .replace("{{topic}}", topic)
             .replace("{{retain}}", if retain { "1" } else { "0" })
             .replace("{{qos}}", (qos as i32).to_string().as_ref())
+            .replace(
+                "{{created_at}}",
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs()
+                    .to_string()
+                    .as_ref(),
+            )
+            .replace(
+                "{{created_at_millis}}",
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_millis()
+                    .to_string()
+                    .as_ref(),
+            )
+            .replace(
+                "{{created_at_iso}}",
+                Utc::now()
+                    .format("%Y-%m-%d %H:%M:%S%.3f")
+                    .to_string()
+                    .as_str(),
+            )
             .replace("{{payload}}", "$1");
 
         let payload = Vec::<u8>::try_from(payload.clone())?;

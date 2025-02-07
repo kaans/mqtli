@@ -2,8 +2,10 @@ use crate::mqtt::QoS;
 use crate::payload::PayloadFormat;
 use crate::storage::{SqlStorageError, SqlStorageImpl};
 use async_trait::async_trait;
+use chrono::Utc;
 use sqlx::PgPool;
 use std::fmt::Debug;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug)]
 pub struct SqlStoragePostgres {
@@ -30,6 +32,25 @@ impl SqlStorageImpl for SqlStoragePostgres {
             .replace("{{topic}}", topic)
             .replace("{{retain}}", if retain { "true" } else { "false" })
             .replace("{{qos}}", (qos as i32).to_string().as_ref())
+            .replace(
+                "{{created_at}}",
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs()
+                    .to_string()
+                    .as_ref(),
+            )
+            .replace(
+                "{{created_at_millis}}",
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_millis()
+                    .to_string()
+                    .as_ref(),
+            )
+            .replace("{{created_at_iso}}", Utc::now().to_rfc3339().as_str())
             .replace("{{payload}}", "$1");
 
         let payload = Vec::<u8>::try_from(payload.clone())?;
