@@ -33,6 +33,7 @@ use tokio::{signal, task};
 use tracing::{error, info, trace, warn, Level};
 use tracing_subscriber::fmt::SubscriberBuilder;
 use tracing_subscriber::util::{SubscriberInitExt, TryInitError};
+use mqtlib::storage::get_sql_storage;
 
 type ExitCommand = ();
 
@@ -124,11 +125,18 @@ async fn main() -> anyhow::Result<()> {
         sender_message.subscribe(),
     );
 
+    let db = if let Some(sql) = &config.sql_storage {
+        Some(get_sql_storage(sql).await?)
+    } else {
+        None
+    };
+
     tasks::output::start_output_task(
         sender_message.subscribe(),
         topic_storage.clone(),
         sender_message,
         exclude_types,
+        Arc::new(db),
     );
 
     start_exit_task(sender_exit).await;

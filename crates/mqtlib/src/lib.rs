@@ -8,7 +8,7 @@ pub mod output;
 pub mod payload;
 pub mod publish;
 pub mod sparkplug;
-mod storage;
+pub mod storage;
 
 #[derive(Error, Debug)]
 pub enum MqtlibError {

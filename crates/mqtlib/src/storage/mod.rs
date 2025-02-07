@@ -1,12 +1,14 @@
-use crate::storage::sql_storage::SqlStorageSqlite;
+use crate::storage::sqlite::SqlStorageSqlite;
 use async_trait::async_trait;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode};
 use sqlx::SqlitePool;
 use std::fmt::Debug;
 use std::str::FromStr;
 use thiserror::Error;
+use crate::mqtt::QoS;
+use crate::payload::{PayloadFormat, PayloadFormatError};
 
-pub mod sql_storage;
+pub mod sqlite;
 
 #[derive(Debug, Error)]
 pub enum SqlStorageError {
@@ -14,10 +16,13 @@ pub enum SqlStorageError {
     UnsupportedSqlDatabase(String),
     #[error("Error while connecting to database")]
     SqlConnectionError(#[from] sqlx::Error),
+    #[error("Error while formatting payload")]
+    PayloadFormatError(#[from] PayloadFormatError),
 }
 
 #[async_trait]
-pub trait SqlStorageImpl: Debug {
+pub trait SqlStorageImpl: Debug + Send + Sync {
+    async fn insert(&self, statement: &str, topic: &str, qos: QoS, retain: bool, payload: &PayloadFormat) -> Result<u64, SqlStorageError>;
     async fn execute(&self, statement: &str) -> Result<u64, SqlStorageError>;
 }
 

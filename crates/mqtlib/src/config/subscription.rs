@@ -99,7 +99,7 @@ pub struct OutputTargetTopic {
     pub retain: bool,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Getters, PartialEq, Validate)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Validate)]
 pub struct OutputTargetSql {
     pub insert_statement: String,
 }

@@ -132,11 +132,11 @@ impl Display for PayloadFormat {
         write!(f, "{}", name)
     }
 }
-impl TryInto<Vec<u8>> for PayloadFormat {
+impl TryFrom<PayloadFormat> for Vec<u8> {
     type Error = PayloadFormatError;
 
-    fn try_into(self) -> Result<Vec<u8>, Self::Error> {
-        match self {
+    fn try_from(value: PayloadFormat) -> Result<Self, Self::Error> {
+        match value {
             PayloadFormat::Text(value) => Ok(value.into()),
             PayloadFormat::Raw(value) => Ok(value.into()),
             PayloadFormat::Protobuf(value) => Ok(value.try_into()?),
