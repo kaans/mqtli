@@ -19,9 +19,9 @@ fn validate_connection_string(connection_string: &str) -> Result<(), ValidationE
         .map_err(|_| ValidationError::new("Connection string is not a valid URL"))?;
 
     match url.scheme() {
-        "sqlite" => Ok(()),
+        "sqlite" | "mariadb" | "mysql" => Ok(()),
         _ => Err(ValidationError::new(
-            "Only scheme sqlite is currently supported",
+            "Only schemes sqlite, mariadb and mysql is currently supported",
         )),
     }
 }

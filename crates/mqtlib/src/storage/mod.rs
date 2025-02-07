@@ -1,14 +1,17 @@
 use crate::storage::sqlite::SqlStorageSqlite;
 use async_trait::async_trait;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode};
-use sqlx::SqlitePool;
+use sqlx::{MySqlPool, SqlitePool};
 use std::fmt::Debug;
 use std::str::FromStr;
+use sqlx::mysql::MySqlConnectOptions;
 use thiserror::Error;
 use crate::mqtt::QoS;
 use crate::payload::{PayloadFormat, PayloadFormatError};
+use crate::storage::mysql::SqlStorageMySql;
 
 pub mod sqlite;
+pub mod mysql;
 
 #[derive(Debug, Error)]
 pub enum SqlStorageError {
@@ -36,6 +39,13 @@ pub async fn get_sql_storage(
                 .read_only(false);
 
             let db = SqlStorageSqlite::new(SqlitePool::connect_with(opts).await?);
+
+            Ok(Box::new(db))
+        }
+        "mysql" | "mariadb" => {
+            let opts = MySqlConnectOptions::from_str(sql.connection_string.as_str())?;
+
+            let db = SqlStorageMySql::new(MySqlPool::connect_with(opts).await?);
 
             Ok(Box::new(db))
         }

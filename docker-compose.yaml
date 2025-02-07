@@ -10,3 +10,16 @@ services:
     volumes:
       - ./mosquitto:/etc/mosquitto
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+  mariadb:
+    image: mariadb:11
+    ports:
+      - "3306:3306"
+    environment:
+      MARIADB_ROOT_PASSWORD: admin
+      MARIADB_DATABASE: mqtli
+    volumes:
+      - mariadb:/var/lib/mysql
+
+volumes:
+  mariadb:
