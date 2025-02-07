@@ -58,5 +58,6 @@ fn write_to_output(
                 .map_err(OutputError::SendError)?;
             Ok(())
         }
+        OutputTarget::Sql(sql) => Ok(()),
     }
 }

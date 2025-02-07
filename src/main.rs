@@ -117,18 +117,18 @@ async fn main() -> anyhow::Result<()> {
         _ => vec![],
     };
 
-    tasks::output::start_output_task(
-        sender_message.subscribe(),
-        topic_storage.clone(),
-        sender_message.clone(),
-        exclude_types,
-    );
-
     let sparkplug_network = Arc::new(Mutex::new(SparkplugNetwork::default()));
     tasks::sparkplug::start_sparkplug_monitor(
         sparkplug_network,
         topic_storage.clone(),
         sender_message.subscribe(),
+    );
+
+    tasks::output::start_output_task(
+        sender_message.subscribe(),
+        topic_storage.clone(),
+        sender_message,
+        exclude_types,
     );
 
     start_exit_task(sender_exit).await;

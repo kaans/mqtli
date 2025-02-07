@@ -12,6 +12,7 @@ use validator::{Validate, ValidationError, ValidationErrors};
 pub mod filter;
 pub mod mqtli_config;
 pub mod publish;
+pub mod sql_storage;
 pub mod subscription;
 pub mod topic;
 
