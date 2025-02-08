@@ -70,6 +70,8 @@ pub enum PayloadFormatError {
     CouldNotConvertToHex(#[source] FromHexError),
     #[error("Could not convert payload to base64")]
     CouldNotConvertToBase64(#[source] DecodeError),
+    #[error("Could not convert payload from sparkplug json")]
+    CouldNotConvertFromSparkplugJson,
     #[error("The value is not valid hex formatted: {0}")]
     ValueIsNotValidHex(String),
     #[error("The value is not valid base64 formatted: {0}")]
@@ -124,6 +126,7 @@ pub enum PayloadFormat {
     Json(PayloadFormatJson),
     Yaml(PayloadFormatYaml),
     Sparkplug(PayloadFormatSparkplug),
+    SparkplugJson(PayloadFormatJson),
 }
 
 impl Display for PayloadFormat {
@@ -145,6 +148,7 @@ impl TryFrom<PayloadFormat> for Vec<u8> {
             PayloadFormat::Json(value) => Ok(value.into()),
             PayloadFormat::Yaml(value) => value.try_into(),
             PayloadFormat::Sparkplug(value) => value.try_into(),
+            PayloadFormat::SparkplugJson(value) => Ok(value.into()),
         }
     }
 }
@@ -164,6 +168,7 @@ impl TryInto<String> for PayloadFormat {
             PayloadFormat::Json(value) => Ok(value.into()),
             PayloadFormat::Yaml(value) => value.try_into(),
             PayloadFormat::Sparkplug(value) => Ok(value.to_string()),
+            PayloadFormat::SparkplugJson(value) => Ok(value.into()),
         }
     }
 }
@@ -184,6 +189,9 @@ impl TryFrom<(PayloadFormat, &PayloadType)> for PayloadFormat {
             }
             PayloadType::Sparkplug => {
                 PayloadFormat::Sparkplug(PayloadFormatSparkplug::try_from(value)?)
+            }
+            PayloadType::SparkplugJson => {
+                PayloadFormat::SparkplugJson(PayloadFormatJson::try_from(value)?)
             }
         })
     }
@@ -210,6 +218,9 @@ impl TryFrom<(PayloadType, Vec<u8>)> for PayloadFormat {
             PayloadType::Raw => PayloadFormat::Raw(PayloadFormatRaw::from(content)),
             PayloadType::Sparkplug => {
                 PayloadFormat::Sparkplug(PayloadFormatSparkplug::try_from(content)?)
+            }
+            PayloadType::SparkplugJson => {
+                PayloadFormat::Json(PayloadFormatJson::try_from(content)?)
             }
         })
     }

@@ -9,6 +9,7 @@ use protobuf::Message;
 use sqlx::SqlitePool;
 use std::fmt::Debug;
 use std::time::{SystemTime, UNIX_EPOCH};
+use tracing::warn;
 
 #[derive(Debug)]
 pub struct SqlStorageSqlite {
@@ -73,87 +74,26 @@ impl SqlStorageImpl for SqlStorageSqlite {
         topic: &str,
         qos: QoS,
         retain: bool,
-        payload: &PayloadFormat,
+        payload_input: &PayloadFormat,
     ) -> Result<u64, SqlStorageError> {
         let mut queries: Vec<(String, Vec<Vec<u8>>)> = vec![];
+        let payload_output = Vec::<u8>::try_from(payload_input.clone())?;
 
-        match payload {
+        match payload_input {
             PayloadFormat::Sparkplug(sp) => {
                 let sp_topic = SparkplugTopic::try_from(topic)?;
-                let payload = Vec::<u8>::try_from(payload.clone())?;
 
-                match sp_topic {
-                    SparkplugTopic::EdgeNode(sp_topic) => {
-                        let device_id = sp_topic.device_id.unwrap_or(String::from(""));
+                if let SparkplugTopic::EdgeNode(sp_topic) = sp_topic {
+                    let device_id = sp_topic.device_id.unwrap_or(String::from(""));
 
-                        for metric in &sp.content.metrics {
-                            let mut binds: Vec<Vec<u8>> = vec![];
-                            let mut query = Self::replace_basic_properties(
-                                statement,
-                                topic,
-                                qos,
-                                retain,
-                                payload.clone(),
-                                &mut binds,
-                            );
-
-                            query = query.replace("{{sp_version}}", sp_topic.version.as_str());
-                            query = query.replace(
-                                "{{sp_message_type}}",
-                                sp_topic.message_type.to_string().as_str(),
-                            );
-                            query = query.replace("{{sp_group_id}}", sp_topic.group_id.as_str());
-                            query = query
-                                .replace("{{sp_edge_node_id}}", sp_topic.edge_node_id.as_str());
-                            query = query.replace("{{sp_device_id}}", device_id.as_str());
-                            query = query.replace(
-                                "{{sp_metric_level}}",
-                                sp_topic.metric_levels.join("/").as_str(),
-                            );
-                            query = query.replace(
-                                "{{sp_metric_name}}",
-                                metric.name.as_ref().unwrap_or(&"".to_string()),
-                            );
-
-                            let value: Vec<u8> = match &metric.value {
-                                None => vec![],
-                                Some(value) => match value {
-                                    Value::IntValue(value) => value.to_string().into_bytes(),
-                                    Value::LongValue(value) => value.to_string().into_bytes(),
-                                    Value::FloatValue(value) => value.to_string().into_bytes(),
-                                    Value::DoubleValue(value) => value.to_string().into_bytes(),
-                                    Value::BooleanValue(value) => value.to_string().into_bytes(),
-                                    Value::StringValue(value) => value.clone().into_bytes(),
-                                    Value::BytesValue(value) => value.clone(),
-                                    Value::DatasetValue(value) => {
-                                        value.write_to_bytes().unwrap_or(vec![])
-                                    }
-                                    Value::TemplateValue(value) => {
-                                        value.write_to_bytes().unwrap_or(vec![])
-                                    }
-                                    Value::ExtensionValue(value) => {
-                                        value.write_to_bytes().unwrap_or(vec![])
-                                    }
-                                },
-                            };
-
-                            query = query.replace(
-                                "{{sp_metric_value}}",
-                                format!("${}", binds.len() + 1).as_str(),
-                            );
-                            binds.push(value);
-
-                            queries.push((query, binds));
-                        }
-                    }
-                    SparkplugTopic::HostApplication(sp_topic) => {
+                    for metric in &sp.content.metrics {
                         let mut binds: Vec<Vec<u8>> = vec![];
                         let mut query = Self::replace_basic_properties(
                             statement,
                             topic,
                             qos,
                             retain,
-                            payload.clone(),
+                            payload_output.clone(),
                             &mut binds,
                         );
 
@@ -162,10 +102,95 @@ impl SqlStorageImpl for SqlStorageSqlite {
                             "{{sp_message_type}}",
                             sp_topic.message_type.to_string().as_str(),
                         );
-                        query = query.replace("{{sp_host_id}}", sp_topic.host_id.as_str());
+                        query = query.replace("{{sp_group_id}}", sp_topic.group_id.as_str());
+                        query =
+                            query.replace("{{sp_edge_node_id}}", sp_topic.edge_node_id.as_str());
+                        query = query.replace("{{sp_device_id}}", device_id.as_str());
+                        query = query.replace(
+                            "{{sp_metric_level}}",
+                            sp_topic.metric_levels.join("/").as_str(),
+                        );
+                        query = query.replace(
+                            "{{sp_metric_name}}",
+                            metric.name.as_ref().unwrap_or(&"".to_string()),
+                        );
+
+                        let value: Vec<u8> = match &metric.value {
+                            None => vec![],
+                            Some(value) => match value {
+                                Value::IntValue(value) => value.to_string().into_bytes(),
+                                Value::LongValue(value) => value.to_string().into_bytes(),
+                                Value::FloatValue(value) => value.to_string().into_bytes(),
+                                Value::DoubleValue(value) => value.to_string().into_bytes(),
+                                Value::BooleanValue(value) => value.to_string().into_bytes(),
+                                Value::StringValue(value) => value.clone().into_bytes(),
+                                Value::BytesValue(value) => value.clone(),
+                                Value::DatasetValue(value) => {
+                                    value.write_to_bytes().unwrap_or(vec![])
+                                }
+                                Value::TemplateValue(value) => {
+                                    value.write_to_bytes().unwrap_or(vec![])
+                                }
+                                Value::ExtensionValue(value) => {
+                                    value.write_to_bytes().unwrap_or(vec![])
+                                }
+                            },
+                        };
+
+                        query = query.replace(
+                            "{{sp_metric_value}}",
+                            format!("${}", binds.len() + 1).as_str(),
+                        );
+                        binds.push(value);
 
                         queries.push((query, binds));
                     }
+                } else {
+                    warn!("Received Sparkplug payload on a host application topic ({}) which is not supported. \
+                    The payload must be of type sparkplug JSON.",
+                        topic
+                    )
+                }
+            }
+            PayloadFormat::SparkplugJson(sp) => {
+                let sp_topic = SparkplugTopic::try_from(topic)?;
+                if let SparkplugTopic::HostApplication(sp_topic) = sp_topic {
+                    let mut binds: Vec<Vec<u8>> = vec![];
+
+                    let mut query = Self::replace_basic_properties(
+                        statement,
+                        topic,
+                        qos,
+                        retain,
+                        payload_output.clone(),
+                        &mut binds,
+                    );
+
+                    query = query.replace("{{sp_version}}", sp_topic.version.as_str());
+                    query = query.replace(
+                        "{{sp_message_type}}",
+                        sp_topic.message_type.to_string().as_str(),
+                    );
+                    query = query.replace("{{sp_host_id}}", sp_topic.host_id.as_str());
+
+                    let online = sp.content().get("online");
+                    if online.is_none() {
+                        warn!("Required attribute \"online\" not found in payload of STATE message");
+                    }
+                    query = query.replace("{{sp_host_online}}", online.unwrap_or(&serde_json::Value::String("".to_string())).as_str().unwrap());
+
+                    let timestamp = sp.content().get("timestamp");
+                    if timestamp.is_none() {
+                        warn!("Required attribute \"timestamp\" not found in payload of STATE message");
+                    }
+                    query = query.replace("{{sp_host_timestamp}}", timestamp.unwrap_or(&serde_json::Value::String("".to_string())).as_str().unwrap());
+
+                    queries.push((query, binds));
+                } else {
+                    warn!("Received Sparkplug JSON payload on an edge node topic ({}) which is not supported. \
+                        The payload must be of type (binary) sparkplug.",
+                        topic
+                    )
                 }
             }
             _ => {
@@ -175,7 +200,7 @@ impl SqlStorageImpl for SqlStorageSqlite {
                     topic,
                     qos,
                     retain,
-                    Vec::<u8>::try_from(payload.clone())?,
+                    Vec::<u8>::try_from(payload_input.clone())?,
                     &mut binds,
                 );
                 queries.push((query, binds));

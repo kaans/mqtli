@@ -44,6 +44,9 @@ pub enum PayloadType {
     #[serde(rename = "sparkplug")]
     #[strum(serialize = "sparkplug")]
     Sparkplug,
+    #[serde(rename = "sparkplug_json")]
+    #[strum(serialize = "sparkplug_json")]
+    SparkplugJson,
 }
 
 impl Display for PayloadType {
@@ -71,6 +74,7 @@ impl Display for PayloadType {
                 write!(f, "Raw")
             }
             PayloadType::Sparkplug => write!(f, "Sparkplug"),
+            PayloadType::SparkplugJson => write!(f, "Sparkplug Json"),
         }
     }
 }
@@ -86,6 +90,7 @@ impl From<PayloadFormat> for PayloadType {
             PayloadFormat::Json(_) => PayloadType::Json,
             PayloadFormat::Yaml(_) => PayloadType::Yaml,
             PayloadFormat::Sparkplug(_) => PayloadType::Sparkplug,
+            PayloadFormat::SparkplugJson(_) => PayloadType::SparkplugJson,
         }
     }
 }

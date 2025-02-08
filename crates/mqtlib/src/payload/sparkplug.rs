@@ -77,6 +77,9 @@ impl TryFrom<PayloadFormat> for PayloadFormatSparkplug {
                 Ok(Self::from(payload))
             }
             PayloadFormat::Sparkplug(value) => Ok(value),
+            PayloadFormat::SparkplugJson(_) => {
+                Err(PayloadFormatError::CouldNotConvertFromSparkplugJson)
+            }
         }
     }
 }
