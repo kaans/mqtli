@@ -1,5 +1,6 @@
 use crate::mqtt::QoS;
 use crate::payload::{PayloadFormat, PayloadFormatError};
+use crate::sparkplug::SparkplugError;
 use crate::storage::mysql::SqlStorageMySql;
 use crate::storage::postgres::SqlStoragePostgres;
 use crate::storage::sqlite::SqlStorageSqlite;
@@ -24,6 +25,8 @@ pub enum SqlStorageError {
     SqlConnectionError(#[from] sqlx::Error),
     #[error("Error while formatting payload")]
     PayloadFormatError(#[from] PayloadFormatError),
+    #[error("Error in Sparkplug format")]
+    SparkplugError(#[from] SparkplugError),
 }
 
 #[async_trait]

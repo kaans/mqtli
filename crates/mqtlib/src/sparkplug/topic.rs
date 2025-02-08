@@ -9,7 +9,15 @@ pub enum SparkplugTopic {
 
 impl TryFrom<String> for SparkplugTopic {
     type Error = SparkplugError;
+
     fn try_from(value: String) -> Result<Self, Self::Error> {
+        SparkplugTopic::try_from(value.as_str())
+    }
+}
+
+impl TryFrom<&str> for SparkplugTopic {
+    type Error = SparkplugError;
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
         fn is_part_valid(part: &str) -> bool {
             !part.contains(['+', '/', '#'])
         }
