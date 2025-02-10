@@ -220,7 +220,7 @@ impl TryFrom<(PayloadType, Vec<u8>)> for PayloadFormat {
                 PayloadFormat::Sparkplug(PayloadFormatSparkplug::try_from(content)?)
             }
             PayloadType::SparkplugJson => {
-                PayloadFormat::Json(PayloadFormatJson::try_from(content)?)
+                PayloadFormat::SparkplugJson(PayloadFormatJson::try_from(content)?)
             }
         })
     }
