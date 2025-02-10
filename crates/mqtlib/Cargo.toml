@@ -31,7 +31,7 @@ protobuf-json-mapping = "3.7.1"
 tokio-cron-scheduler = { version = "0.13.0", features = [] }
 uuid = { version = "1.12.1", features = ["v4"] }
 colored = "3.0.0"
-strum_macros = "0.26.4"
+strum_macros = "0.27.0"
 jsonpath-rust = "0.7.5"
 derive_builder = "0.20.2"
 derive-new = "0.7.0"
