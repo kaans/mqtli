@@ -87,7 +87,10 @@ pub trait SqlStorageImpl: Debug + Send + Sync {
                     .to_string()
                     .as_str(),
             )
-            .replace("{{payload}}", self.get_placeholder( binds.len() + 1).as_str());
+            .replace(
+                "{{payload}}",
+                self.get_placeholder(binds.len() + 1).as_str(),
+            );
 
         binds.push(payload);
 
@@ -134,7 +137,12 @@ pub trait SqlStorageImpl: Debug + Send + Sync {
                         query = query.replace("{{sp_device_id}}", device_id.as_str());
                         query = query.replace(
                             "{{sp_metric_level}}",
-                            (if !sp_topic.metric_levels.is_empty() { format!("'{}'", sp_topic.metric_levels.join("/")) } else { "null".to_string() }).as_str(),
+                            (if !sp_topic.metric_levels.is_empty() {
+                                format!("'{}'", sp_topic.metric_levels.join("/"))
+                            } else {
+                                "null".to_string()
+                            })
+                            .as_str(),
                         );
                         query = query.replace(
                             "{{sp_metric_name}}",

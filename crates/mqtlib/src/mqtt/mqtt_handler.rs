@@ -103,14 +103,12 @@ impl MqttHandler {
                             Ok(content) => {
                                 content.iter().for_each(|content| {
                                     if sender_message
-                                        .send(MessageEvent::ReceivedFiltered(
-                                            MessageReceivedData {
-                                                topic: incoming_topic_str.into(),
-                                                qos,
-                                                retain,
-                                                payload: content.clone(),
-                                            },
-                                        ))
+                                        .send(MessageEvent::ReceivedFiltered(MessageReceivedData {
+                                            topic: incoming_topic_str.into(),
+                                            qos,
+                                            retain,
+                                            payload: content.clone(),
+                                        }))
                                         .is_err()
                                     {
                                         //ignore, no receiver is listening
