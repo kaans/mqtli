@@ -160,7 +160,7 @@ impl MqttService for MqttServiceV5 {
                 )
                 .await
             {
-                error!("Error during publish: {}", e);
+                error!("Error during publish on topic {}: {}", payload.topic, e);
             } else {
                 info!("Message published on topic {}", payload.topic);
             }

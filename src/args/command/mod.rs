@@ -18,6 +18,7 @@ use std::time::Duration;
 
 pub mod publish;
 pub mod sparkplug;
+pub mod sql_storage;
 pub mod subscribe;
 
 #[derive(Clone, Debug, Subcommand)]

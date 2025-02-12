@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use crate::mqtt::MessageEvent;
 use crate::payload::PayloadFormatError;
+use crate::storage::SqlStorageError;
 use thiserror::Error;
 use tokio::sync::broadcast::error::SendError;
 
@@ -19,6 +20,10 @@ pub enum OutputError {
     ErrorPayloadFormat(#[source] PayloadFormatError),
     #[error("Error while sending payload to topic: {0}")]
     SendError(#[source] SendError<MessageEvent>),
+    #[error("SQL database is not initialized")]
+    SqlDatabaseNotInitialized,
+    #[error("SQL Storage Error")]
+    SqlStorageError(#[from] SqlStorageError),
 }
 
 impl From<PayloadFormatError> for OutputError {

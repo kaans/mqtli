@@ -10,3 +10,27 @@ services:
     volumes:
       - ./mosquitto:/etc/mosquitto
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+  mariadb:
+    image: mariadb:11
+    ports:
+      - "3307:3306"
+    environment:
+      MARIADB_ROOT_PASSWORD: admin
+      MARIADB_DATABASE: mqtli
+    volumes:
+      - mariadb:/var/lib/mysql
+
+  postgres:
+    image: postgres:17
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: mqtli
+    volumes:
+      - postgres:/var/lib/mysql
+
+volumes:
+  mariadb:
+  postgres:

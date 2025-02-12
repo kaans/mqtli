@@ -27,6 +27,7 @@ use mqtlib::mqtt::v5::mqtt_service::MqttServiceV5;
 use mqtlib::mqtt::{MessageEvent, MqttReceiveEvent, MqttService};
 use mqtlib::publish::trigger_periodic::TriggerPeriodic;
 use mqtlib::sparkplug::network::SparkplugNetwork;
+use mqtlib::storage::get_sql_storage;
 use tokio::sync::broadcast::Sender;
 use tokio::sync::{broadcast, Mutex};
 use tokio::{signal, task};
@@ -117,18 +118,25 @@ async fn main() -> anyhow::Result<()> {
         _ => vec![],
     };
 
-    tasks::output::start_output_task(
-        sender_message.subscribe(),
-        topic_storage.clone(),
-        sender_message.clone(),
-        exclude_types,
-    );
-
     let sparkplug_network = Arc::new(Mutex::new(SparkplugNetwork::default()));
     tasks::sparkplug::start_sparkplug_monitor(
         sparkplug_network,
         topic_storage.clone(),
         sender_message.subscribe(),
+    );
+
+    let db = if let Some(sql) = &config.sql_storage {
+        Some(get_sql_storage(sql).await?)
+    } else {
+        None
+    };
+
+    tasks::output::start_output_task(
+        sender_message.subscribe(),
+        topic_storage.clone(),
+        sender_message,
+        exclude_types,
+        Arc::new(db),
     );
 
     start_exit_task(sender_exit).await;

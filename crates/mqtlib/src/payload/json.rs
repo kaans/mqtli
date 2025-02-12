@@ -165,6 +165,7 @@ impl TryFrom<PayloadFormat> for PayloadFormatJson {
             PayloadFormat::Sparkplug(value) => {
                 Self::try_from(print_protobuf_to_json_string(value.content())?)
             }
+            PayloadFormat::SparkplugJson(value) => Ok(value),
         }
     }
 }

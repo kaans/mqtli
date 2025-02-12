@@ -1,3 +1,4 @@
+use crate::config::sql_storage::SqlStorage;
 use crate::config::topic::TopicStorage;
 use crate::mqtt::QoS;
 use derive_builder::Builder;
@@ -18,6 +19,8 @@ pub struct MqtliConfig {
     #[validate(nested)]
     pub topic_storage: TopicStorage,
     pub mode: Mode,
+    #[validate(nested)]
+    pub sql_storage: Option<SqlStorage>,
 }
 
 impl Display for MqtliConfig {
@@ -39,6 +42,7 @@ impl Default for MqtliConfig {
             log_level: Level::INFO,
             topic_storage: TopicStorage::default(),
             mode: Default::default(),
+            sql_storage: Default::default(),
         }
     }
 }

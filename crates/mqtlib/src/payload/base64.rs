@@ -105,6 +105,9 @@ impl TryFrom<PayloadFormat> for PayloadFormatBase64 {
             PayloadFormat::Sparkplug(value) => Self::try_from(
                 PayloadFormatBase64::encode_to_base64(&Vec::<u8>::try_from(value)?),
             ),
+            PayloadFormat::SparkplugJson(value) => Self::try_from(
+                PayloadFormatBase64::encode_to_base64(&Vec::<u8>::from(value)),
+            ),
         }
     }
 }

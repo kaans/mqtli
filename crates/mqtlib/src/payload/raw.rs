@@ -40,6 +40,7 @@ impl TryFrom<PayloadFormat> for PayloadFormatRaw {
             PayloadFormat::Json(value) => Ok(Self::from(Vec::<u8>::from(value))),
             PayloadFormat::Yaml(value) => Ok(Self::from(Vec::<u8>::try_from(value)?)),
             PayloadFormat::Sparkplug(value) => Ok(Self::from(Vec::<u8>::try_from(value)?)),
+            PayloadFormat::SparkplugJson(value) => Ok(Self::from(Vec::<u8>::from(value))),
         }
     }
 }
