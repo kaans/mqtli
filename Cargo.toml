@@ -30,6 +30,6 @@ colored = "3.0.0"
 chrono = "0.4.39"
 
 [build-dependencies]
-built = "0.7.5"
+built = "0.7.7"
 
 [workspace]
