@@ -75,15 +75,12 @@ impl FilterImpl for FilterTypeExtractJson {
         let result: Result<Vec<PayloadFormat>, FilterError> =
             match self.convert_payload_format(data, PayloadType::Json)? {
                 PayloadFormat::Json(data) => {
-                    let res: Vec<PayloadFormat> = data.content()
+                    let res: Vec<PayloadFormat> = data
+                        .content()
                         .query(self.jsonpath.as_str())
                         .iter()
                         .flatten()
-                        .map(|v| {
-                            PayloadFormat::Json(PayloadFormatJson::from(
-                                v.to_owned().clone(),
-                            ))
-                        })
+                        .map(|v| PayloadFormat::Json(PayloadFormatJson::from(v.to_owned().clone())))
                         .collect();
 
                     Ok(res)
