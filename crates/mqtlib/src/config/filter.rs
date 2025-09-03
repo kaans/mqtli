@@ -3,10 +3,10 @@ use crate::payload::json::PayloadFormatJson;
 use crate::payload::text::PayloadFormatText;
 use crate::payload::{PayloadFormat, PayloadFormatError};
 use derive_getters::Getters;
-use jsonpath_rust::{JsonPath, JsonPathParserError};
+use jsonpath_rust::parser::errors::JsonPathError;
+use jsonpath_rust::JsonPath;
 use serde::Deserialize;
 use std::fmt::{Display, Formatter};
-use std::str::FromStr;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -14,7 +14,7 @@ pub enum FilterError {
     #[error("Payload has wrong format, expected format `{0}`")]
     WrongPayloadFormat(String),
     #[error("The given JSON path cannot be parsed")]
-    WrongJsonPath(#[from] JsonPathParserError),
+    WrongJsonPath(#[from] JsonPathError),
     #[error("Error in payload format")]
     PayloadFormatError(#[from] Box<PayloadFormatError>),
 }
@@ -75,27 +75,15 @@ impl FilterImpl for FilterTypeExtractJson {
         let result: Result<Vec<PayloadFormat>, FilterError> =
             match self.convert_payload_format(data, PayloadType::Json)? {
                 PayloadFormat::Json(data) => {
-                    let result: Result<Vec<PayloadFormat>, FilterError> =
-                        match JsonPath::from_str(self.jsonpath.as_str()) {
-                            Ok(path) => {
-                                let res: Vec<PayloadFormat> = path
-                                    .find_slice(data.content())
-                                    .iter()
-                                    .map(|v| {
-                                        PayloadFormat::Json(PayloadFormatJson::from(
-                                            v.clone().to_data(),
-                                        ))
-                                    })
-                                    .collect();
+                    let res: Vec<PayloadFormat> = data
+                        .content()
+                        .query(self.jsonpath.as_str())
+                        .iter()
+                        .flatten()
+                        .map(|v| PayloadFormat::Json(PayloadFormatJson::from(v.to_owned().clone())))
+                        .collect();
 
-                                Ok(res)
-                            }
-                            Err(e) => {
-                                return Err(FilterError::WrongJsonPath(e));
-                            }
-                        };
-
-                    result
+                    Ok(res)
                 }
                 _ => Err(FilterError::WrongPayloadFormat("json".into())),
             };
