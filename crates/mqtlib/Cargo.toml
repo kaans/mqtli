@@ -18,29 +18,29 @@ serde_yaml = "0.9.30"
 thiserror = "2.0.11"
 tokio = { version = "1.43.0", features = ["macros", "rt", "rt-multi-thread", "sync", "signal"] }
 validator = { version = "0.20.0", features = ["derive"] }
-serde_json = "1.0.138"
+serde_json = "1.0.143"
 base64 = "0.22.1"
 hex = "0.4.3"
 rustls-pemfile = "1.0.4"
-regex = "1.11.1"
+regex = "1.11.2"
 lazy_static = { version = "1.5.0", features = [] }
-async-trait = { version = "0.1.85", features = [] }
-protobuf = { version = "3.7.1", features = ["with-bytes"] }
-protobuf-parse = "3.7.1"
-protobuf-json-mapping = "3.7.1"
-tokio-cron-scheduler = { version = "0.13.0", features = [] }
-uuid = { version = "1.12.1", features = ["v4"] }
+async-trait = { version = "0.1.89", features = [] }
+protobuf = { version = "3.7.2", features = ["with-bytes"] }
+protobuf-parse = "3.7.2"
+protobuf-json-mapping = "3.7.2"
+tokio-cron-scheduler = { version = "0.14.0", features = [] }
+uuid = { version = "1.18.1", features = ["v4"] }
 colored = "3.0.0"
-strum_macros = "0.26.4"
-jsonpath-rust = "0.7.5"
+strum_macros = "0.27.2"
+jsonpath-rust = "1.0.4"
 derive_builder = "0.20.2"
 derive-new = "0.7.0"
 tracing = "0.1.41"
-strum = "0.26.3"
+strum = "0.27.2"
 chrono = "0.4.39"
 url = "2.5.4"
 sqlx = { version = "0.8.3", features = ["sqlite", "runtime-tokio", "mysql", "postgres"] }
 
 [build-dependencies]
-protobuf-codegen = "3.7.1"
+protobuf-codegen = "3.7.2"
 protoc-bin-vendored = "3.1.0"
