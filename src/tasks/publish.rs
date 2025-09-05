@@ -8,8 +8,18 @@ pub fn start_publish_task(
     mqtt_service_publish: Arc<Mutex<dyn MqttService>>,
 ) {
     tokio::spawn(async move {
-        while let Ok(MessageEvent::Publish(event)) = receiver_publish.recv().await {
-            mqtt_service_publish.lock().await.publish(event).await;
+        loop {
+            match receiver_publish.recv().await {
+                Ok(MessageEvent::Publish(event)) => {
+                    mqtt_service_publish.lock().await.publish(event).await;
+                }
+                Ok(_) => {
+                    // ignore other events
+                }
+                Err(_e) => {
+                    break;
+                }
+            }
         }
     });
 }
