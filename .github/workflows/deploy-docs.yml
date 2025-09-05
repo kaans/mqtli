@@ -1,0 +1,35 @@
+name: Deploy documentation site
+
+on:
+  push:
+    paths:
+      - 'docs/**'
+      - '.github/workflows/deploy-docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Deploys
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout GitHub Action'
+        uses: actions/checkout@v5.0.0
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: 'Build and deploy'
+        shell: bash
+        run: |
+          RUSTFLAGS="$RUSTFLAGS -A dead_code" cargo install --git https://github.com/Doctave/doctave --tag 0.4.2
+          doctave build --release --allow-failed-checks
+
+      - name: GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        uses: crazy-max/ghaction-github-pages@v2.6.0
+        with:
+          build_dir: site/
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
