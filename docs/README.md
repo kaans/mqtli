@@ -9,7 +9,7 @@ MQTli is a multi‑topic, payload‑converting MQTT command‑line client writte
 
 Screenshot
 ----------
-![Example](../assets/mqtli_example.png)
+![Example](assets/mqtli_example.png)
 
 Key features
 ------------
