@@ -80,7 +80,7 @@ Initial delay before the first publish, in milliseconds.
 Filters
 -------
 Optional chain to transform the message before sending.
-- Values: list of filters; see Filters page.
+- Values: list of filters; see [Filters page](filter.md)
 - Default: empty list.
 - How to set in YAML: publish.filters
 

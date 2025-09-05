@@ -71,7 +71,7 @@ Insert each received payload into a database using a custom SQL statement.
 Filters
 -------
 Optionally transform received messages before output using a chain of filters.
-- Values: list of filters; see Filters page.
+- Values: list of filters; see [Filters page](filter.md)
 - Default: empty list.
 - How to set in YAML: subscription.filters
 
