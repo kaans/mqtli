@@ -2,8 +2,3 @@
 title: "MQTli - CLI client for MQTT"
 
 basepath: /mqtli
-
-navigation:
-  - path: docs/quickstart.md
-  - path: docs/config.md
-  - path: docs/docker.md
