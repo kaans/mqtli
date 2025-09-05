@@ -31,8 +31,10 @@ image:assets/mqtli_example.png[]
 === Features:
 
 * automatically publish messages using triggers (periodically, messages on topics)
-* subscribe to topics and output messages to console, to a file or to another topic
-* support of different payload formats (json, yaml, protobuf, hex, base64, utf-8, raw)
+* subscribe to topics and output messages to console, to a file, to an SQL database, or to another topic
+* Powerful message filters before publish and after receive (chainable): extract JSON using JSONPath, convert to upper/lower case, prepend/append text; plus format converters (to_text, to_json)
+* support of different payload formats (json, yaml, protobuf, sparkplug, hex, base64, utf-8, raw)
+* Eclipse Sparkplug support (Sparkplug B; topic and payload helpers)
 * Seamlessly convert message payloads between input, payload, and output, if they differ (e.g. from protobuf to json or vice versa)
 * Configuration via cli arguments and config file (yaml)
 * MQTT v5 and v3.1.1
@@ -42,6 +44,12 @@ image:assets/mqtli_example.png[]
 * Client authentication via TLS certificates
 * Last will
 * QoS 0, 1, 2
+
+=== Quickstart
+
+* Option A: Download a prebuilt binary from https://github.com/kaans/mqtli/releases and run `mqtli --help`.
+* Option B: Build from source with Cargo: `cargo build --release` (binary at `target/release/mqtli[.exe]`).
+* For a step-by-step walkthrough including minimal localhost:1883 config (no TLS) and optional username/password, see: link:docs/quickstart.md[Quickstart Guide].
 
 === How to use
 
