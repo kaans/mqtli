@@ -38,6 +38,8 @@ derive-new = "0.7.0"
 tracing = "0.1.41"
 strum = "0.27.2"
 chrono = "0.4.39"
+url = "2.5.4"
+sqlx = { version = "0.8.3", features = ["sqlite", "runtime-tokio", "mysql", "postgres"] }
 
 [build-dependencies]
 protobuf-codegen = "3.7.2"

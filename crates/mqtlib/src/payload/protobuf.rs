@@ -58,6 +58,9 @@ impl PayloadFormatProtobuf {
             PayloadFormat::Sparkplug(value) => {
                 Self::convert_from_vec(value.try_into()?, definition_file, message_name)?
             }
+            PayloadFormat::SparkplugJson(value) => {
+                Self::convert_from_json(value, definition_file, message_name)?
+            }
         };
 
         Ok(Self { content })

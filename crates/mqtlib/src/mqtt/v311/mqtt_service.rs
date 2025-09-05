@@ -90,7 +90,7 @@ impl MqttService for MqttServiceV311 {
         let (transport, hostname) = get_transport_parameters(self.config.clone())?;
 
         info!(
-            "Connecting to {} on port {} with client id {}",
+            "Connecting to {} on port {} with client id {} using MQTT version 3.1.1",
             hostname,
             self.config.port(),
             self.config.client_id()

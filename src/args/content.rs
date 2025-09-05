@@ -2,9 +2,11 @@ use crate::args::broker::MqttBrokerConnectArgs;
 use crate::args::parsers::deserialize_level_filter;
 use crate::args::ArgsError;
 
+use crate::args::command::sql_storage::SqlStorage;
 use crate::args::command::Command;
 use clap::Parser;
 use mqtlib::config::mqtli_config::{Mode, MqtliConfig, MqtliConfigBuilder};
+use mqtlib::config::sql_storage::SqlStorage as SqlStorageConfig;
 use mqtlib::config::topic::{Topic, TopicStorage};
 use serde::Deserialize;
 use std::path::PathBuf;
@@ -14,6 +16,7 @@ use tracing::Level;
 #[command(author, version, about, long_about = None)]
 #[clap(disable_version_flag = true)]
 #[clap(disable_help_flag = true)]
+#[serde(deny_unknown_fields)]
 pub struct MqtliArgs {
     #[clap(long, action = clap::ArgAction::HelpLong, help = "Print help")]
     help: Option<bool>,
@@ -53,6 +56,11 @@ pub struct MqtliArgs {
     #[clap(subcommand)]
     #[serde(skip_serializing, skip_deserializing)]
     pub command: Option<Command>,
+
+    #[clap(skip)]
+    #[serde(default)]
+    #[serde(rename = "database")]
+    pub sql_storage: Option<SqlStorage>,
 }
 
 impl MqtliArgs {
@@ -88,6 +96,13 @@ impl MqtliArgs {
                 .into_iter()
                 .chain(topics)
                 .collect(),
+        });
+
+        builder.sql_storage(match self.sql_storage {
+            None => other.sql_storage,
+            Some(sql) => Some(SqlStorageConfig {
+                connection_string: sql.connection_string,
+            }),
         });
 
         builder.build().map_err(ArgsError::from)

@@ -6,15 +6,17 @@ use mqtlib::output::console::ConsoleOutput;
 use mqtlib::output::file::FileOutput;
 use mqtlib::output::OutputError;
 use mqtlib::payload::PayloadFormat;
+use mqtlib::storage::SqlStorageImpl;
 use std::sync::Arc;
 use tokio::sync::broadcast::{Receiver, Sender};
-use tracing::error;
+use tracing::{debug, error};
 
 pub fn start_output_task(
     mut receiver: Receiver<MessageEvent>,
     topic_storage: Arc<TopicStorage>,
     sender_message: Sender<MessageEvent>,
     exclude_types: Vec<PayloadType>,
+    db: Arc<Option<Box<dyn SqlStorageImpl>>>,
 ) {
     tokio::spawn(async move {
         loop {
@@ -22,7 +24,10 @@ pub fn start_output_task(
                 if !exclude_types.contains(&message.payload.clone().to_owned().into()) {
                     let outputs = topic_storage.get_outputs_for_topic(&message.topic);
                     for output in outputs {
-                        if let Err(e) = write_to_output(sender_message.clone(), &message, output) {
+                        if let Err(e) =
+                            write_to_output(sender_message.clone(), &message, output, db.clone())
+                                .await
+                        {
                             error!("Error while writing to output {}: {e:?}", output.target);
                         }
                     }
@@ -32,10 +37,11 @@ pub fn start_output_task(
     });
 }
 
-fn write_to_output(
+async fn write_to_output(
     sender_message: Sender<MessageEvent>,
     message: &MessageReceivedData,
     output: &Output,
+    db: Arc<Option<Box<dyn SqlStorageImpl>>>,
 ) -> Result<(), OutputError> {
     let conv = PayloadFormat::try_from((message.payload.clone(), output.format()))?;
     match output.target() {
@@ -57,6 +63,24 @@ fn write_to_output(
                 )))
                 .map_err(OutputError::SendError)?;
             Ok(())
+        }
+        OutputTarget::Sql(sql) => {
+            if let Some(db) = db.as_ref() {
+                debug!("Writing to SQL storage");
+
+                db.insert(
+                    sql.insert_statement.as_str(),
+                    &message.topic,
+                    message.qos,
+                    message.retain,
+                    &message.payload.clone(),
+                )
+                .await
+                .map(|_| ())
+                .map_err(OutputError::from)
+            } else {
+                Err(OutputError::SqlDatabaseNotInitialized)
+            }
         }
     }
 }

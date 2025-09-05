@@ -76,6 +76,8 @@ pub enum OutputTarget {
     File(OutputTargetFile),
     #[serde(rename = "topic")]
     Topic(OutputTargetTopic),
+    #[serde(rename = "sql")]
+    Sql(OutputTargetSql),
 }
 
 impl Default for OutputTarget {
@@ -95,6 +97,11 @@ pub struct OutputTargetTopic {
     pub qos: QoS,
     #[serde(default)]
     pub retain: bool,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Validate)]
+pub struct OutputTargetSql {
+    pub insert_statement: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Getters, PartialEq, Validate)]
