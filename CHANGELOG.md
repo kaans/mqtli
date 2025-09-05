@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.13.0](https://github.com/kaans/mqtli/compare/v0.12.0...v0.13.0) (2025-09-05)
+
+
+### Features
+
+* add created at fields ([eef6c58](https://github.com/kaans/mqtli/commit/eef6c58605e89573b65b1b60dc7a349b24fafe89))
+* add new payload sparkplug json for STATE messages and extract values for storage via SQL ([4343d7a](https://github.com/kaans/mqtli/commit/4343d7aaccc7db5f53317333c7c97247602496a5))
+* add sql as target ([2f2a03c](https://github.com/kaans/mqtli/commit/2f2a03c2003b601e4473cca64eb9b4ce8226eaa3))
+* add sqlite storage for outputs ([98b6b89](https://github.com/kaans/mqtli/commit/98b6b8934c3745ac6e28037057aa8e69edcdd08c))
+* add support for mysql and mariadb ([f1b3b74](https://github.com/kaans/mqtli/commit/f1b3b748f448c3de2982a3a69c7c3e3144da2eb0))
+* add support for postgresql ([76cb53c](https://github.com/kaans/mqtli/commit/76cb53c817c5fea0db75aca941304fd5229f37cf))
+* extract sparkplug values for sqlite sql ([8b89ec9](https://github.com/kaans/mqtli/commit/8b89ec9068e3e7cf5ae74f12242aa56cfabeca52))
+* store sparkplug values in mysql and postgres ([58e3f31](https://github.com/kaans/mqtli/commit/58e3f31229c5c809c3ee278e33e6e456d74ffc47))
+
+
+### Bug Fixes
+
+* publish to other target ([c730cef](https://github.com/kaans/mqtli/commit/c730cef186ff251da2aa3a4d7a1a1110fb9cc015))
+* publish to other topic ignoring messages ([9bd856f](https://github.com/kaans/mqtli/commit/9bd856fbe7928d09a88b8fe229d4308d065d29dd))
+* replace incoming values when inserting into database ([6f79ce6](https://github.com/kaans/mqtli/commit/6f79ce6cce04c4b77adcad4619b8415dfe21eb29))
+* send received message only once to outputs ([ce631e7](https://github.com/kaans/mqtli/commit/ce631e7d69b5522de4115f1afee5966cb4f497a4))
+
 ## [0.12.0](https://github.com/kaans/mqtli/compare/v0.11.0...v0.12.0) (2025-02-06)
 
 
