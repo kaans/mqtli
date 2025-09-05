@@ -1,0 +1,385 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Payload types and publish input types</title>
+    <meta name="description" content="Documentation for MQTli - CLI client for MQTT">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Source+Sans+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/normalize.css?v=1757081721"
+        media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/doctave-style.css?v=1757081721"
+        media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/katex.css?v=1757081721" media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/prism-ghcolors.css?v=1757081721"
+        media="screen" />
+
+    <script>
+        var DOCTAVE_TIMESTAMP = "1757081721";
+        var BASE_PATH = "/mqtli/";
+        var color = localStorage.getItem('doctave-color')
+
+        if (color === 'dark') {
+            document.getElementsByTagName('html')[0].classList.remove('light');
+            document.getElementsByTagName('html')[0].classList.add('dark');
+        } else {
+            document.getElementsByTagName('html')[0].classList.remove('dark');
+            document.getElementsByTagName('html')[0].classList.add('light');
+        }
+    </script>
+
+    
+</head>
+
+<body>
+    <label for='menu-toggle-switch' class='menu-toggle-button'>
+        ☰
+    </label>
+    <input type="checkbox" id="menu-toggle-switch" value='0' />
+    <div class='page'>
+        <div class='header'>
+            <div class='logo'>
+                
+                <h2 class='project-name'>
+                    <a href="/mqtli/">
+                        MQTli - CLI client for MQTT
+                    </a>
+                </h2>
+            </div>
+            <div class='search'>
+                <form id='search-form'>
+    <input type='text' id='search-box' autocomplete="off" placeholder="Search..."></input>
+    <span class='search-icon'>S</span>
+    <ul id='search-results'></ul>
+</form>
+
+            </div>
+            <div class='header-dummy-right'>
+            </div>
+        </div>
+        <div class='container'>
+            <div class='sidebar-left'>
+                <nav class='site-nav'>
+    <ul>
+        
+            <li><a href="/mqtli/quickstart">Quickstart</a></li>
+            
+        
+            <li><a href="/mqtli/modes">Operating Modes</a></li>
+            
+        
+            <li><a href="/mqtli/config/concept">Conceptual Overview</a></li>
+            
+        
+            <li><a href="/mqtli/config">Configuration</a></li>
+            
+                <ul>
+    
+        <li><a href="/mqtli/config/mqtt_broker_connect">Broker connection</a></li>
+        
+    
+        <li><a href="/mqtli/config/sql_storage">SQL storage</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic">Topics</a></li>
+        
+            <ul>
+    
+        <li><a class="active" href="/mqtli/config/topic/payload_and_input_types">Payload types and publish input types</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/publish">Publish and triggers</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/subscription">Subscription and outputs</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/filter">Filters</a></li>
+        
+    
+</ul>
+
+        
+    
+</ul>
+
+            
+        
+    </ul>
+    <span id='light-dark-mode-switch'>
+        <svg xmlns="http://www.w3.org/2000/svg" id="dark-mode-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+        </svg>
+
+        <svg xmlns="http://www.w3.org/2000/svg" id="light-mode-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+        </svg>
+    </span>
+</nav>
+
+            </div>
+            <div class='doctave-content'>
+                <h1 id="payload-types">Payload types</h1>
+<p>This page explains the formats you can work with and how MQTli treats them when converting and rendering messages—for example, human‑readable text/JSON/YAML, binary encodings like hex/base64/raw, and structured formats such as Protobuf and Sparkplug. Choose a payload type to match your topic’s data so conversions and outputs behave as expected.</p>
+<h2 id="text">Text</h2>
+<p>UTF‑8 text payloads.</p>
+<ul>
+<li>Typical use: human‑readable strings.</li>
+<li>Notes: Can convert to most other formats; invalid UTF‑8 in conversions will be preserved with replacement when displayed.</li>
+</ul>
+<h2 id="json">JSON</h2>
+<p>JSON documents.</p>
+<ul>
+<li>Typical use: structured data.</li>
+<li>Notes: If converted from binary, the decoded data must be valid UTF‑8 JSON.</li>
+</ul>
+<h2 id="yaml">YAML</h2>
+<p>YAML documents.</p>
+<ul>
+<li>Notes: If converted from binary, decoded data must be valid UTF‑8 YAML.</li>
+</ul>
+<h2 id="hex">Hex</h2>
+<p>Hex‑encoded bytes (lower/upper accepted when read; shown lower‑case).</p>
+<ul>
+<li>Typical use: inline binary representation in YAML.</li>
+</ul>
+<h2 id="base64">Base64</h2>
+<p>Base64‑encoded bytes (with padding).</p>
+<ul>
+<li>Typical use: inline binary representation in YAML.</li>
+</ul>
+<h2 id="raw">Raw</h2>
+<p>Uninterpreted bytes.</p>
+<ul>
+<li>Notes: Everything can convert to raw.</li>
+</ul>
+<h2 id="protobuf">Protobuf</h2>
+<p>Protobuf‑encoded bytes.</p>
+<ul>
+<li>Attributes (when used as payload):
+<ul>
+<li>definition: path to .proto</li>
+<li>message: fully qualified message name</li>
+</ul>
+</li>
+<li>Notes: Text cannot convert directly into protobuf.</li>
+</ul>
+<h2 id="sparkplug">Sparkplug</h2>
+<p>Eclipse Sparkplug payloads (protobuf‑based).</p>
+<h2 id="sparkplug-json">Sparkplug JSON</h2>
+<p>JSON representation compatible with Sparkplug payloads.</p>
+<h2 id="conversions">Conversions</h2>
+<ul>
+<li>See README “Supported Payload formats and conversion” for the conversion table. Many conversions are supported; text lacks structure and cannot be converted into protobuf directly.</li>
+</ul>
+<h1 id="publish-input-types">Publish input types</h1>
+<p>This section describes how to provide data for publishing: inline content or file‑based sources in various formats. Pick the input type that matches how you want to supply the message, and MQTli will convert it to the topic’s payload format when possible.</p>
+<h2 id="text">text</h2>
+<p>Inline text.</p>
+<ul>
+<li>Fields: content and/or path.</li>
+</ul>
+<h2 id="raw">raw</h2>
+<p>Read raw bytes from a file.</p>
+<ul>
+<li>Fields: path (required).</li>
+</ul>
+<h2 id="hex">hex</h2>
+<p>Inline hex or file path to hex.</p>
+<ul>
+<li>Fields: content and/or path.</li>
+</ul>
+<h2 id="json">json</h2>
+<p>Inline JSON or file path.</p>
+<ul>
+<li>Fields: content and/or path.</li>
+</ul>
+<h2 id="yaml">yaml</h2>
+<p>Inline YAML or file path.</p>
+<ul>
+<li>Fields: content and/or path.</li>
+</ul>
+<h2 id="base64">base64</h2>
+<p>Inline base64 or file path.</p>
+<ul>
+<li>Fields: content and/or path.</li>
+</ul>
+<h2 id="null">null</h2>
+<p>No content is provided.</p>
+<h2 id="validation">Validation</h2>
+<ul>
+<li>For content/path variants, at least one of content or path must be provided.</li>
+</ul>
+<h2 id="qos-in-yaml">QoS in YAML</h2>
+<ul>
+<li>QoS for subscription outputs and publish can be specified as 0, 1, 2.</li>
+</ul>
+<h2 id="examples">Examples</h2>
+<p>Example 1 — Hex input published to a protobuf topic, YAML output on subscribe</p>
+<pre><code class="language-yaml">topics:
+  - topic: telemetry/node1
+    payload:
+      type: protobuf
+      definition: messages.proto
+      message: Proto.Message
+    publish:
+      enabled: true
+      input:
+        type: hex
+        content: "AB12CD34"
+      trigger:
+        - type: periodic
+          interval: 1000
+    subscription:
+      enabled: true
+      outputs:
+        - format: { type: yaml }
+</code></pre>
+<p>Example 2 — Base64 input to JSON payload with extract filter</p>
+<pre><code class="language-yaml">topics:
+  - topic: app/data
+    payload: { type: json }
+    publish:
+      enabled: true
+      input:
+        type: base64
+        content: "eyJtZXNzYWdlIjogImhlbGxvIn0="  # {"message":"hello"}
+      filters:
+        - type: to_json
+        - type: extract_json
+          jsonpath: $.message
+      trigger:
+        - type: periodic
+          interval: 1500
+</code></pre>
+
+            </div>
+            <div class='sidebar-right'>
+                <div class='page-nav' id='page-nav'>
+                    <p class='page-nav-header'>On this page</p>
+                    <ul>
+                        
+                        <li class='page-nav-level-1'>
+                            <a href='#payload-types'>Payload types</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#text'>Text</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#json'>JSON</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#yaml'>YAML</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#hex'>Hex</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#base64'>Base64</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#raw'>Raw</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#protobuf'>Protobuf</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#sparkplug'>Sparkplug</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#sparkplug-json'>Sparkplug JSON</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#conversions'>Conversions</a>
+                        </li>
+                        
+                        <li class='page-nav-level-1'>
+                            <a href='#publish-input-types'>Publish input types</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#text'>text</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#raw'>raw</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#hex'>hex</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#json'>json</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#yaml'>yaml</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#base64'>base64</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#null'>null</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#validation'>Validation</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#qos-in-yaml'>QoS in YAML</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#examples'>Examples</a>
+                        </li>
+                        
+                    </ul>
+                </div>
+            </div>
+            <div class='wave-container'>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
+                    <path fill-opacity="0.35"
+                        d="M0,192L60,213.3C120,235,240,277,360,277.3C480,277,600,235,720,192C840,149,960,107,1080,122.7C1200,139,1320,213,1380,250.7L1440,288L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                    <path fill-opacity="0.5"
+                        d="M0,160L60,181.3C120,203,240,245,360,229.3C480,213,600,139,720,138.7C840,139,960,213,1080,229.3C1200,245,1320,203,1380,181.3L1440,160L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                    <path fill-opacity="0.2"
+                        d="M0,224L60,197.3C120,171,240,117,360,117.3C480,117,600,171,720,186.7C840,203,960,181,1080,186.7C1200,192,1320,224,1380,240L1440,256L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                </svg>
+                <p>Powered by <a href='https://cli.doctave.com' target='_blank'>Doctave</a></p>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" src="/mqtli/assets/katex.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/mermaid.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/elasticlunr.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/prism.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/doctave-app.js?v=1757081721"></script>
+
+    
+</body>
+
+</html>

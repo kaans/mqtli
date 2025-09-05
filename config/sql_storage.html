@@ -1,0 +1,453 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <title>SQL storage</title>
+    <meta name="description" content="Documentation for MQTli - CLI client for MQTT">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Source+Sans+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/normalize.css?v=1757081721"
+        media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/doctave-style.css?v=1757081721"
+        media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/katex.css?v=1757081721" media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/prism-ghcolors.css?v=1757081721"
+        media="screen" />
+
+    <script>
+        var DOCTAVE_TIMESTAMP = "1757081721";
+        var BASE_PATH = "/mqtli/";
+        var color = localStorage.getItem('doctave-color')
+
+        if (color === 'dark') {
+            document.getElementsByTagName('html')[0].classList.remove('light');
+            document.getElementsByTagName('html')[0].classList.add('dark');
+        } else {
+            document.getElementsByTagName('html')[0].classList.remove('dark');
+            document.getElementsByTagName('html')[0].classList.add('light');
+        }
+    </script>
+
+    
+</head>
+
+<body>
+    <label for='menu-toggle-switch' class='menu-toggle-button'>
+        ☰
+    </label>
+    <input type="checkbox" id="menu-toggle-switch" value='0' />
+    <div class='page'>
+        <div class='header'>
+            <div class='logo'>
+                
+                <h2 class='project-name'>
+                    <a href="/mqtli/">
+                        MQTli - CLI client for MQTT
+                    </a>
+                </h2>
+            </div>
+            <div class='search'>
+                <form id='search-form'>
+    <input type='text' id='search-box' autocomplete="off" placeholder="Search..."></input>
+    <span class='search-icon'>S</span>
+    <ul id='search-results'></ul>
+</form>
+
+            </div>
+            <div class='header-dummy-right'>
+            </div>
+        </div>
+        <div class='container'>
+            <div class='sidebar-left'>
+                <nav class='site-nav'>
+    <ul>
+        
+            <li><a href="/mqtli/quickstart">Quickstart</a></li>
+            
+        
+            <li><a href="/mqtli/modes">Operating Modes</a></li>
+            
+        
+            <li><a href="/mqtli/config/concept">Conceptual Overview</a></li>
+            
+        
+            <li><a href="/mqtli/config">Configuration</a></li>
+            
+                <ul>
+    
+        <li><a href="/mqtli/config/mqtt_broker_connect">Broker connection</a></li>
+        
+    
+        <li><a class="active" href="/mqtli/config/sql_storage">SQL storage</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic">Topics</a></li>
+        
+            <ul>
+    
+        <li><a href="/mqtli/config/topic/payload_and_input_types">Payload types and publish input types</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/publish">Publish and triggers</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/subscription">Subscription and outputs</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/filter">Filters</a></li>
+        
+    
+</ul>
+
+        
+    
+</ul>
+
+            
+        
+    </ul>
+    <span id='light-dark-mode-switch'>
+        <svg xmlns="http://www.w3.org/2000/svg" id="dark-mode-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+        </svg>
+
+        <svg xmlns="http://www.w3.org/2000/svg" id="light-mode-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+        </svg>
+    </span>
+</nav>
+
+            </div>
+            <div class='doctave-content'>
+                <h1 id="sql-storage">SQL storage</h1>
+<p>Configure a database connection that outputs of type sql can use to persist incoming messages. This is useful for logging, analytics, and archiving; you provide a connection string, then reference it from subscription outputs that execute your INSERT statements.</p>
+<h2 id="connection-string">Connection string</h2>
+<p>Database connection string used by SQL outputs and optional storage features.</p>
+<ul>
+<li>Values: URL‑like string. Supported schemes: sqlite, mariadb, mysql, postgresql.</li>
+<li>Default: unset.</li>
+<li>How to set in YAML: sql_storage.connection_string</li>
+<li>Examples accepted:
+<ul>
+<li>sqlite::memory:</li>
+<li>sqlite://        (temporary file)</li>
+<li>sqlite:data.db   (no authority)</li>
+<li>sqlite://data.db (with authority)</li>
+</ul>
+</li>
+</ul>
+<h2 id="placeholders-for-sql-statements">Placeholders for SQL statements</h2>
+<p>When you configure a SQL output insert_statement, you can embed placeholders in double braces like {{name}}. At runtime, mqtli replaces these with values from the MQTT message, the current time, or decoded Sparkplug payload/topic fields. Some placeholders expand to literal values; others become a database bind/parameter (so the binary payload can be sent safely). Below is the complete list supported by the current implementation.</p>
+<h3 id="basic-message-placeholders">Basic message placeholders</h3>
+<ul>
+<li>
+<p>{{topic}}</p>
+<p>The full MQTT topic of the received message.</p>
+<ul>
+<li>Definition: Replaced with the literal topic string.</li>
+<li>Example value: sensor/siteA/temperature</li>
+</ul>
+</li>
+<li>
+<p>{{retain}}</p>
+<p>Whether the message had the MQTT retain flag set.</p>
+<ul>
+<li>Definition: Replaced with 1 if retained, otherwise 0.</li>
+<li>Example value: 0</li>
+</ul>
+</li>
+<li>
+<p>{{qos}}</p>
+<p>The MQTT Quality of Service level for the message.</p>
+<ul>
+<li>Definition: Replaced with the numeric QoS (0, 1, or 2).</li>
+<li>Example value: 1</li>
+</ul>
+</li>
+<li>
+<p>{{created_at}}</p>
+<p>Time when the SQL statement is generated, in Unix epoch seconds.</p>
+<ul>
+<li>Definition: Replaced with seconds since 1970‑01‑01 UTC.</li>
+<li>Example value: 1736149123</li>
+</ul>
+</li>
+<li>
+<p>{{created_at_millis}}</p>
+<p>Time when the SQL statement is generated, in Unix epoch milliseconds.</p>
+<ul>
+<li>Definition: Replaced with milliseconds since 1970‑01‑01 UTC.</li>
+<li>Example value: 1736149123567</li>
+</ul>
+</li>
+<li>
+<p>{{created_at_iso}}</p>
+<p>Human‑readable UTC timestamp when the SQL is generated.</p>
+<ul>
+<li>Definition: Replaced with formatted timestamp using pattern %Y-%m-%d %H:%M:%S%.3f (UTC).</li>
+<li>Example value: 2025-09-05 13:27:45.123</li>
+</ul>
+</li>
+<li>
+<p>{{payload}}</p>
+<p>The raw message payload as bytes, bound as a parameter.</p>
+<ul>
+<li>Definition: Replaced with a database placeholder token appropriate for the configured driver (e.g., ? for SQLite/MySQL, $1 for Postgres). The actual bytes are sent via a bind parameter.</li>
+<li>Example value in SQL: INSERT ... VALUES($1)  (Postgres) or INSERT ... VALUES(?)  (SQLite/MySQL)</li>
+</ul>
+</li>
+</ul>
+<h3 id="sparkplug-placeholders">Sparkplug placeholders</h3>
+<p>Applicable when the topic conforms to Sparkplug and the payload is Sparkplug (binary) or Sparkplug JSON as noted. If a placeholder is used outside the matching context, it will be replaced with an empty string or left null as described.</p>
+<ul>
+<li>
+<p>{{sp_version}}</p>
+<p>Sparkplug protocol version parsed from the topic.</p>
+<ul>
+<li>Definition: Replaced with the version token from the topic, such as spBv1.0.</li>
+<li>Example value: spBv1.0</li>
+</ul>
+</li>
+<li>
+<p>{{sp_message_type}}</p>
+<p>Sparkplug message type parsed from the topic (e.g., NBIRTH, NDATA, DBIRTH, DDATA, STATE).</p>
+<ul>
+<li>Definition: Replaced with the textual message type from the topic.</li>
+<li>Example value: NDATA</li>
+</ul>
+</li>
+<li>
+<p>{{sp_group_id}}</p>
+<p>Sparkplug group identifier parsed from the topic (Edge Node topics).</p>
+<ul>
+<li>Definition: Replaced with the group ID string.</li>
+<li>Example value: FactoryA</li>
+</ul>
+</li>
+<li>
+<p>{{sp_edge_node_id}}</p>
+<p>Sparkplug Edge Node ID parsed from the topic (Edge Node topics).</p>
+<ul>
+<li>Definition: Replaced with the edge node identifier string.</li>
+<li>Example value: Edge01</li>
+</ul>
+</li>
+<li>
+<p>{{sp_device_id}}</p>
+<p>Sparkplug Device ID parsed from the topic when present (DDATA/DBIRTH). Empty if not present.</p>
+<ul>
+<li>Definition: Replaced with the device ID string or an empty string when absent.</li>
+<li>Example value: Pump_3</li>
+</ul>
+</li>
+<li>
+<p>{{sp_metric_level}}</p>
+<p>Additional metric level segments in the topic after the known Sparkplug tokens.</p>
+<ul>
+<li>Definition: If present, replaced with a single‑quoted joined path of the extra segments (joined by /). If not present, replaced with the literal null (without quotes) so it can be inserted into SQL as NULL.</li>
+<li>Example value: 'floor1/line2' or null</li>
+</ul>
+</li>
+</ul>
+<h3 id="sparkplug-host-application-(state)-placeholders">Sparkplug Host Application (STATE) placeholders</h3>
+<p>These placeholders apply when the topic is a Sparkplug HostApplication topic and the payload is Sparkplug JSON for STATE messages.</p>
+<ul>
+<li>
+<p>{{sp_host_id}}</p>
+<p>Sparkplug host identifier from the topic.</p>
+<ul>
+<li>Definition: Replaced with the host ID string.</li>
+<li>Example value: HostAlpha</li>
+</ul>
+</li>
+<li>
+<p>{{sp_host_online}}</p>
+<p>Online/offline state from the STATE payload.</p>
+<ul>
+<li>Definition: Replaced with the string value of the online field from the JSON (e.g., "true" or "false").</li>
+<li>Example value: true</li>
+</ul>
+</li>
+<li>
+<p>{{sp_host_timestamp}}</p>
+<p>Timestamp string from the STATE payload.</p>
+<ul>
+<li>Definition: Replaced with the string value of the timestamp field from the JSON.</li>
+<li>Example value: 1693922198123</li>
+</ul>
+</li>
+</ul>
+<h3 id="sparkplug-metric-placeholders">Sparkplug metric placeholders</h3>
+<p>When the topic is a Sparkplug EdgeNode topic and the payload is binary Sparkplug, the engine iterates over every metric in the payload and produces one SQL statement per metric. The following placeholders describe each metric.</p>
+<ul>
+<li>
+<p>{{sp_metric_name}}</p>
+<p>Metric name if provided in the payload.</p>
+<ul>
+<li>Definition: Replaced with the metric name string, or an empty string if absent.</li>
+<li>Example value: temperature</li>
+</ul>
+</li>
+<li>
+<p>{{sp_metric_value}}</p>
+<p>The raw metric value encoded as bytes, bound as a parameter.</p>
+<ul>
+<li>Definition: Replaced with a database placeholder token (e.g., $1 for Postgres, ? for SQLite/MySQL) and the corresponding value is bound based on the underlying Sparkplug type (int/float/bool/string/bytes/dataset/template/extension). If the metric value is missing, an empty byte array is bound.</li>
+<li>Example usage in SQL: INSERT ... VALUES($1)</li>
+</ul>
+</li>
+</ul>
+<h2 id="notes">Notes</h2>
+<ul>
+<li>For Postgres, placeholders are numbered like $1, $2, ...; for SQLite and MySQL they are positional ? markers. The expansion for {{payload}} and {{sp_metric_value}} uses whatever the active driver requires.</li>
+<li>Time placeholders are generated on ingestion, not copied from MQTT message timestamps.</li>
+<li>If you use Sparkplug placeholders on a topic/payload combination that does not match the expected Sparkplug shape, they will resolve to empty strings (or null for {{sp_metric_level}}) and a warning may be logged.</li>
+</ul>
+<h2 id="examples">Examples</h2>
+<p>Example 1 — Use in‑memory SQLite and write subscription output to SQL</p>
+<pre><code class="language-yaml">sql_storage:
+  connection_string: "sqlite::memory:"
+
+topics:
+  - topic: app/logs
+    payload: { type: json }
+    subscription:
+      enabled: true
+      outputs:
+        - format: { type: json }
+          target:
+            type: sql
+            insert_statement: |
+              INSERT INTO logs(ts, topic, qos, retained, payload)
+              VALUES ("{{created_at_iso}}", "{{topic}}", {{qos}}, {{retain}}, {{payload}});
+</code></pre>
+<p>Example 2 — Sparkplug metric fan‑out to rows</p>
+<pre><code class="language-yaml">topics:
+  - topic: spBv1.0/GroupA/NDATA/Edge01
+    payload: { type: sparkplug }
+    subscription:
+      enabled: true
+      outputs:
+        - format: { type: sparkplug }
+          target:
+            type: sql
+            insert_statement: |
+              INSERT INTO sp_metrics(
+                  ts_unix_ms, group_id, edge_node_id, device_id, metric, value
+              ) VALUES (
+                  {{created_at_millis}}, "{{sp_group_id}}", "{{sp_edge_node_id}}", "{{sp_device_id}}", "{{sp_metric_name}}", {{sp_metric_value}}
+              );
+</code></pre>
+<p>Example 3 — MySQL (or MariaDB) with JSON logs table</p>
+<pre><code class="language-yaml">sql_storage:
+  connection_string: "mysql://user:password@localhost:3306/mydb"
+
+topics:
+  - topic: app/logs
+    payload: { type: json }
+    subscription:
+      enabled: true
+      outputs:
+        - format: { type: json }
+          target:
+            type: sql
+            insert_statement: |
+              INSERT INTO logs(ts_unix_ms, topic, qos, retained, payload)
+              VALUES ({{created_at_millis}}, "{{topic}}", {{qos}}, {{retain}}, {{payload}});
+</code></pre>
+<p>Example 4 — PostgreSQL with JSON logs table</p>
+<pre><code class="language-yaml">sql_storage:
+  connection_string: "postgresql://user:password@localhost:5432/mydb"
+
+topics:
+  - topic: app/logs
+    payload: { type: json }
+    subscription:
+      enabled: true
+      outputs:
+        - format: { type: json }
+          target:
+            type: sql
+            insert_statement: |
+              INSERT INTO logs(ts_unix_ms, topic, qos, retained, payload)
+              VALUES ({{created_at_millis}}, "{{topic}}", {{qos}}, {{retain}}, {{payload}});
+</code></pre>
+
+            </div>
+            <div class='sidebar-right'>
+                <div class='page-nav' id='page-nav'>
+                    <p class='page-nav-header'>On this page</p>
+                    <ul>
+                        
+                        <li class='page-nav-level-1'>
+                            <a href='#sql-storage'>SQL storage</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#connection-string'>Connection string</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#placeholders-for-sql-statements'>Placeholders for SQL statements</a>
+                        </li>
+                        
+                        <li class='page-nav-level-3'>
+                            <a href='#basic-message-placeholders'>Basic message placeholders</a>
+                        </li>
+                        
+                        <li class='page-nav-level-3'>
+                            <a href='#sparkplug-placeholders'>Sparkplug placeholders</a>
+                        </li>
+                        
+                        <li class='page-nav-level-3'>
+                            <a href='#sparkplug-host-application-(state)-placeholders'>Sparkplug Host Application (STATE) placeholders</a>
+                        </li>
+                        
+                        <li class='page-nav-level-3'>
+                            <a href='#sparkplug-metric-placeholders'>Sparkplug metric placeholders</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#notes'>Notes</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#examples'>Examples</a>
+                        </li>
+                        
+                    </ul>
+                </div>
+            </div>
+            <div class='wave-container'>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
+                    <path fill-opacity="0.35"
+                        d="M0,192L60,213.3C120,235,240,277,360,277.3C480,277,600,235,720,192C840,149,960,107,1080,122.7C1200,139,1320,213,1380,250.7L1440,288L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                    <path fill-opacity="0.5"
+                        d="M0,160L60,181.3C120,203,240,245,360,229.3C480,213,600,139,720,138.7C840,139,960,213,1080,229.3C1200,245,1320,203,1380,181.3L1440,160L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                    <path fill-opacity="0.2"
+                        d="M0,224L60,197.3C120,171,240,117,360,117.3C480,117,600,171,720,186.7C840,203,960,181,1080,186.7C1200,192,1320,224,1380,240L1440,256L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                </svg>
+                <p>Powered by <a href='https://cli.doctave.com' target='_blank'>Doctave</a></p>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" src="/mqtli/assets/katex.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/mermaid.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/elasticlunr.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/prism.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/doctave-app.js?v=1757081721"></script>
+
+    
+</body>
+
+</html>

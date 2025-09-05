@@ -1,0 +1,359 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Publish and triggers</title>
+    <meta name="description" content="Documentation for MQTli - CLI client for MQTT">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Source+Sans+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/normalize.css?v=1757081721"
+        media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/doctave-style.css?v=1757081721"
+        media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/katex.css?v=1757081721" media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/prism-ghcolors.css?v=1757081721"
+        media="screen" />
+
+    <script>
+        var DOCTAVE_TIMESTAMP = "1757081721";
+        var BASE_PATH = "/mqtli/";
+        var color = localStorage.getItem('doctave-color')
+
+        if (color === 'dark') {
+            document.getElementsByTagName('html')[0].classList.remove('light');
+            document.getElementsByTagName('html')[0].classList.add('dark');
+        } else {
+            document.getElementsByTagName('html')[0].classList.remove('dark');
+            document.getElementsByTagName('html')[0].classList.add('light');
+        }
+    </script>
+
+    
+</head>
+
+<body>
+    <label for='menu-toggle-switch' class='menu-toggle-button'>
+        ☰
+    </label>
+    <input type="checkbox" id="menu-toggle-switch" value='0' />
+    <div class='page'>
+        <div class='header'>
+            <div class='logo'>
+                
+                <h2 class='project-name'>
+                    <a href="/mqtli/">
+                        MQTli - CLI client for MQTT
+                    </a>
+                </h2>
+            </div>
+            <div class='search'>
+                <form id='search-form'>
+    <input type='text' id='search-box' autocomplete="off" placeholder="Search..."></input>
+    <span class='search-icon'>S</span>
+    <ul id='search-results'></ul>
+</form>
+
+            </div>
+            <div class='header-dummy-right'>
+            </div>
+        </div>
+        <div class='container'>
+            <div class='sidebar-left'>
+                <nav class='site-nav'>
+    <ul>
+        
+            <li><a href="/mqtli/quickstart">Quickstart</a></li>
+            
+        
+            <li><a href="/mqtli/modes">Operating Modes</a></li>
+            
+        
+            <li><a href="/mqtli/config/concept">Conceptual Overview</a></li>
+            
+        
+            <li><a href="/mqtli/config">Configuration</a></li>
+            
+                <ul>
+    
+        <li><a href="/mqtli/config/mqtt_broker_connect">Broker connection</a></li>
+        
+    
+        <li><a href="/mqtli/config/sql_storage">SQL storage</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic">Topics</a></li>
+        
+            <ul>
+    
+        <li><a href="/mqtli/config/topic/payload_and_input_types">Payload types and publish input types</a></li>
+        
+    
+        <li><a class="active" href="/mqtli/config/topic/publish">Publish and triggers</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/subscription">Subscription and outputs</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/filter">Filters</a></li>
+        
+    
+</ul>
+
+        
+    
+</ul>
+
+            
+        
+    </ul>
+    <span id='light-dark-mode-switch'>
+        <svg xmlns="http://www.w3.org/2000/svg" id="dark-mode-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+        </svg>
+
+        <svg xmlns="http://www.w3.org/2000/svg" id="light-mode-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+        </svg>
+    </span>
+</nav>
+
+            </div>
+            <div class='doctave-content'>
+                <h1 id="publish-and-triggers">Publish and triggers</h1>
+<p>Use these settings to automate sending messages on a topic: choose the data source (inline text/JSON/YAML, hex/base64, or file), schedule when to send with triggers, set QoS/retain flags, and optionally transform the payload with filters. Conversions are applied automatically when the input format differs from the topic’s payload format.</p>
+<h2 id="enabled">Enabled</h2>
+<p>Turns publishing on or off for the topic entry.</p>
+<ul>
+<li>Values: true | false.</li>
+<li>Default: true.</li>
+<li>How to set in YAML: publish.enabled</li>
+</ul>
+<h2 id="qos">QoS</h2>
+<p>Quality of Service level for sending messages.</p>
+<ul>
+<li>Values: 0 | 1 | 2.</li>
+<li>Default: 0.</li>
+<li>How to set in YAML: publish.qos</li>
+</ul>
+<h2 id="retain">Retain</h2>
+<p>Whether published messages are retained by the broker.</p>
+<ul>
+<li>Values: true | false.</li>
+<li>Default: false.</li>
+<li>How to set in YAML: publish.retain</li>
+</ul>
+<h2 id="input-—-type">Input — type</h2>
+<p>Select how the message data is provided.</p>
+<ul>
+<li>Values: text | raw | hex | json | yaml | base64 | null.</li>
+<li>Default: text (empty content/path).</li>
+<li>How to set in YAML: publish.input.type</li>
+</ul>
+<h2 id="input-—-content">Input — content</h2>
+<p>Inline content for the message (for text/json/yaml/hex/base64).</p>
+<ul>
+<li>Values: string.</li>
+<li>Default: empty (unset).</li>
+<li>How to set in YAML: publish.input.content</li>
+</ul>
+<h2 id="input-—-path">Input — path</h2>
+<p>File path from which to read the message.</p>
+<ul>
+<li>Values: string (path). For raw, path is required; for other types, content and/or path may be used.</li>
+<li>Default: empty (unset).</li>
+<li>How to set in YAML: publish.input.path</li>
+</ul>
+<h2 id="trigger-—-type">Trigger — type</h2>
+<p>Select a trigger mechanism. Currently periodic is supported.</p>
+<ul>
+<li>Values: periodic.</li>
+<li>Default: periodic with 1s interval if not specified but triggers present.</li>
+<li>How to set in YAML: publish.trigger[].type</li>
+</ul>
+<h2 id="trigger-—-interval">Trigger — interval</h2>
+<p>Period between publishes in milliseconds.</p>
+<ul>
+<li>Values: integer milliseconds.</li>
+<li>Default: 1000.</li>
+<li>How to set in YAML: publish.trigger[].interval</li>
+</ul>
+<h2 id="trigger-—-count">Trigger — count</h2>
+<p>Number of messages to publish; omit for infinite.</p>
+<ul>
+<li>Values: integer (u32), optional.</li>
+<li>Default: unset (infinite).</li>
+<li>How to set in YAML: publish.trigger[].count</li>
+</ul>
+<h2 id="trigger-—-initial_delay">Trigger — initial_delay</h2>
+<p>Initial delay before the first publish, in milliseconds.</p>
+<ul>
+<li>Values: integer milliseconds.</li>
+<li>Default: 1000.</li>
+<li>How to set in YAML: publish.trigger[].initial_delay</li>
+</ul>
+<h2 id="filters">Filters</h2>
+<p>Optional chain to transform the message before sending.</p>
+<ul>
+<li>Values: list of filters; see <a href="filter.md">Filters page</a></li>
+<li>Default: empty list.</li>
+<li>How to set in YAML: publish.filters</li>
+</ul>
+<p>Notes</p>
+<ul>
+<li>If input type and the topic payload.type differ, automatic conversion is attempted.</li>
+<li>For binary data, consider hex or base64 inline strings or use a file path.</li>
+</ul>
+<h2 id="yaml-example">YAML example</h2>
+<pre><code class="language-yaml">publish:
+  enabled: true
+  qos: 0
+  retain: false
+  input:
+    type: text
+    content: "hello"
+  trigger:
+    - type: periodic
+      interval: 1000
+      # count: 10
+      initial_delay: 0
+  filters:
+    - type: to_upper
+</code></pre>
+<h2 id="more-examples">More examples</h2>
+<p>Example 1 — Periodic with count and initial delay</p>
+<pre><code class="language-yaml">publish:
+  enabled: true
+  qos: 1
+  retain: false
+  input:
+    type: json
+    content: '{"ping":true}'
+  trigger:
+    - type: periodic
+      interval: 500
+      count: 5
+      initial_delay: 100
+</code></pre>
+<p>Example 2 — Read raw bytes from file</p>
+<pre><code class="language-yaml">publish:
+  enabled: true
+  qos: 0
+  input:
+    type: raw
+    path: payload.bin
+  trigger:
+    - type: periodic
+      interval: 2000
+</code></pre>
+<p>Example 3 — Hex inline with filter chain to upper text</p>
+<pre><code class="language-yaml">publish:
+  enabled: true
+  input:
+    type: hex
+    content: "48656c6c6f"  # "Hello"
+  filters:
+    - type: to_text
+    - type: to_upper
+  trigger:
+    - type: periodic
+      interval: 1000
+</code></pre>
+
+            </div>
+            <div class='sidebar-right'>
+                <div class='page-nav' id='page-nav'>
+                    <p class='page-nav-header'>On this page</p>
+                    <ul>
+                        
+                        <li class='page-nav-level-1'>
+                            <a href='#publish-and-triggers'>Publish and triggers</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#enabled'>Enabled</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#qos'>QoS</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#retain'>Retain</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#input-—-type'>Input — type</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#input-—-content'>Input — content</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#input-—-path'>Input — path</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#trigger-—-type'>Trigger — type</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#trigger-—-interval'>Trigger — interval</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#trigger-—-count'>Trigger — count</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#trigger-—-initial_delay'>Trigger — initial_delay</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#filters'>Filters</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#yaml-example'>YAML example</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#more-examples'>More examples</a>
+                        </li>
+                        
+                    </ul>
+                </div>
+            </div>
+            <div class='wave-container'>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
+                    <path fill-opacity="0.35"
+                        d="M0,192L60,213.3C120,235,240,277,360,277.3C480,277,600,235,720,192C840,149,960,107,1080,122.7C1200,139,1320,213,1380,250.7L1440,288L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                    <path fill-opacity="0.5"
+                        d="M0,160L60,181.3C120,203,240,245,360,229.3C480,213,600,139,720,138.7C840,139,960,213,1080,229.3C1200,245,1320,203,1380,181.3L1440,160L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                    <path fill-opacity="0.2"
+                        d="M0,224L60,197.3C120,171,240,117,360,117.3C480,117,600,171,720,186.7C840,203,960,181,1080,186.7C1200,192,1320,224,1380,240L1440,256L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                </svg>
+                <p>Powered by <a href='https://cli.doctave.com' target='_blank'>Doctave</a></p>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" src="/mqtli/assets/katex.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/mermaid.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/elasticlunr.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/prism.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/doctave-app.js?v=1757081721"></script>
+
+    
+</body>
+
+</html>

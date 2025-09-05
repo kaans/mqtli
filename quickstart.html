@@ -1,0 +1,361 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Quickstart</title>
+    <meta name="description" content="Documentation for MQTli - CLI client for MQTT">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Source+Sans+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/normalize.css?v=1757081721"
+        media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/doctave-style.css?v=1757081721"
+        media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/katex.css?v=1757081721" media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/prism-ghcolors.css?v=1757081721"
+        media="screen" />
+
+    <script>
+        var DOCTAVE_TIMESTAMP = "1757081721";
+        var BASE_PATH = "/mqtli/";
+        var color = localStorage.getItem('doctave-color')
+
+        if (color === 'dark') {
+            document.getElementsByTagName('html')[0].classList.remove('light');
+            document.getElementsByTagName('html')[0].classList.add('dark');
+        } else {
+            document.getElementsByTagName('html')[0].classList.remove('dark');
+            document.getElementsByTagName('html')[0].classList.add('light');
+        }
+    </script>
+
+    
+</head>
+
+<body>
+    <label for='menu-toggle-switch' class='menu-toggle-button'>
+        ☰
+    </label>
+    <input type="checkbox" id="menu-toggle-switch" value='0' />
+    <div class='page'>
+        <div class='header'>
+            <div class='logo'>
+                
+                <h2 class='project-name'>
+                    <a href="/mqtli/">
+                        MQTli - CLI client for MQTT
+                    </a>
+                </h2>
+            </div>
+            <div class='search'>
+                <form id='search-form'>
+    <input type='text' id='search-box' autocomplete="off" placeholder="Search..."></input>
+    <span class='search-icon'>S</span>
+    <ul id='search-results'></ul>
+</form>
+
+            </div>
+            <div class='header-dummy-right'>
+            </div>
+        </div>
+        <div class='container'>
+            <div class='sidebar-left'>
+                <nav class='site-nav'>
+    <ul>
+        
+            <li><a class="active" href="/mqtli/quickstart">Quickstart</a></li>
+            
+        
+            <li><a href="/mqtli/modes">Operating Modes</a></li>
+            
+        
+            <li><a href="/mqtli/config/concept">Conceptual Overview</a></li>
+            
+        
+            <li><a href="/mqtli/config">Configuration</a></li>
+            
+                <ul>
+    
+        <li><a href="/mqtli/config/mqtt_broker_connect">Broker connection</a></li>
+        
+    
+        <li><a href="/mqtli/config/sql_storage">SQL storage</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic">Topics</a></li>
+        
+            <ul>
+    
+        <li><a href="/mqtli/config/topic/payload_and_input_types">Payload types and publish input types</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/publish">Publish and triggers</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/subscription">Subscription and outputs</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/filter">Filters</a></li>
+        
+    
+</ul>
+
+        
+    
+</ul>
+
+            
+        
+    </ul>
+    <span id='light-dark-mode-switch'>
+        <svg xmlns="http://www.w3.org/2000/svg" id="dark-mode-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+        </svg>
+
+        <svg xmlns="http://www.w3.org/2000/svg" id="light-mode-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+        </svg>
+    </span>
+</nav>
+
+            </div>
+            <div class='doctave-content'>
+                <h1 id="quickstart">Quickstart</h1>
+<p>This guide helps you get MQTli running quickly, either by downloading a prebuilt binary or building from source. It also shows how to connect to a local MQTT broker on localhost:1883 without TLS, optionally using username/password.</p>
+<h2 id="option-1-—-download-a-prebuilt-binary">Option 1 — Download a prebuilt binary</h2>
+<ul>
+<li>Visit the Releases page and download the binary for your platform:
+<ul>
+<li>https://github.com/kaans/mqtli/releases</li>
+</ul>
+</li>
+<li>Extract the archive if needed.</li>
+<li>Run the executable to see available options:
+<ul>
+<li>Windows (PowerShell): <code>./mqtli.exe --help</code></li>
+<li>Linux/macOS: <code>./mqtli --help</code></li>
+</ul>
+</li>
+</ul>
+<h2 id="option-2-—-build-from-source-with-cargo">Option 2 — Build from source with Cargo</h2>
+<p>Prerequisites</p>
+<ul>
+<li>Rust toolchain installed: https://rustup.rs</li>
+<li>(Optional) Docker if you want to run a local Mosquitto broker via docker-compose.</li>
+</ul>
+<p>Build</p>
+<ul>
+<li>From the repository root, build a release binary:
+<ul>
+<li><code>cargo build --release</code></li>
+</ul>
+</li>
+<li>The binary will be located at:
+<ul>
+<li><code>target/release/mqtli</code> (Linux/macOS)</li>
+<li><code>target/release/mqtli.exe</code> (Windows)</li>
+</ul>
+</li>
+</ul>
+<p>Run</p>
+<ul>
+<li>Show help:
+<ul>
+<li><code>target/release/mqtli[.exe] --help</code></li>
+</ul>
+</li>
+</ul>
+<h2 id="running-a-local-mqtt-broker-(localhost:1883)">Running a local MQTT broker (localhost:1883)</h2>
+<p>You can spin up a local Eclipse Mosquitto broker using the provided docker-compose.yaml in the repository root.</p>
+<p>Steps (with Docker and Docker Compose installed):</p>
+<ol>
+<li>From the repository root, start Mosquitto:
+<ul>
+<li>Windows PowerShell: <code>docker compose up -d mosquitto</code></li>
+</ul>
+</li>
+<li>This maps broker port 1883 on your machine. You should now be able to connect to <code>localhost:1883</code> without TLS.</li>
+<li>To stop it later: <code>docker compose down</code></li>
+</ol>
+<h2 id="minimal-configuration-to-connect-to-localhost:1883-(no-tls)">Minimal configuration to connect to localhost:1883 (no TLS)</h2>
+<p>You can run MQTli with CLI flags only, or via a YAML config file. Below is a minimal config file example for a non‑TLS broker on localhost:1883.</p>
+<p>Create a file <code>config.yaml</code> next to your executable with the following content:</p>
+<pre><code class="language-yaml"># These are the default values. Change them if required.
+
+broker:
+#host: localhost
+#port: 1883
+#protocol: Tcp      # or websocket if your broker supports WS on a port
+#mqtt_version: v5   # or v311
+#keep_alive: 5
+#use_tls: false
+# Optional auth (see next section for username/password)
+
+# At least one topic section is needed for useful work.
+# Example: publish and subscribe to a topic (sensor/one) on the same topic entry,
+# or publish and subscribe to the same topic for sensor/two.
+topics:
+  - topic: sensor/one
+    subscription:
+      enabled: true
+      outputs:
+        - format:
+            type: text # default output is console
+    payload:
+      type: text
+    publish:
+      enabled: true
+      input:
+        type: text
+        content: "Sensor is alive"
+      trigger:
+        - type: periodic
+          interval: 2000
+
+  - topic: sensor/two
+    subscription:
+      enabled: true
+      outputs:
+        - format:
+            type: text
+      filters:
+        - type: extract_json
+          jsonpath: $.temperature
+        - type: prepend
+          content: "Temperature: "
+        - type: append
+          content: " °C"
+    payload:
+      type: json
+
+  - topic: sensor/two
+    payload:
+      type: json
+    publish:
+      enabled: true
+      input:
+        type: json
+        content: "{\"measurements\": {\"temperature\": 12.34} }"
+      filters:
+        - type: extract_json
+          jsonpath: $.measurements
+      trigger:
+        - type: periodic
+          interval: 2000
+</code></pre>
+<h2 id="optional-username/password-authentication">Optional username/password authentication</h2>
+<p>If your broker requires basic auth, add the following to the <code>broker</code> section in your <code>config.yaml</code>:</p>
+<pre><code class="language-yaml">broker:
+  host: localhost
+  port: 1883
+  protocol: tcp
+  mqtt_version: v5
+  keep_alive: 5
+  use_tls: false
+  username: your_user
+  password: your_password
+</code></pre>
+<p>Alternatively, you can pass these via CLI or environment variables:</p>
+<ul>
+<li>
+<p>CLI</p>
+<p><code>mqtli --host localhost --port 1883 --username your_user --password your_password</code></p>
+</li>
+<li>
+<p>ENV:</p>
+<p><code>BROKER_HOST=localhost BROKER_PORT=1883 BROKER_USERNAME=your_user BROKER_PASSWORD=your_password mqtli</code></p>
+</li>
+</ul>
+<h2 id="quick-try:-subscribe-and-publish">Quick try: subscribe and publish</h2>
+<ul>
+<li>Subscribe to a topic and print messages as JSON:
+<ul>
+<li><code>mqtli --host localhost --port 1883 --subscribe 'test/topic' --output-format json</code></li>
+</ul>
+</li>
+<li>Publish a JSON message to the same topic:
+<ul>
+<li><code>mqtli --host localhost --port 1883 --publish 'test/topic' --input-format json --message '{"hello":"world"}'</code></li>
+</ul>
+</li>
+</ul>
+<h2 id="notes">Notes</h2>
+<ul>
+<li>For the full list of CLI arguments and environment variables, run <code>mqtli --help</code> or see the main README.</li>
+<li>More configuration samples: <code>config.default.yaml</code> and <code>config.example.yaml</code> in the repository root.</li>
+<li>Prebuilt binaries are available at: https://github.com/kaans/mqtli/releases</li>
+</ul>
+
+            </div>
+            <div class='sidebar-right'>
+                <div class='page-nav' id='page-nav'>
+                    <p class='page-nav-header'>On this page</p>
+                    <ul>
+                        
+                        <li class='page-nav-level-1'>
+                            <a href='#quickstart'>Quickstart</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#option-1-—-download-a-prebuilt-binary'>Option 1 — Download a prebuilt binary</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#option-2-—-build-from-source-with-cargo'>Option 2 — Build from source with Cargo</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#running-a-local-mqtt-broker-(localhost:1883)'>Running a local MQTT broker (localhost:1883)</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#minimal-configuration-to-connect-to-localhost:1883-(no-tls)'>Minimal configuration to connect to localhost:1883 (no TLS)</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#optional-username/password-authentication'>Optional username/password authentication</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#quick-try:-subscribe-and-publish'>Quick try: subscribe and publish</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#notes'>Notes</a>
+                        </li>
+                        
+                    </ul>
+                </div>
+            </div>
+            <div class='wave-container'>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
+                    <path fill-opacity="0.35"
+                        d="M0,192L60,213.3C120,235,240,277,360,277.3C480,277,600,235,720,192C840,149,960,107,1080,122.7C1200,139,1320,213,1380,250.7L1440,288L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                    <path fill-opacity="0.5"
+                        d="M0,160L60,181.3C120,203,240,245,360,229.3C480,213,600,139,720,138.7C840,139,960,213,1080,229.3C1200,245,1320,203,1380,181.3L1440,160L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                    <path fill-opacity="0.2"
+                        d="M0,224L60,197.3C120,171,240,117,360,117.3C480,117,600,171,720,186.7C840,203,960,181,1080,186.7C1200,192,1320,224,1380,240L1440,256L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                </svg>
+                <p>Powered by <a href='https://cli.doctave.com' target='_blank'>Doctave</a></p>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" src="/mqtli/assets/katex.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/mermaid.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/elasticlunr.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/prism.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/doctave-app.js?v=1757081721"></script>
+
+    
+</body>
+
+</html>

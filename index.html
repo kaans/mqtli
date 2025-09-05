@@ -1,0 +1,284 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Introduction</title>
+    <meta name="description" content="Documentation for MQTli - CLI client for MQTT">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Source+Sans+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/normalize.css?v=1757081721"
+        media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/doctave-style.css?v=1757081721"
+        media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/katex.css?v=1757081721" media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/prism-ghcolors.css?v=1757081721"
+        media="screen" />
+
+    <script>
+        var DOCTAVE_TIMESTAMP = "1757081721";
+        var BASE_PATH = "/mqtli/";
+        var color = localStorage.getItem('doctave-color')
+
+        if (color === 'dark') {
+            document.getElementsByTagName('html')[0].classList.remove('light');
+            document.getElementsByTagName('html')[0].classList.add('dark');
+        } else {
+            document.getElementsByTagName('html')[0].classList.remove('dark');
+            document.getElementsByTagName('html')[0].classList.add('light');
+        }
+    </script>
+
+    
+</head>
+
+<body>
+    <label for='menu-toggle-switch' class='menu-toggle-button'>
+        ☰
+    </label>
+    <input type="checkbox" id="menu-toggle-switch" value='0' />
+    <div class='page'>
+        <div class='header'>
+            <div class='logo'>
+                
+                <h2 class='project-name'>
+                    <a href="/mqtli/">
+                        MQTli - CLI client for MQTT
+                    </a>
+                </h2>
+            </div>
+            <div class='search'>
+                <form id='search-form'>
+    <input type='text' id='search-box' autocomplete="off" placeholder="Search..."></input>
+    <span class='search-icon'>S</span>
+    <ul id='search-results'></ul>
+</form>
+
+            </div>
+            <div class='header-dummy-right'>
+            </div>
+        </div>
+        <div class='container'>
+            <div class='sidebar-left'>
+                <nav class='site-nav'>
+    <ul>
+        
+            <li><a href="/mqtli/quickstart">Quickstart</a></li>
+            
+        
+            <li><a href="/mqtli/modes">Operating Modes</a></li>
+            
+        
+            <li><a href="/mqtli/config/concept">Conceptual Overview</a></li>
+            
+        
+            <li><a href="/mqtli/config">Configuration</a></li>
+            
+                <ul>
+    
+        <li><a href="/mqtli/config/mqtt_broker_connect">Broker connection</a></li>
+        
+    
+        <li><a href="/mqtli/config/sql_storage">SQL storage</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic">Topics</a></li>
+        
+            <ul>
+    
+        <li><a href="/mqtli/config/topic/payload_and_input_types">Payload types and publish input types</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/publish">Publish and triggers</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/subscription">Subscription and outputs</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/filter">Filters</a></li>
+        
+    
+</ul>
+
+        
+    
+</ul>
+
+            
+        
+    </ul>
+    <span id='light-dark-mode-switch'>
+        <svg xmlns="http://www.w3.org/2000/svg" id="dark-mode-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+        </svg>
+
+        <svg xmlns="http://www.w3.org/2000/svg" id="light-mode-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+        </svg>
+    </span>
+</nav>
+
+            </div>
+            <div class='doctave-content'>
+                <h1 id="mqtli-—-a-flexible,-multi‑topic-mqtt-cli-client">MQTli — A flexible, multi‑topic MQTT CLI client</h1>
+<p>MQTli is a multi‑topic, payload‑converting MQTT command‑line client written in Rust. It lets you publish and subscribe to multiple topics at once, and seamlessly convert payloads between formats (e.g., JSON ⇄ Protobuf, YAML, HEX, Base64, UTF‑8, raw) on input and output. It aims to be a single, scriptable Swiss‑army knife for interacting with MQTT 3.1.1 and MQTT 5 brokers.</p>
+<h2 id="screenshot">Screenshot</h2>
+<p><img src="assets/mqtli_example.png" alt="Example"></p>
+<h2 id="key-features">Key features</h2>
+<ul>
+<li>Subscribe to topics and output messages to console, file, SQL database, or another topic.</li>
+<li>Publish messages using triggers (periodic, on incoming topics, etc.).</li>
+<li>Powerful message filters before publish and after receive (chainable):
+<ul>
+<li>Extract values from JSON using JSONPath (e.g., $.measurements.temp)</li>
+<li>Convert text to UPPER/lower case</li>
+<li>Prepend or append text</li>
+<li>Convert format within a chain (to_text, to_json)</li>
+</ul>
+</li>
+<li>Eclipse Sparkplug support (Sparkplug B; topic and payload helpers).</li>
+<li>Seamless payload conversion between input, payload, and output formats:
+<ul>
+<li>json, yaml, protobuf, sparkplug, hex, base64, utf‑8, raw.</li>
+</ul>
+</li>
+<li>Flexible configuration via CLI arguments, environment variables, and YAML config file.</li>
+<li>MQTT v5 and v3.1.1 support.</li>
+<li>TLS (v1.2, v1.3) and WebSocket (plain and TLS) support.</li>
+<li>Client authentication with username/password or client certificates.</li>
+<li>Last Will, QoS 0/1/2.</li>
+</ul>
+<p>Tip: See Quickstart for a short filters example.</p>
+<h2 id="getting-started">Getting started</h2>
+<p>Pick one of the options below to try MQTli quickly. For a step-by-step walkthrough, see the Quickstart guide: <a href="./quickstart.md">docs/quickstart</a>.</p>
+<p>Option A — Download a prebuilt binary</p>
+<ul>
+<li>Go to the Releases page: https://github.com/kaans/mqtli/releases/latest</li>
+<li>Download the asset for your OS, extract if needed, then run:
+<ul>
+<li>Windows (PowerShell): <code>./mqtli.exe --help</code></li>
+<li>Linux/macOS: <code>./mqtli --help</code></li>
+</ul>
+</li>
+</ul>
+<p>Option B — Build from source with Cargo</p>
+<ul>
+<li>Prerequisite: Rust toolchain installed (https://rustup.rs)</li>
+<li>Build and run:
+<ul>
+<li><code>cargo run --release --bin mqtli -- --help</code></li>
+</ul>
+</li>
+<li>Or build a release binary:
+<ul>
+<li><code>cargo build --release</code></li>
+<li>The binary will be at <code>target/release/mqtli[.exe]</code>.</li>
+</ul>
+</li>
+</ul>
+<p>Basic usage examples</p>
+<ul>
+<li>Subscribe to a topic and print messages as JSON:
+<ul>
+<li><code>mqtli --host localhost --port 1883 --subscribe 'sensors/+/data' --output-format json</code></li>
+</ul>
+</li>
+<li>Publish a JSON payload to a topic:
+<ul>
+<li><code>mqtli --host localhost --port 1883 --publish 'devices/1/cmd' --input-format json --message '{"cmd":"ping"}'</code></li>
+</ul>
+</li>
+<li>Use TLS (example):
+<ul>
+<li><code>mqtli --host broker.example.com --port 8883 --use-tls true --ca-file ca.pem</code></li>
+</ul>
+</li>
+</ul>
+<h2 id="configuration">Configuration</h2>
+<p>You can configure MQTli via CLI arguments, environment variables, and a YAML config file. If a setting is not supplied, defaults apply. Complex topic configurations are best managed in the config file.</p>
+<p>See Operating Modes to choose how MQTli runs in this session: <a href="./modes.md">docs/modes</a>.</p>
+<p>Quick start with a config file</p>
+<ol>
+<li>Copy <code>config.default.yaml</code> from the repository to your working directory and rename it to <code>config.yaml</code>.</li>
+<li>Adjust broker, topics, and payload formats to your needs.</li>
+<li>Run: <code>mqtli</code> (or specify a custom file with <code>mqtli --config-file config.yaml</code>).</li>
+</ol>
+<p>For a full list of CLI arguments and environment variables, run <code>mqtli --help</code> or see the project README.</p>
+<h2 id="license">License</h2>
+<p>This project is licensed under the Apache License 2.0. See the full text in the repository at: <a href="../LICENSE.md">LICENSE.md</a></p>
+<h2 id="links">Links</h2>
+<ul>
+<li>Source code and releases: https://github.com/kaans/mqtli</li>
+<li>Default configuration reference: <a href="../config.default.yaml">config.default.yaml</a></li>
+<li>Example configuration: <a href="../config.example.yaml">config.example.yaml</a></li>
+</ul>
+
+            </div>
+            <div class='sidebar-right'>
+                <div class='page-nav' id='page-nav'>
+                    <p class='page-nav-header'>On this page</p>
+                    <ul>
+                        
+                        <li class='page-nav-level-1'>
+                            <a href='#mqtli-—-a-flexible,-multi‑topic-mqtt-cli-client'>MQTli — A flexible, multi‑topic MQTT CLI client</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#screenshot'>Screenshot</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#key-features'>Key features</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#getting-started'>Getting started</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#configuration'>Configuration</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#license'>License</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#links'>Links</a>
+                        </li>
+                        
+                    </ul>
+                </div>
+            </div>
+            <div class='wave-container'>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
+                    <path fill-opacity="0.35"
+                        d="M0,192L60,213.3C120,235,240,277,360,277.3C480,277,600,235,720,192C840,149,960,107,1080,122.7C1200,139,1320,213,1380,250.7L1440,288L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                    <path fill-opacity="0.5"
+                        d="M0,160L60,181.3C120,203,240,245,360,229.3C480,213,600,139,720,138.7C840,139,960,213,1080,229.3C1200,245,1320,203,1380,181.3L1440,160L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                    <path fill-opacity="0.2"
+                        d="M0,224L60,197.3C120,171,240,117,360,117.3C480,117,600,171,720,186.7C840,203,960,181,1080,186.7C1200,192,1320,224,1380,240L1440,256L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                </svg>
+                <p>Powered by <a href='https://cli.doctave.com' target='_blank'>Doctave</a></p>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" src="/mqtli/assets/katex.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/mermaid.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/elasticlunr.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/prism.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/doctave-app.js?v=1757081721"></script>
+
+    
+</body>
+
+</html>

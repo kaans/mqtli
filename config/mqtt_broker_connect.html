@@ -1,0 +1,443 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Broker connection</title>
+    <meta name="description" content="Documentation for MQTli - CLI client for MQTT">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Source+Sans+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/normalize.css?v=1757081721"
+        media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/doctave-style.css?v=1757081721"
+        media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/katex.css?v=1757081721" media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/prism-ghcolors.css?v=1757081721"
+        media="screen" />
+
+    <script>
+        var DOCTAVE_TIMESTAMP = "1757081721";
+        var BASE_PATH = "/mqtli/";
+        var color = localStorage.getItem('doctave-color')
+
+        if (color === 'dark') {
+            document.getElementsByTagName('html')[0].classList.remove('light');
+            document.getElementsByTagName('html')[0].classList.add('dark');
+        } else {
+            document.getElementsByTagName('html')[0].classList.remove('dark');
+            document.getElementsByTagName('html')[0].classList.add('light');
+        }
+    </script>
+
+    
+</head>
+
+<body>
+    <label for='menu-toggle-switch' class='menu-toggle-button'>
+        ☰
+    </label>
+    <input type="checkbox" id="menu-toggle-switch" value='0' />
+    <div class='page'>
+        <div class='header'>
+            <div class='logo'>
+                
+                <h2 class='project-name'>
+                    <a href="/mqtli/">
+                        MQTli - CLI client for MQTT
+                    </a>
+                </h2>
+            </div>
+            <div class='search'>
+                <form id='search-form'>
+    <input type='text' id='search-box' autocomplete="off" placeholder="Search..."></input>
+    <span class='search-icon'>S</span>
+    <ul id='search-results'></ul>
+</form>
+
+            </div>
+            <div class='header-dummy-right'>
+            </div>
+        </div>
+        <div class='container'>
+            <div class='sidebar-left'>
+                <nav class='site-nav'>
+    <ul>
+        
+            <li><a href="/mqtli/quickstart">Quickstart</a></li>
+            
+        
+            <li><a href="/mqtli/modes">Operating Modes</a></li>
+            
+        
+            <li><a href="/mqtli/config/concept">Conceptual Overview</a></li>
+            
+        
+            <li><a href="/mqtli/config">Configuration</a></li>
+            
+                <ul>
+    
+        <li><a class="active" href="/mqtli/config/mqtt_broker_connect">Broker connection</a></li>
+        
+    
+        <li><a href="/mqtli/config/sql_storage">SQL storage</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic">Topics</a></li>
+        
+            <ul>
+    
+        <li><a href="/mqtli/config/topic/payload_and_input_types">Payload types and publish input types</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/publish">Publish and triggers</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/subscription">Subscription and outputs</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/filter">Filters</a></li>
+        
+    
+</ul>
+
+        
+    
+</ul>
+
+            
+        
+    </ul>
+    <span id='light-dark-mode-switch'>
+        <svg xmlns="http://www.w3.org/2000/svg" id="dark-mode-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+        </svg>
+
+        <svg xmlns="http://www.w3.org/2000/svg" id="light-mode-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+        </svg>
+    </span>
+</nav>
+
+            </div>
+            <div class='doctave-content'>
+                <h1 id="broker-connection">Broker connection</h1>
+<p>Use these options to tell MQTli how to connect to your MQTT broker, which protocol/version to use, whether to use TLS, and (optionally) a last‑will message.</p>
+<h2 id="broker-host">Broker host</h2>
+<p>Specify the hostname or IP address of the MQTT broker you want to connect to.</p>
+<ul>
+<li>Values: string.</li>
+<li>Default: localhost.</li>
+<li>How to set:
+<ul>
+<li>CLI: --host</li>
+<li>ENV: BROKER_HOST</li>
+<li>YAML: broker.host</li>
+</ul>
+</li>
+</ul>
+<h2 id="broker-port">Broker port</h2>
+<p>Choose the network port on which your MQTT broker is listening.</p>
+<ul>
+<li>Values: integer.</li>
+<li>Default: 1883.</li>
+<li>How to set: --port | BROKER_PORT | broker.port</li>
+</ul>
+<h2 id="protocol">Protocol</h2>
+<p>Select the transport to connect to the broker, either a raw TCP socket or a WebSocket connection.</p>
+<ul>
+<li>Values: tcp | websocket.</li>
+<li>Default: tcp.</li>
+<li>How to set: --protocol | BROKER_PROTOCOL | broker.protocol</li>
+</ul>
+<h2 id="client-id">Client ID</h2>
+<p>Set a unique identifier for this client instance on the broker.</p>
+<ul>
+<li>Values: string.</li>
+<li>Default: mqtli.</li>
+<li>How to set: --client-id | BROKER_CLIENT_ID | broker.client_id</li>
+</ul>
+<h2 id="mqtt-version">MQTT version</h2>
+<p>Choose the MQTT protocol version for the connection.</p>
+<ul>
+<li>Values: v311 | v5.</li>
+<li>Default: v5.</li>
+<li>How to set: --mqtt-version | BROKER_MQTT_VERSION | broker.mqtt_version</li>
+</ul>
+<h2 id="keep-alive">Keep alive</h2>
+<p>Set how often the client sends keep‑alive pings to the broker (in seconds).</p>
+<ul>
+<li>Values: integer seconds, must be &gt;= 5.</li>
+<li>Default: 5.</li>
+<li>How to set: --keep-alive | BROKER_KEEP_ALIVE | broker.keep_alive</li>
+</ul>
+<h2 id="username">Username</h2>
+<p>Provide a username for authenticating to the broker (optional).</p>
+<ul>
+<li>Values: string.</li>
+<li>Default: empty (unset).</li>
+<li>How to set: --username | BROKER_USERNAME | broker.username</li>
+</ul>
+<h2 id="password">Password</h2>
+<p>Provide the password that pairs with the username for authentication (optional).</p>
+<ul>
+<li>Values: string.</li>
+<li>Default: empty (unset).</li>
+<li>How to set: --password | BROKER_PASSWORD | broker.password</li>
+<li>Note: Username and password must be provided together.</li>
+</ul>
+<h2 id="use-tls">Use TLS</h2>
+<p>Enable TLS encryption for the connection to secure traffic between client and broker.</p>
+<ul>
+<li>Values: true | false.</li>
+<li>Default: false.</li>
+<li>How to set: --use-tls | BROKER_USE_TLS | broker.use_tls</li>
+</ul>
+<h2 id="tls-ca-file">TLS CA file</h2>
+<p>Provide the path to a PEM‑encoded CA certificate used to verify the broker’s certificate.</p>
+<ul>
+<li>Values: file path (string).</li>
+<li>Default: empty (unset).</li>
+<li>How to set: --ca-file | BROKER_TLS_CA_FILE | broker.tls_ca_file</li>
+</ul>
+<h2 id="tls-client-certificate">TLS client certificate</h2>
+<p>Specify the PEM‑encoded client certificate file for mutual TLS authentication (use with a matching key).</p>
+<ul>
+<li>Values: file path (string).</li>
+<li>Default: empty (unset).</li>
+<li>How to set: --client-cert | BROKER_TLS_CLIENT_CERTIFICATE_FILE | broker.tls_client_certificate</li>
+<li>Note: Must be provided together with TLS client key.</li>
+</ul>
+<h2 id="tls-client-key">TLS client key</h2>
+<p>Specify the unencrypted PKCS#8 client private key file for mutual TLS (pairs with the client certificate).</p>
+<ul>
+<li>Values: file path (string).</li>
+<li>Default: empty (unset).</li>
+<li>How to set: --client-key | BROKER_TLS_CLIENT_KEY_FILE | broker.tls_client_key</li>
+<li>Note: Must be provided together with TLS client certificate.</li>
+</ul>
+<h2 id="tls-version">TLS version</h2>
+<p>Limit which TLS protocol versions are allowed during the handshake.</p>
+<ul>
+<li>Values: all | v12 | v13.</li>
+<li>Default: all.</li>
+<li>How to set: --tls-version | BROKER_TLS_VERSION | broker.tls_version</li>
+</ul>
+<h2 id="last-will-—-topic">Last will — topic</h2>
+<p>Set the topic where the broker will publish your last‑will message if the client disconnects unexpectedly.</p>
+<ul>
+<li>Values: string.</li>
+<li>Default: empty (unset; last will disabled if topic missing).</li>
+<li>How to set: --last-will-topic | BROKER_LAST_WILL_TOPIC | broker.last_will.topic</li>
+</ul>
+<h2 id="last-will-—-payload">Last will — payload</h2>
+<p>Provide the UTF‑8 string payload that will be sent in the last‑will message.</p>
+<ul>
+<li>Values: string.</li>
+<li>Default: empty.</li>
+<li>How to set: --last-will-payload | BROKER_LAST_WILL_PAYLOAD | broker.last_will.payload</li>
+</ul>
+<h2 id="last-will-—-qos">Last will — QoS</h2>
+<p>Choose the Quality of Service level used when the last‑will message is published.</p>
+<ul>
+<li>Values: 0 | 1 | 2.</li>
+<li>Default: 0.</li>
+<li>How to set: --last-will-qos | BROKER_LAST_WILL_QOS | broker.last_will.qos</li>
+</ul>
+<h2 id="last-will-—-retain">Last will — retain</h2>
+<p>Decide whether the last‑will message should be stored by the broker as a retained message.</p>
+<ul>
+<li>Values: true | false.</li>
+<li>Default: false.</li>
+<li>How to set: --last-will-retain | BROKER_LAST_WILL_RETAIN | broker.last_will.retain</li>
+</ul>
+<p>YAML example</p>
+<pre><code class="language-yaml">broker:
+  host: localhost
+  port: 1883
+  protocol: tcp
+  client_id: mqtli
+  mqtt_version: v5
+  keep_alive: 5
+  use_tls: false
+  # username: ""
+  # password: ""
+  # tls_ca_file: "ca.pem"
+  # tls_client_certificate: "client.crt"
+  # tls_client_key: "client.key"
+  # tls_version: all  # all|v12|v13
+  # last_will:
+  #   topic: lwt
+  #   payload: "Good bye"
+  #   qos: 0
+  #   retain: false
+</code></pre>
+<p>Notes</p>
+<ul>
+<li>keep_alive must be at least 5 seconds.</li>
+<li>If username is set, password must also be set (and vice versa).</li>
+<li>TLS client certificate and key must be provided together.</li>
+</ul>
+<h2 id="examples">Examples</h2>
+<p>Example A — Plain TCP, no TLS</p>
+<pre><code class="language-yaml">broker:
+  host: localhost
+  port: 1883
+  protocol: tcp
+  mqtt_version: v5
+  keep_alive: 10
+  use_tls: false
+</code></pre>
+<p>Example B — TLS with CA validation</p>
+<pre><code class="language-yaml">broker:
+  host: broker.example.com
+  port: 8883
+  use_tls: true
+  tls_ca_file: "ca.pem"
+  mqtt_version: v311
+  keep_alive: 20
+</code></pre>
+<p>Example C — Mutual TLS (client certificate + key)</p>
+<pre><code class="language-yaml">broker:
+  host: secure.example.net
+  port: 8883
+  use_tls: true
+  tls_ca_file: "ca.pem"
+  tls_client_certificate: "client.crt"
+  tls_client_key: "client.key"
+  tls_version: v13
+</code></pre>
+<p>Example D — WebSocket connection</p>
+<pre><code class="language-yaml">broker:
+  host: ws-broker.example.com
+  port: 9001
+  protocol: websocket
+  use_tls: false
+</code></pre>
+<p>Example E — Last‑Will configured</p>
+<pre><code class="language-yaml">broker:
+  host: localhost
+  port: 1883
+  last_will:
+    topic: lwt/mqtli
+    payload: "bye"
+    qos: 1
+    retain: true
+</code></pre>
+
+            </div>
+            <div class='sidebar-right'>
+                <div class='page-nav' id='page-nav'>
+                    <p class='page-nav-header'>On this page</p>
+                    <ul>
+                        
+                        <li class='page-nav-level-1'>
+                            <a href='#broker-connection'>Broker connection</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#broker-host'>Broker host</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#broker-port'>Broker port</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#protocol'>Protocol</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#client-id'>Client ID</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#mqtt-version'>MQTT version</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#keep-alive'>Keep alive</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#username'>Username</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#password'>Password</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#use-tls'>Use TLS</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#tls-ca-file'>TLS CA file</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#tls-client-certificate'>TLS client certificate</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#tls-client-key'>TLS client key</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#tls-version'>TLS version</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#last-will-—-topic'>Last will — topic</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#last-will-—-payload'>Last will — payload</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#last-will-—-qos'>Last will — QoS</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#last-will-—-retain'>Last will — retain</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#examples'>Examples</a>
+                        </li>
+                        
+                    </ul>
+                </div>
+            </div>
+            <div class='wave-container'>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
+                    <path fill-opacity="0.35"
+                        d="M0,192L60,213.3C120,235,240,277,360,277.3C480,277,600,235,720,192C840,149,960,107,1080,122.7C1200,139,1320,213,1380,250.7L1440,288L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                    <path fill-opacity="0.5"
+                        d="M0,160L60,181.3C120,203,240,245,360,229.3C480,213,600,139,720,138.7C840,139,960,213,1080,229.3C1200,245,1320,203,1380,181.3L1440,160L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                    <path fill-opacity="0.2"
+                        d="M0,224L60,197.3C120,171,240,117,360,117.3C480,117,600,171,720,186.7C840,203,960,181,1080,186.7C1200,192,1320,224,1380,240L1440,256L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                </svg>
+                <p>Powered by <a href='https://cli.doctave.com' target='_blank'>Doctave</a></p>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" src="/mqtli/assets/katex.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/mermaid.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/elasticlunr.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/prism.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/doctave-app.js?v=1757081721"></script>
+
+    
+</body>
+
+</html>

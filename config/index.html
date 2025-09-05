@@ -1,0 +1,380 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Configuration</title>
+    <meta name="description" content="Documentation for MQTli - CLI client for MQTT">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Source+Sans+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/normalize.css?v=1757081721"
+        media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/doctave-style.css?v=1757081721"
+        media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/katex.css?v=1757081721" media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/prism-ghcolors.css?v=1757081721"
+        media="screen" />
+
+    <script>
+        var DOCTAVE_TIMESTAMP = "1757081721";
+        var BASE_PATH = "/mqtli/";
+        var color = localStorage.getItem('doctave-color')
+
+        if (color === 'dark') {
+            document.getElementsByTagName('html')[0].classList.remove('light');
+            document.getElementsByTagName('html')[0].classList.add('dark');
+        } else {
+            document.getElementsByTagName('html')[0].classList.remove('dark');
+            document.getElementsByTagName('html')[0].classList.add('light');
+        }
+    </script>
+
+    
+</head>
+
+<body>
+    <label for='menu-toggle-switch' class='menu-toggle-button'>
+        ☰
+    </label>
+    <input type="checkbox" id="menu-toggle-switch" value='0' />
+    <div class='page'>
+        <div class='header'>
+            <div class='logo'>
+                
+                <h2 class='project-name'>
+                    <a href="/mqtli/">
+                        MQTli - CLI client for MQTT
+                    </a>
+                </h2>
+            </div>
+            <div class='search'>
+                <form id='search-form'>
+    <input type='text' id='search-box' autocomplete="off" placeholder="Search..."></input>
+    <span class='search-icon'>S</span>
+    <ul id='search-results'></ul>
+</form>
+
+            </div>
+            <div class='header-dummy-right'>
+            </div>
+        </div>
+        <div class='container'>
+            <div class='sidebar-left'>
+                <nav class='site-nav'>
+    <ul>
+        
+            <li><a href="/mqtli/quickstart">Quickstart</a></li>
+            
+        
+            <li><a href="/mqtli/modes">Operating Modes</a></li>
+            
+        
+            <li><a href="/mqtli/config/concept">Conceptual Overview</a></li>
+            
+        
+            <li><a class="active" href="/mqtli/config">Configuration</a></li>
+            
+                <ul>
+    
+        <li><a href="/mqtli/config/mqtt_broker_connect">Broker connection</a></li>
+        
+    
+        <li><a href="/mqtli/config/sql_storage">SQL storage</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic">Topics</a></li>
+        
+            <ul>
+    
+        <li><a href="/mqtli/config/topic/payload_and_input_types">Payload types and publish input types</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/publish">Publish and triggers</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/subscription">Subscription and outputs</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/filter">Filters</a></li>
+        
+    
+</ul>
+
+        
+    
+</ul>
+
+            
+        
+    </ul>
+    <span id='light-dark-mode-switch'>
+        <svg xmlns="http://www.w3.org/2000/svg" id="dark-mode-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+        </svg>
+
+        <svg xmlns="http://www.w3.org/2000/svg" id="light-mode-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+        </svg>
+    </span>
+</nav>
+
+            </div>
+            <div class='doctave-content'>
+                <h1 id="configuration">Configuration</h1>
+<p>Use these settings to shape how MQTli runs: connect to your broker (host/port, protocol, TLS, last‑will), control logging verbosity, define topics to subscribe/publish with automatic format conversion, choose an overall mode, and optionally enable a database connection for SQL outputs.</p>
+<p>You can configure MQTli via three sources. If a setting is provided in multiple places, the following precedence applies (highest first):</p>
+<ol>
+<li>Command line arguments</li>
+<li>Environment variables</li>
+<li>YAML configuration file (config.yaml by default)</li>
+</ol>
+<p>If a value is not supplied, built‑in defaults apply. Complex topic configuration is only supported via the YAML file.</p>
+<p>Quick reference of sources</p>
+<ul>
+<li>CLI: Run mqtli --help for the full list of flags.</li>
+<li>ENV: See the mapping in each section below (e.g., BROKER_HOST, BROKER_PORT, ...).</li>
+<li>YAML: See examples in config.default.yaml and the examples in this documentation.</li>
+</ul>
+<p>Notes on overrides and merging</p>
+<ul>
+<li>CLI/ENV options only cover the broker/logging and a few top‑level aspects. Topic definitions cannot be supplied via CLI/ENV; they must be in YAML.</li>
+<li>When combining sources, scalar values are overridden by higher‑precedence sources. Collections (like topics list) are not merged from CLI/ENV; they come from YAML.</li>
+<li>For booleans provided via CLI, both --flag true and dedicated presence/absence styles may appear; see --help output for exact forms.</li>
+<li></li>
+</ul>
+<h2 id="broker">Broker</h2>
+<p>Configure how MQTli connects to your MQTT broker, including host/port, protocol, TLS, and optional last‑will.</p>
+<ul>
+<li>Default: If omitted, sensible defaults are used (host localhost; port 1883; protocol tcp; mqtt_version v5; client_id mqtli; keep_alive 5s; TLS off).</li>
+<li>How to set:
+<ul>
+<li>CLI/ENV: See the Broker connection page for the full list (e.g., --host, --port, --protocol, --use-tls, …)</li>
+<li>YAML: broker: {...}</li>
+</ul>
+</li>
+<li>See also: Broker connection page for detailed per‑option sections.</li>
+</ul>
+<h2 id="log-level">Log level</h2>
+<p>Control how verbose the application logs are during execution.</p>
+<ul>
+<li>Values: trace | debug | info | warn | error | off.</li>
+<li>Default: info.</li>
+<li>How to set: --log-level | LOG_LEVEL | log_level</li>
+</ul>
+<h2 id="topics">Topics</h2>
+<p>Define one or more topics, specifying payload format, how to output received messages, and how to publish automatically.</p>
+<ul>
+<li>Values: list of topic entries.</li>
+<li>Default: none (empty list). Without topics, the client won’t subscribe/publish anything automatically.</li>
+<li>How to set in YAML only: topics: [ ... ]</li>
+<li>See also: Topics page for full schema and examples.</li>
+</ul>
+<h2 id="mode">Mode</h2>
+<p>Select the overall operating mode for the application. Exactly one mode is active at a time. If not set, multi_topic is used. You can set the mode via the CLI using one of the commands (<code>publish</code>, <code>subscribe</code>, <code>sp</code>).</p>
+<h2 id="sql-storage">SQL storage</h2>
+<p>Configure an optional database connection used by SQL outputs and storage features.</p>
+<ul>
+<li>Values: object with connection_string.</li>
+<li>Default: unset.</li>
+<li>How to set in YAML: sql_storage.connection_string</li>
+<li>See also: <a href="config/sql_storage.md">SQL storage page</a></li>
+</ul>
+<p>YAML example (top level)</p>
+<pre><code class="language-yaml">broker:
+  host: localhost
+  port: 1883
+  protocol: tcp
+  client_id: mqtli
+  mqtt_version: v5
+  keep_alive: 5
+  use_tls: false
+
+log_level: info
+
+# topics:
+#   - ...
+
+# sql_storage:
+#   connection_string: "sqlite::memory:"
+</code></pre>
+<p>Notes</p>
+<ul>
+<li>Keep‑alive must be at least 5 seconds (see Broker &gt; Keep alive).</li>
+<li>Username and password must be provided together when used.</li>
+<li>TLS client certificate and key must be provided together.</li>
+</ul>
+<h2 id="examples">Examples</h2>
+<p>Example 1 — Minimal localhost (no TLS), one console subscription</p>
+<pre><code class="language-yaml">broker:
+  host: localhost
+  port: 1883
+  protocol: tcp
+  mqtt_version: v5
+  keep_alive: 5
+  use_tls: false
+
+log_level: info
+
+topics:
+  - topic: sensors/+/data
+    subscription:
+      enabled: true
+      qos: 0
+      outputs:
+        - format: { type: json }
+</code></pre>
+<p>Example 2 — TLS with CA, forward to another topic, and periodic publisher</p>
+<pre><code class="language-yaml">broker:
+  host: broker.example.com
+  port: 8883
+  use_tls: true
+  tls_ca_file: "ca.pem"
+
+log_level: warn
+
+topics:
+  - topic: devices/1/cmd
+    payload: { type: json }
+    publish:
+      enabled: true
+      qos: 1
+      retain: false
+      input:
+        type: json
+        content: '{"cmd":"ping"}'
+      trigger:
+        - type: periodic
+          interval: 2000
+          initial_delay: 0
+
+  - topic: devices/1/resp
+    subscription:
+      enabled: true
+      outputs:
+        - format: { type: text }
+          target:
+            type: topic
+            topic: devices/1/archive
+            qos: 0
+            retain: false
+</code></pre>
+<p>Example 3 — SQL storage with file logging and JSON filter</p>
+<pre><code class="language-yaml">sql_storage:
+  connection_string: "sqlite::memory:"
+
+log_level: debug
+
+topics:
+  - topic: app/logs
+    payload: { type: json }
+    subscription:
+      enabled: true
+      outputs:
+        - format: { type: json }
+          target: { type: console }
+        - format: { type: text }
+          target:
+            type: file
+            path: app.log
+            overwrite: false
+            append: "\n"
+        - format: { type: json }
+          target:
+            type: sql
+            insert_statement: |
+              INSERT INTO logs(ts, payload_json)
+              VALUES (CURRENT_TIMESTAMP, ?);
+    filters:
+      - type: extract_json
+        jsonpath: $.message
+</code></pre>
+<p>Example 4 — Last‑will and Sparkplug payloads</p>
+<pre><code class="language-yaml">broker:
+  host: iot.example.net
+  port: 1883
+  last_will:
+    topic: lwt/clients/mqtli
+    payload: "offline"
+    qos: 0
+    retain: true
+
+topics:
+  - topic: spBv1.0/+/NDATA/plant1
+    payload:
+      type: sparkplug
+    subscription:
+      enabled: true
+      outputs:
+        - format: { type: sparkplug_json }
+          target: { type: console }
+</code></pre>
+
+            </div>
+            <div class='sidebar-right'>
+                <div class='page-nav' id='page-nav'>
+                    <p class='page-nav-header'>On this page</p>
+                    <ul>
+                        
+                        <li class='page-nav-level-1'>
+                            <a href='#configuration'>Configuration</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#broker'>Broker</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#log-level'>Log level</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#topics'>Topics</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#mode'>Mode</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#sql-storage'>SQL storage</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#examples'>Examples</a>
+                        </li>
+                        
+                    </ul>
+                </div>
+            </div>
+            <div class='wave-container'>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
+                    <path fill-opacity="0.35"
+                        d="M0,192L60,213.3C120,235,240,277,360,277.3C480,277,600,235,720,192C840,149,960,107,1080,122.7C1200,139,1320,213,1380,250.7L1440,288L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                    <path fill-opacity="0.5"
+                        d="M0,160L60,181.3C120,203,240,245,360,229.3C480,213,600,139,720,138.7C840,139,960,213,1080,229.3C1200,245,1320,203,1380,181.3L1440,160L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                    <path fill-opacity="0.2"
+                        d="M0,224L60,197.3C120,171,240,117,360,117.3C480,117,600,171,720,186.7C840,203,960,181,1080,186.7C1200,192,1320,224,1380,240L1440,256L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                </svg>
+                <p>Powered by <a href='https://cli.doctave.com' target='_blank'>Doctave</a></p>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" src="/mqtli/assets/katex.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/mermaid.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/elasticlunr.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/prism.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/doctave-app.js?v=1757081721"></script>
+
+    
+</body>
+
+</html>

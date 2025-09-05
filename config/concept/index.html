@@ -1,0 +1,407 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Conceptual Overview</title>
+    <meta name="description" content="Documentation for MQTli - CLI client for MQTT">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Source+Sans+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/normalize.css?v=1757081721"
+        media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/doctave-style.css?v=1757081721"
+        media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/katex.css?v=1757081721" media="screen" />
+    <link rel="stylesheet" type="text/css" href="/mqtli/assets/prism-ghcolors.css?v=1757081721"
+        media="screen" />
+
+    <script>
+        var DOCTAVE_TIMESTAMP = "1757081721";
+        var BASE_PATH = "/mqtli/";
+        var color = localStorage.getItem('doctave-color')
+
+        if (color === 'dark') {
+            document.getElementsByTagName('html')[0].classList.remove('light');
+            document.getElementsByTagName('html')[0].classList.add('dark');
+        } else {
+            document.getElementsByTagName('html')[0].classList.remove('dark');
+            document.getElementsByTagName('html')[0].classList.add('light');
+        }
+    </script>
+
+    
+</head>
+
+<body>
+    <label for='menu-toggle-switch' class='menu-toggle-button'>
+        ☰
+    </label>
+    <input type="checkbox" id="menu-toggle-switch" value='0' />
+    <div class='page'>
+        <div class='header'>
+            <div class='logo'>
+                
+                <h2 class='project-name'>
+                    <a href="/mqtli/">
+                        MQTli - CLI client for MQTT
+                    </a>
+                </h2>
+            </div>
+            <div class='search'>
+                <form id='search-form'>
+    <input type='text' id='search-box' autocomplete="off" placeholder="Search..."></input>
+    <span class='search-icon'>S</span>
+    <ul id='search-results'></ul>
+</form>
+
+            </div>
+            <div class='header-dummy-right'>
+            </div>
+        </div>
+        <div class='container'>
+            <div class='sidebar-left'>
+                <nav class='site-nav'>
+    <ul>
+        
+            <li><a href="/mqtli/quickstart">Quickstart</a></li>
+            
+        
+            <li><a href="/mqtli/modes">Operating Modes</a></li>
+            
+        
+            <li><a class="active" href="/mqtli/config/concept">Conceptual Overview</a></li>
+            
+        
+            <li><a href="/mqtli/config">Configuration</a></li>
+            
+                <ul>
+    
+        <li><a href="/mqtli/config/mqtt_broker_connect">Broker connection</a></li>
+        
+    
+        <li><a href="/mqtli/config/sql_storage">SQL storage</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic">Topics</a></li>
+        
+            <ul>
+    
+        <li><a href="/mqtli/config/topic/payload_and_input_types">Payload types and publish input types</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/publish">Publish and triggers</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/subscription">Subscription and outputs</a></li>
+        
+    
+        <li><a href="/mqtli/config/topic/filter">Filters</a></li>
+        
+    
+</ul>
+
+        
+    
+</ul>
+
+            
+        
+    </ul>
+    <span id='light-dark-mode-switch'>
+        <svg xmlns="http://www.w3.org/2000/svg" id="dark-mode-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+        </svg>
+
+        <svg xmlns="http://www.w3.org/2000/svg" id="light-mode-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+        </svg>
+    </span>
+</nav>
+
+            </div>
+            <div class='doctave-content'>
+                <h1 id="conceptual-overview-of-mqtli">Conceptual overview of MQTli</h1>
+<h2 id="what-is-mqtli?">What is MQTli?</h2>
+<p>MQTli is a command‑line tool that connects to an MQTT broker, subscribes to and/or publishes on topics, and abstracts away the pain of inconsistent payload formats across topics. It can automatically convert between different input and output formats and apply filter chains to transform the data on the fly. Results can be sent to the console, written to files, inserted into a SQL database, or published back to another topic. This enables powerful ETL‑style workflows: transform data from one topic and route it to another topic or persist selected fields into a database table.</p>
+<h2 id="high‑level-architecture">High‑level architecture</h2>
+<p>At a high level, MQTli is configured with:</p>
+<ul>
+<li>Broker connection: How to connect/authenticate to the MQTT broker (TCP/WebSocket, TLS, credentials, client ID, keep‑alive, last‑will, etc.).</li>
+<li>Topics: A list of topic entries. Each entry may define:
+<ul>
+<li>Subscription: Whether to listen on the topic, optionally with QoS. Each subscription can have multiple outputs (console/file/sql/topic) and an optional filter chain that transforms the payload before output.</li>
+<li>Publish: Whether to publish to the topic, where the input content comes from (inline text/JSON/file/stdin), optional filters to transform the input prior to publishing, and triggers (e.g., periodic) that define when to publish.</li>
+<li>Payload: The expected input format of the topic (e.g., text, json, bytes) to assist with parsing/conversion.</li>
+</ul>
+</li>
+</ul>
+<h2 id="data-flow-(simplified)">Data flow (simplified)</h2>
+<ol>
+<li>Connect to broker using the broker section of the configuration.</li>
+<li>For each configured topic:
+<ul>
+<li>If subscription is enabled:
+a) Receive messages from the broker.
+b) Normalize/parse payload according to the topic’s payload type.
+c) Apply the configured filter chain (zero or more filters). Filters can convert between formats and/or mutate content.
+d) Send the transformed result to each configured output (console, file, SQL, or another topic).</li>
+<li>If publish is enabled:
+a) Build the input payload (text/JSON/file/stdin).
+b) Apply the configured filter chain.
+c) Convert to the required wire format and publish to the broker.</li>
+</ul>
+</li>
+</ol>
+<h2 id="why-payload-abstraction-matters">Why payload abstraction matters</h2>
+<p>Different topics often carry payloads using inconsistent styles (plain text, JSON objects, CSV‑like lines, arbitrary bytes). MQTli’s payload handling and filters allow you to:</p>
+<ul>
+<li>Parse and validate inbound payloads.</li>
+<li>Extract, reshape, or enrich fields.</li>
+<li>Convert between formats (e.g., JSON → text, text → JSON) automatically as needed by the chosen outputs.</li>
+<li>Keep your downstream consumers stable even if upstream payloads vary by topic.</li>
+</ul>
+<h2 id="core-components-(high‑level)">Core components (high‑level)</h2>
+<ul>
+<li>
+<p>Broker connector
+Establishes and maintains the MQTT connection. Manages protocol selection (v3.1.1/v5), TCP vs WebSocket, optional TLS, authentication, keep‑alive, and last‑will configuration.</p>
+</li>
+<li>
+<p>Topic registry
+A list of topic configurations. Each topic acts as a logical processing unit that can independently subscribe, publish, transform, and route messages.</p>
+</li>
+<li>
+<p>Payload handler
+Interprets the raw bytes for a topic according to the declared payload type (e.g., text, json), enabling reliable conversion and filter operations.</p>
+</li>
+<li>
+<p>Filter engine
+Executes a sequence of filters to transform content. Filters can extract JSON paths, append/prepend text, map fields, coerce types, or perform other format conversions. The engine ensures the output of one filter becomes the input to the next, forming a pipeline.</p>
+</li>
+<li>
+<p>Output plugins
+Pluggable sinks for transformed data. Out of the box:</p>
+<ul>
+<li>Console: Print as text or JSON for quick inspection.</li>
+<li>File: Append or write to files for logging or archival.</li>
+<li>SQL: Map fields into columns and insert rows into a relational database.</li>
+<li>Topic: Publish the result to another MQTT topic (enabling routing and fan‑out patterns).</li>
+</ul>
+</li>
+<li>
+<p>Publisher with triggers
+Publishes content to topics based on configured triggers (for example, periodic timers). Content can be inline, read from files/stdin, or generated via filters, then published in the desired format.</p>
+</li>
+</ul>
+<h2 id="filters-and-transformations">Filters and transformations</h2>
+<p>Filters are applied in order and can both convert formats and mutate the data. Typical examples include:</p>
+<ul>
+<li>extract_json with a JSONPath (e.g., $.measurements.temperature) to focus on a specific field or sub‑object.</li>
+<li>prepend/append text around a value (e.g. add a unit to a number and print it on the console or to a file)</li>
+<li>casting or formatting steps (e.g., numeric → string).</li>
+<li>restructuring objects (e.g., remapping keys), when supported by the available filter set.</li>
+</ul>
+<p>Because filters run for both subscriptions and publications, you can normalize incoming data and also synthesize outgoing messages.</p>
+<h2 id="outputs-in-depth">Outputs in depth</h2>
+<ul>
+<li>
+<p>Console output</p>
+<ul>
+<li>Quick way to observe transformed data. Useful during development or when running MQTli as a monitoring tool.</li>
+</ul>
+</li>
+<li>
+<p>File output</p>
+<ul>
+<li>Write transformed payloads to files. Typical use is operational logging, audit trails, or creating CSV/JSONL feeds for later batch processing.</li>
+</ul>
+</li>
+<li>
+<p>SQL storage</p>
+<ul>
+<li>Define how transformed fields map to table columns. MQTli will insert rows for each message after filters are applied. This is ideal for persisting metrics or events for reporting/analytics.</li>
+</ul>
+</li>
+<li>
+<p>Topic output</p>
+<ul>
+<li>Publish the transformed result on another MQTT topic. This enables patterns like: listen on sensor/raw, transform, then publish to sensor/normalized.</li>
+</ul>
+</li>
+</ul>
+<h2 id="etl-with-mqtli">ETL with MQTli</h2>
+<p>Thanks to the combination of subscriptions, filters, and outputs, MQTli performs streaming ETL:</p>
+<ul>
+<li>Extract: Subscribe to topics; parse payloads (e.g., JSON) using the payload handler.</li>
+<li>Transform: Apply one or more filters to clean, enrich, or reshape the data.</li>
+<li>Load: Send results to your destination: console, file, SQL database, or a different MQTT topic.</li>
+</ul>
+<h2 id="common-patterns">Common patterns</h2>
+<ul>
+<li>
+<p>Normalize JSON to text for dashboards</p>
+<p>Subscribe to a topic where a sensor value, like a temperature, is transmitted as JSON. Extract the temperature
+using JSONPath (e.g. <code>$.temperature</code>), prepend "Temperature: ", append " °C" and print to console.</p>
+</li>
+<li>
+<p>Topic‑to‑topic transformation (routing)</p>
+<p>Subscribe to a topic, extract sub‑fields, reshape the JSON, and publish the normalized data to another topic.</p>
+</li>
+<li>
+<p>Periodic publisher</p>
+<p>Configure publish with a periodic trigger that emits a heartbeat or a synthesized JSON blob every N seconds.</p>
+</li>
+</ul>
+<h2 id="where-to-find-the-details">Where to find the details</h2>
+<ul>
+<li><a href="../quickstart.md">Quickstart</a> — build/run and a minimal config to get going.</li>
+<li><a href="../config/mqtt_broker_connect.md">Broker connection</a> — all connection options.</li>
+<li>Topic configuration:
+<ul>
+<li><a href="../config/topic/payload_and_input_types.md">Payload and input types</a></li>
+<li><a href="../config/topic/filter.md">Filters</a></li>
+<li><a href="../config/topic/subscription.md">Subscription (and outputs)</a></li>
+<li><a href="../config/topic/publish.md">Publish</a></li>
+</ul>
+</li>
+<li><a href="../config/sql_storage.md">SQL storage</a> — mapping fields to a relational table.</li>
+</ul>
+<h2 id="configuration-sketch-(yaml)">Configuration sketch (YAML)</h2>
+<p>Below is a compact sketch showing how the pieces relate. See Quickstart and reference pages for the full syntax and options.</p>
+<pre><code class="language-yaml">broker:
+  host: localhost
+  port: 1883
+  use_tls: false
+
+topics:
+  - topic: sensor/raw
+    payload:
+      type: json
+    subscription:
+      enabled: true
+      outputs:
+        - format: { type: text }    # console
+        - file: { path: "out.log" } # file sink
+        - sql:
+            dsn: "postgres://user:pw@localhost/db"
+            table: "measurements"
+            mapping: { time: "$.ts", device_id: "$.id", temperature: "$.t" }
+      filters:
+        - type: extract_json
+          jsonpath: "$.measurements"
+
+  - topic: sensor/normalized
+    publish:
+      enabled: true
+      input:
+        type: json
+        content: '{"heartbeat": true}'
+      filters:
+        - type: append
+          content: "" # placeholder to show filters can run here too
+      trigger:
+        - type: periodic
+          interval: 5000
+</code></pre>
+<h2 id="key-takeaways">Key takeaways</h2>
+<ul>
+<li>MQTli connects to your MQTT broker and manages protocol/TLS/auth details for you.</li>
+<li>You define a list of topics with subscribe and/or publish behavior.</li>
+<li>Payload types and filters let you automatically convert between formats and transform data.</li>
+<li>Outputs route transformed data to console, files, SQL databases, or other topics.</li>
+<li>Combining these pieces enables powerful streaming ETL patterns without writing code.</li>
+</ul>
+
+            </div>
+            <div class='sidebar-right'>
+                <div class='page-nav' id='page-nav'>
+                    <p class='page-nav-header'>On this page</p>
+                    <ul>
+                        
+                        <li class='page-nav-level-1'>
+                            <a href='#conceptual-overview-of-mqtli'>Conceptual overview of MQTli</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#what-is-mqtli?'>What is MQTli?</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#high‑level-architecture'>High‑level architecture</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#data-flow-(simplified)'>Data flow (simplified)</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#why-payload-abstraction-matters'>Why payload abstraction matters</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#core-components-(high‑level)'>Core components (high‑level)</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#filters-and-transformations'>Filters and transformations</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#outputs-in-depth'>Outputs in depth</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#etl-with-mqtli'>ETL with MQTli</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#common-patterns'>Common patterns</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#where-to-find-the-details'>Where to find the details</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#configuration-sketch-(yaml)'>Configuration sketch (YAML)</a>
+                        </li>
+                        
+                        <li class='page-nav-level-2'>
+                            <a href='#key-takeaways'>Key takeaways</a>
+                        </li>
+                        
+                    </ul>
+                </div>
+            </div>
+            <div class='wave-container'>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
+                    <path fill-opacity="0.35"
+                        d="M0,192L60,213.3C120,235,240,277,360,277.3C480,277,600,235,720,192C840,149,960,107,1080,122.7C1200,139,1320,213,1380,250.7L1440,288L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                    <path fill-opacity="0.5"
+                        d="M0,160L60,181.3C120,203,240,245,360,229.3C480,213,600,139,720,138.7C840,139,960,213,1080,229.3C1200,245,1320,203,1380,181.3L1440,160L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                    <path fill-opacity="0.2"
+                        d="M0,224L60,197.3C120,171,240,117,360,117.3C480,117,600,171,720,186.7C840,203,960,181,1080,186.7C1200,192,1320,224,1380,240L1440,256L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
+                    </path>
+                </svg>
+                <p>Powered by <a href='https://cli.doctave.com' target='_blank'>Doctave</a></p>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" src="/mqtli/assets/katex.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/mermaid.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/elasticlunr.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/prism.js?v=1757081721"></script>
+    <script type="text/javascript" src="/mqtli/assets/doctave-app.js?v=1757081721"></script>
+
+    
+</body>
+
+</html>
