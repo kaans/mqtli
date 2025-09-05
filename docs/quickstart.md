@@ -62,7 +62,8 @@ broker:
 # Optional auth (see next section for username/password)
 
 # At least one topic section is needed for useful work.
-# Example: subscribe to all sensors and print output to console.
+# Example: publish and subscribe to a topic (sensor/one) on the same topic entry,
+# or publish and subscribe to the same topic for sensor/two.
 topics:
   - topic: sensor/one
     subscription:
@@ -109,7 +110,7 @@ topics:
         - type: extract_json
           jsonpath: $.measurements
       trigger:
-        - type: periodic # default trigger: periodic with no count (indefinitely) and interval 1 second
+        - type: periodic
           interval: 2000
 ```
 
@@ -130,8 +131,12 @@ broker:
 ```
 
 Alternatively, you can pass these via CLI or environment variables:
-- CLI: `mqtli --host localhost --port 1883 --username your_user --password your_password`
-- ENV: `BROKER_HOST=localhost BROKER_PORT=1883 BROKER_USERNAME=your_user BROKER_PASSWORD=your_password mqtli`
+- CLI
+
+  `mqtli --host localhost --port 1883 --username your_user --password your_password`
+- ENV:
+
+  `BROKER_HOST=localhost BROKER_PORT=1883 BROKER_USERNAME=your_user BROKER_PASSWORD=your_password mqtli`
 
 Quick try: subscribe and publish
 --------------------------------
