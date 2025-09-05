@@ -2,3 +2,16 @@
 title: "MQTli - CLI client for MQTT"
 
 basepath: /mqtli
+
+navigation:
+  - path: docs/quickstart.md
+  - path: docs/config
+    children:
+      - path: docs/config/mqtt_broker_connect.md
+      - path: docs/config/sql_storage.md
+      - path: docs/config/topic
+        children:
+          - path: docs/config/topic/payload_and_input_types.md
+          - path: docs/config/topic/publish.md
+          - path: docs/config/topic/subscription.md
+          - path: docs/config/topic/filter.md

@@ -48,9 +48,7 @@ topics:
         - format: { type: yaml }
           target: { type: console }
     payload:
-      type: protobuf
-      # definition: messages.proto
-      # message: Proto.Message
+      type: text
     publish:
       enabled: false
       input:

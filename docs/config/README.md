@@ -1,11 +1,15 @@
 ---
-title: Top‑level configuration
+title: Configuration
 ---
 
-Top‑level configuration
+Configuration
 =======================
 
-Use these settings to shape how MQTli runs: connect to your broker (host/port, protocol, TLS, last‑will), control logging verbosity, define topics to subscribe/publish with automatic format conversion, choose an overall mode, and optionally enable a database connection for SQL outputs. For precedence of sources see the Configuration Reference index (CLI > ENV > YAML).
+Use these settings to shape how MQTli runs: connect to your broker (host/port, protocol, TLS, last‑will), control logging verbosity, define topics to subscribe/publish with automatic format conversion, choose an overall mode, and optionally enable a database connection for SQL outputs.
+
+The precedence of sources is as follows: `CLI > ENV > YAML`
+
+This means that CLI parameters overwrite environment variables and YAML configurations. Environment variables are overwrite YAML configurations.
 
 Broker
 ------
@@ -44,7 +48,7 @@ Configure an optional database connection used by SQL outputs and storage featur
 - Values: object with connection_string.
 - Default: unset.
 - How to set: YAML: sql_storage.connection_string
-- See also: SQL storage page.
+- See also: [SQL storage page](sql_storage.md)
 
 YAML example (top level)
 ```yaml
