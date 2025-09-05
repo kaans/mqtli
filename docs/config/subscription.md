@@ -101,3 +101,52 @@ subscription:
     - type: extract_json
       jsonpath: $.name
 ```
+
+
+More examples
+-------------
+Example 1 — Console + file outputs
+```yaml
+subscription:
+  enabled: true
+  qos: 1
+  outputs:
+    - format: { type: yaml }
+      target: { type: console }
+    - format: { type: text }
+      target:
+        type: file
+        path: received.txt
+        overwrite: false
+        append: "\n"
+```
+
+Example 2 — Forward to another topic with QoS/retain
+```yaml
+subscription:
+  enabled: true
+  qos: 0
+  outputs:
+    - format: { type: raw }
+      target:
+        type: topic
+        topic: archive/raw
+        qos: 1
+        retain: true
+```
+
+Example 3 — Insert into SQL and extract a field
+```yaml
+subscription:
+  enabled: true
+  outputs:
+    - format: { type: json }
+      target:
+        type: sql
+        insert_statement: |
+          INSERT INTO messages(ts, payload_json)
+          VALUES (CURRENT_TIMESTAMP, ?);
+  filters:
+    - type: extract_json
+      jsonpath: $.data
+```

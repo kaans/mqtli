@@ -79,3 +79,44 @@ topics:
     payload:
       type: json
 ```
+
+
+More examples
+-------------
+Example 1 — Chain filters on subscription (JSON → extract → to_text → to_upper)
+```yaml
+topics:
+  - topic: app/events
+    payload: { type: json }
+    subscription:
+      enabled: true
+      outputs:
+        - format: { type: text }
+      filters:
+        - type: extract_json
+          jsonpath: $.message
+        - type: to_text
+        - type: to_upper
+```
+
+Example 2 — Prepare publish payload (YAML → to_json → extract_json)
+```yaml
+topics:
+  - topic: app/cmd
+    payload: { type: json }
+    publish:
+      enabled: true
+      input:
+        type: yaml
+        content: |
+          request:
+            cmd: ping
+            id: 42
+      filters:
+        - type: to_json
+        - type: extract_json
+          jsonpath: $.request
+      trigger:
+        - type: periodic
+          interval: 1000
+```

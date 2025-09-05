@@ -64,3 +64,70 @@ topics:
 Notes
 - You can configure the same MQTT topic multiple times for different flows.
 - Payload conversion is automatic between payload.type, publish.input.type, and subscription.output.format.type when possible.
+
+
+More examples
+-------------
+Example 1 — Wildcard subscription and two outputs
+```yaml
+topics:
+  - topic: sensors/+/data
+    payload: { type: json }
+    subscription:
+      enabled: true
+      outputs:
+        - format: { type: json }
+          target: { type: console }
+        - format: { type: base64 }
+          target:
+            type: file
+            path: sensors.b64
+            overwrite: false
+            append: "\n"
+```
+
+Example 2 — Same topic with separate publish flow
+```yaml
+topics:
+  - topic: devices/1/cmd
+    payload: { type: json }
+    publish:
+      enabled: true
+      input:
+        type: json
+        content: '{"cmd":"reset"}'
+      trigger:
+        - type: periodic
+          interval: 5000
+
+  - topic: devices/1/cmd
+    subscription:
+      enabled: true
+      outputs:
+        - format: { type: text }
+          target: { type: console }
+```
+
+Example 3 — Protobuf payload with YAML output and hex input for publish
+```yaml
+topics:
+  - topic: telemetry/node1
+    payload:
+      type: protobuf
+      definition: messages.proto
+      message: Proto.Message
+    subscription:
+      enabled: true
+      outputs:
+        - format: { type: yaml }
+          target: { type: console }
+    publish:
+      enabled: true
+      qos: 1
+      input:
+        type: hex
+        content: "AB12CD34"
+      trigger:
+        - type: periodic
+          interval: 1000
+```

@@ -106,3 +106,50 @@ publish:
   filters:
     - type: to_upper
 ```
+
+
+More examples
+-------------
+Example 1 — Periodic with count and initial delay
+```yaml
+publish:
+  enabled: true
+  qos: 1
+  retain: false
+  input:
+    type: json
+    content: '{"ping":true}'
+  trigger:
+    - type: periodic
+      interval: 500
+      count: 5
+      initial_delay: 100
+```
+
+Example 2 — Read raw bytes from file
+```yaml
+publish:
+  enabled: true
+  qos: 0
+  input:
+    type: raw
+    path: payload.bin
+  trigger:
+    - type: periodic
+      interval: 2000
+```
+
+Example 3 — Hex inline with filter chain to upper text
+```yaml
+publish:
+  enabled: true
+  input:
+    type: hex
+    content: "48656c6c6f"  # "Hello"
+  filters:
+    - type: to_text
+    - type: to_upper
+  trigger:
+    - type: periodic
+      interval: 1000
+```

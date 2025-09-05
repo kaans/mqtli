@@ -70,3 +70,118 @@ Notes
 - Keep‑alive must be at least 5 seconds (see Broker > Keep alive).
 - Username and password must be provided together when used.
 - TLS client certificate and key must be provided together.
+
+
+Examples
+--------
+Example 1 — Minimal localhost (no TLS), one console subscription
+```yaml
+broker:
+  host: localhost
+  port: 1883
+  protocol: tcp
+  mqtt_version: v5
+  keep_alive: 5
+  use_tls: false
+
+log_level: info
+
+topics:
+  - topic: sensors/+/data
+    subscription:
+      enabled: true
+      qos: 0
+      outputs:
+        - format: { type: json }
+```
+
+Example 2 — TLS with CA, forward to another topic, and periodic publisher
+```yaml
+broker:
+  host: broker.example.com
+  port: 8883
+  use_tls: true
+  tls_ca_file: "ca.pem"
+
+log_level: warn
+
+topics:
+  - topic: devices/1/cmd
+    payload: { type: json }
+    publish:
+      enabled: true
+      qos: 1
+      retain: false
+      input:
+        type: json
+        content: '{"cmd":"ping"}'
+      trigger:
+        - type: periodic
+          interval: 2000
+          initial_delay: 0
+
+  - topic: devices/1/resp
+    subscription:
+      enabled: true
+      outputs:
+        - format: { type: text }
+          target:
+            type: topic
+            topic: devices/1/archive
+            qos: 0
+            retain: false
+```
+
+Example 3 — SQL storage with file logging and JSON filter
+```yaml
+sql_storage:
+  connection_string: "sqlite::memory:"
+
+log_level: debug
+
+topics:
+  - topic: app/logs
+    payload: { type: json }
+    subscription:
+      enabled: true
+      outputs:
+        - format: { type: json }
+          target: { type: console }
+        - format: { type: text }
+          target:
+            type: file
+            path: app.log
+            overwrite: false
+            append: "\n"
+        - format: { type: json }
+          target:
+            type: sql
+            insert_statement: |
+              INSERT INTO logs(ts, payload_json)
+              VALUES (CURRENT_TIMESTAMP, ?);
+    filters:
+      - type: extract_json
+        jsonpath: $.message
+```
+
+Example 4 — Last‑will and Sparkplug payloads
+```yaml
+broker:
+  host: iot.example.net
+  port: 1883
+  last_will:
+    topic: lwt/clients/mqtli
+    payload: "offline"
+    qos: 0
+    retain: true
+
+topics:
+  - topic: spBv1.0/+/NDATA/plant1
+    payload:
+      type: sparkplug
+    subscription:
+      enabled: true
+      outputs:
+        - format: { type: sparkplug_json }
+          target: { type: console }
+```

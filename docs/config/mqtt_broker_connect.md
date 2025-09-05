@@ -159,3 +159,61 @@ Notes
 - keep_alive must be at least 5 seconds.
 - If username is set, password must also be set (and vice versa).
 - TLS client certificate and key must be provided together.
+
+
+Examples
+--------
+Example A — Plain TCP, no TLS
+```yaml
+broker:
+  host: localhost
+  port: 1883
+  protocol: tcp
+  mqtt_version: v5
+  keep_alive: 10
+  use_tls: false
+```
+
+Example B — TLS with CA validation
+```yaml
+broker:
+  host: broker.example.com
+  port: 8883
+  use_tls: true
+  tls_ca_file: "ca.pem"
+  mqtt_version: v311
+  keep_alive: 20
+```
+
+Example C — Mutual TLS (client certificate + key)
+```yaml
+broker:
+  host: secure.example.net
+  port: 8883
+  use_tls: true
+  tls_ca_file: "ca.pem"
+  tls_client_certificate: "client.crt"
+  tls_client_key: "client.key"
+  tls_version: v13
+```
+
+Example D — WebSocket connection
+```yaml
+broker:
+  host: ws-broker.example.com
+  port: 9001
+  protocol: websocket
+  use_tls: false
+```
+
+Example E — Last‑Will configured
+```yaml
+broker:
+  host: localhost
+  port: 1883
+  last_will:
+    topic: lwt/mqtli
+    payload: "bye"
+    qos: 1
+    retain: true
+```

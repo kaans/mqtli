@@ -105,3 +105,47 @@ Validation
 QoS in YAML
 -----------
 - QoS for subscription outputs and publish can be specified as 0, 1, 2.
+
+
+Examples
+--------
+Example 1 — Hex input published to a protobuf topic, YAML output on subscribe
+```yaml
+topics:
+  - topic: telemetry/node1
+    payload:
+      type: protobuf
+      definition: messages.proto
+      message: Proto.Message
+    publish:
+      enabled: true
+      input:
+        type: hex
+        content: "AB12CD34"
+      trigger:
+        - type: periodic
+          interval: 1000
+    subscription:
+      enabled: true
+      outputs:
+        - format: { type: yaml }
+```
+
+Example 2 — Base64 input to JSON payload with extract filter
+```yaml
+topics:
+  - topic: app/data
+    payload: { type: json }
+    publish:
+      enabled: true
+      input:
+        type: base64
+        content: "eyJtZXNzYWdlIjogImhlbGxvIn0="  # {"message":"hello"}
+      filters:
+        - type: to_json
+        - type: extract_json
+          jsonpath: $.message
+      trigger:
+        - type: periodic
+          interval: 1500
+```
