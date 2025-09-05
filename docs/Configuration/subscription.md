@@ -5,7 +5,7 @@ title: Subscription and outputs
 Subscription and outputs
 ========================
 
-This page lists each subscription option as its own section.
+Use these settings to control how incoming messages are handled on a subscribed topic: enable/disable the subscription, choose the QoS, decide how the payload is rendered, and send it to one or more targets such as console, files, another topic, or an SQL database. You can also chain filters to transform messages before output.
 
 Enabled
 -------

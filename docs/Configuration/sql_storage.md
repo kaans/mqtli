@@ -5,7 +5,7 @@ title: SQL storage
 SQL storage
 ===========
 
-This page lists each SQL storage option as its own section.
+Configure a database connection that outputs of type sql can use to persist incoming messages. This is useful for logging, analytics, and archiving; you provide a connection string, then reference it from subscription outputs that execute your INSERT statements.
 
 Connection string
 -----------------

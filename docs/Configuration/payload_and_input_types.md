@@ -5,7 +5,7 @@ title: Payload types and publish input types
 Payload types
 =============
 
-Each payload type has its own section below.
+This page explains the formats you can work with and how MQTli treats them when converting and rendering messages—for example, human‑readable text/JSON/YAML, binary encodings like hex/base64/raw, and structured formats such as Protobuf and Sparkplug. Choose a payload type to match your topic’s data so conversions and outputs behave as expected.
 
 Text
 ----
@@ -62,7 +62,7 @@ Conversions
 Publish input types
 ===================
 
-Each publish input type has its own section below.
+This section describes how to provide data for publishing: inline content or file‑based sources in various formats. Pick the input type that matches how you want to supply the message, and MQTli will convert it to the topic’s payload format when possible.
 
 text
 ----
@@ -76,27 +76,27 @@ Read raw bytes from a file.
 
 hex
 ---
-- What it does: Inline hex or file path to hex.
+Inline hex or file path to hex.
 - Fields: content and/or path.
 
 json
 ----
-- What it does: Inline JSON or file path.
+Inline JSON or file path.
 - Fields: content and/or path.
 
 yaml
 ----
-- What it does: Inline YAML or file path.
+Inline YAML or file path.
 - Fields: content and/or path.
 
 base64
 ------
-- What it does: Inline base64 or file path.
+Inline base64 or file path.
 - Fields: content and/or path.
 
 null
 ----
-- What it does: No content is provided.
+No content is provided.
 
 Validation
 ----------

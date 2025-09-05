@@ -5,7 +5,7 @@ title: Publish and triggers
 Publish and triggers
 ====================
 
-This page lists each publish option as its own section.
+Use these settings to automate sending messages on a topic: choose the data source (inline text/JSON/YAML, hex/base64, or file), schedule when to send with triggers, set QoS/retain flags, and optionally transform the payload with filters. Conversions are applied automatically when the input format differs from the topic’s payload format.
 
 Enabled
 -------

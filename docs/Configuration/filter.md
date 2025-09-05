@@ -5,7 +5,7 @@ title: Filters
 Filters
 =======
 
-This page lists each filter option as its own section.
+Filters let you reshape messages as they flow through MQTli: extract fields, change case, prepend/append text, or convert between representations like text and JSON. You can apply them after receiving messages on a subscription or before publishing, and chain multiple filters to build powerful pipelines.
 
 Where filters apply
 -------------------

@@ -5,7 +5,7 @@ title: Top‑level configuration
 Top‑level configuration
 =======================
 
-This page lists each top‑level setting with its own section. For precedence of sources see the Configuration Reference index (CLI > ENV > YAML).
+Use these settings to shape how MQTli runs: connect to your broker (host/port, protocol, TLS, last‑will), control logging verbosity, define topics to subscribe/publish with automatic format conversion, choose an overall mode, and optionally enable a database connection for SQL outputs. For precedence of sources see the Configuration Reference index (CLI > ENV > YAML).
 
 Broker
 ------

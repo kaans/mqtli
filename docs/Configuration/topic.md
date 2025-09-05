@@ -5,7 +5,7 @@ title: Topics
 Topics
 ======
 
-This page lists each topic option as its own section.
+Use this section to define the topics you care about: specify the MQTT topic or pattern, declare how payloads on that topic should be interpreted, choose how incoming messages are displayed or forwarded, and optionally automate publishing. Wildcards (+, #) and automatic format conversion let you build flexible flows for both subscribe and publish.
 
 Topic
 -----
