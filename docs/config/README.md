@@ -7,10 +7,24 @@ Configuration
 
 Use these settings to shape how MQTli runs: connect to your broker (host/port, protocol, TLS, last‑will), control logging verbosity, define topics to subscribe/publish with automatic format conversion, choose an overall mode, and optionally enable a database connection for SQL outputs.
 
-The precedence of sources is as follows: `CLI > ENV > YAML`
+You can configure MQTli via three sources. If a setting is provided in multiple places, the following precedence applies (highest first):
 
-This means that CLI parameters overwrite environment variables and YAML configurations. Environment variables are overwrite YAML configurations.
+1) Command line arguments
+2) Environment variables
+3) YAML configuration file (config.yaml by default)
 
+If a value is not supplied, built‑in defaults apply. Complex topic configuration is only supported via the YAML file.
+
+Quick reference of sources
+- CLI: Run mqtli --help for the full list of flags.
+- ENV: See the mapping in each section below (e.g., BROKER_HOST, BROKER_PORT, ...).
+- YAML: See examples in config.default.yaml and the examples in this documentation.
+
+Notes on overrides and merging
+- CLI/ENV options only cover the broker/logging and a few top‑level aspects. Topic definitions cannot be supplied via CLI/ENV; they must be in YAML.
+- When combining sources, scalar values are overridden by higher‑precedence sources. Collections (like topics list) are not merged from CLI/ENV; they come from YAML.
+- For booleans provided via CLI, both --flag true and dedicated presence/absence styles may appear; see --help output for exact forms.
+- 
 Broker
 ------
 Configure how MQTli connects to your MQTT broker, including host/port, protocol, TLS, and optional last‑will.
@@ -32,23 +46,21 @@ Topics
 Define one or more topics, specifying payload format, how to output received messages, and how to publish automatically.
 - Values: list of topic entries.
 - Default: none (empty list). Without topics, the client won’t subscribe/publish anything automatically.
-- How to set: YAML only: topics: [ ... ]
+- How to set in YAML only: topics: [ ... ]
 - See also: Topics page for full schema and examples.
 
 Mode
 ----
-Select the overall operating mode for the application.
-- Values: multi_topic | publish | subscribe | sparkplug.
-- Default: multi_topic.
-- How to set: YAML: mode
+Select the overall operating mode for the application. Exactly one mode is active at a time. If not set, multi_topic is used. You can set the mode via the CLI using one of the commands (`publish`, `subscribe`, `sp`).
+
 
 SQL storage
 -----------
 Configure an optional database connection used by SQL outputs and storage features.
 - Values: object with connection_string.
 - Default: unset.
-- How to set: YAML: sql_storage.connection_string
-- See also: [SQL storage page](sql_storage.md)
+- How to set in YAML: sql_storage.connection_string
+- See also: [SQL storage page](config/sql_storage.md)
 
 YAML example (top level)
 ```yaml

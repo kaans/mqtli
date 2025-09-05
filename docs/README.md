@@ -61,6 +61,8 @@ Configuration
 -------------
 You can configure MQTli via CLI arguments, environment variables, and a YAML config file. If a setting is not supplied, defaults apply. Complex topic configurations are best managed in the config file.
 
+See Operating Modes to choose how MQTli runs in this session: [docs/modes](./modes.md).
+
 Quick start with a config file
 1) Copy `config.default.yaml` from the repository to your working directory and rename it to `config.yaml`.
 2) Adjust broker, topics, and payload formats to your needs.

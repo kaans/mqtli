@@ -12,7 +12,7 @@ Connection string
 Database connection string used by SQL outputs and optional storage features.
 - Values: URL‑like string. Supported schemes: sqlite, mariadb, mysql, postgresql.
 - Default: unset.
-- How to set: YAML: sql_storage.connection_string
+- How to set in YAML: sql_storage.connection_string
 - Examples accepted:
   - sqlite::memory:
   - sqlite://        (temporary file)

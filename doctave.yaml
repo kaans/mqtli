@@ -5,6 +5,7 @@ basepath: /mqtli
 
 navigation:
   - path: docs/quickstart.md
+  - path: docs/modes.md
   - path: docs/config/concept
     children: "*"
   - path: docs/config

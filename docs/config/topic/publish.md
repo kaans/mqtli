@@ -12,77 +12,77 @@ Enabled
 Turns publishing on or off for the topic entry.
 - Values: true | false.
 - Default: true.
-- How to set: YAML: publish.enabled
+- How to set in YAML: publish.enabled
 
 QoS
 ---
 Quality of Service level for sending messages.
 - Values: 0 | 1 | 2.
 - Default: 0.
-- How to set: YAML: publish.qos
+- How to set in YAML: publish.qos
 
 Retain
 ------
 Whether published messages are retained by the broker.
 - Values: true | false.
 - Default: false.
-- How to set: YAML: publish.retain
+- How to set in YAML: publish.retain
 
 Input — type
 ------------
 Select how the message data is provided.
 - Values: text | raw | hex | json | yaml | base64 | null.
 - Default: text (empty content/path).
-- How to set: YAML: publish.input.type
+- How to set in YAML: publish.input.type
 
 Input — content
 ---------------
 Inline content for the message (for text/json/yaml/hex/base64).
 - Values: string.
 - Default: empty (unset).
-- How to set: YAML: publish.input.content
+- How to set in YAML: publish.input.content
 
 Input — path
 ------------
 File path from which to read the message.
 - Values: string (path). For raw, path is required; for other types, content and/or path may be used.
 - Default: empty (unset).
-- How to set: YAML: publish.input.path
+- How to set in YAML: publish.input.path
 
 Trigger — type
 --------------
 Select a trigger mechanism. Currently periodic is supported.
 - Values: periodic.
 - Default: periodic with 1s interval if not specified but triggers present.
-- How to set: YAML: publish.trigger[].type
+- How to set in YAML: publish.trigger[].type
 
 Trigger — interval
 ------------------
 Period between publishes in milliseconds.
 - Values: integer milliseconds.
 - Default: 1000.
-- How to set: YAML: publish.trigger[].interval
+- How to set in YAML: publish.trigger[].interval
 
 Trigger — count
 ---------------
 Number of messages to publish; omit for infinite.
 - Values: integer (u32), optional.
 - Default: unset (infinite).
-- How to set: YAML: publish.trigger[].count
+- How to set in YAML: publish.trigger[].count
 
 Trigger — initial_delay
 -----------------------
 Initial delay before the first publish, in milliseconds.
 - Values: integer milliseconds.
 - Default: 1000.
-- How to set: YAML: publish.trigger[].initial_delay
+- How to set in YAML: publish.trigger[].initial_delay
 
 Filters
 -------
 Optional chain to transform the message before sending.
 - Values: list of filters; see Filters page.
 - Default: empty list.
-- How to set: YAML: publish.filters
+- How to set in YAML: publish.filters
 
 Notes
 - If input type and the topic payload.type differ, automatic conversion is attempted.

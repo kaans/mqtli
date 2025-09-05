@@ -12,14 +12,14 @@ Topic
 Provide the MQTT topic or pattern this entry applies to.
 - Values: string. Supports + and # wildcards for matching incoming topics.
 - Default: none (required).
-- How to set: YAML: topics[].topic
+- How to set in YAML: topics[].topic
 
 Payload
 -------
 Declare the expected payload format used by messages on this topic.
 - Values: json | yaml | protobuf | sparkplug | sparkplug_json | hex | base64 | text | raw (plus attributes for protobuf/sparkplug).
 - Default: text in some contexts; recommended to set explicitly.
-- How to set: YAML: topics[].payload.{type,...}
+- How to set in YAML: topics[].payload.{type,...}
 - See also: Payload types page for attributes like definition/message for protobuf.
 
 Subscription
@@ -27,14 +27,14 @@ Subscription
 Configure how received messages should be output (format, targets, and optional filters).
 - Values: object; see the Subscription page.
 - Default: unset.
-- How to set: YAML: topics[].subscription
+- How to set in YAML: topics[].subscription
 
 Publish
 -------
 Define how to automatically publish messages on this topic, including input, triggers, filters, and QoS/retain.
 - Values: object; see the Publish page.
 - Default: unset.
-- How to set: YAML: topics[].publish
+- How to set in YAML: topics[].publish
 
 YAML example
 ------------
