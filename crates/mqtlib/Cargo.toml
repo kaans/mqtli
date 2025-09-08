@@ -43,4 +43,4 @@ sqlx = { version = "0.8.3", features = ["sqlite", "runtime-tokio", "mysql", "pos
 
 [build-dependencies]
 protobuf-codegen = "3.7.2"
-protoc-bin-vendored = "3.1.0"
+protoc-bin-vendored = "3.2.0"
