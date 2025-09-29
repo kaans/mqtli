@@ -13,7 +13,7 @@ path = "src/lib.rs"
 [dependencies]
 derive-getters = "0.5.0"
 rumqttc = { git = "https://github.com/bytebeamio/rumqtt.git", rev = "431be1b", features = ["websocket"] }
-serde = { version = "1.0.217", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
 serde_yaml = "0.9.30"
 thiserror = "2.0.11"
 tokio = { version = "1.43.0", features = ["macros", "rt", "rt-multi-thread", "sync", "signal"] }
